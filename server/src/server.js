@@ -13,6 +13,7 @@ import authRoutes from "./routes/auth.js";
 import gamesRoutes from "./routes/games.js";
 import adsRoutes from "./routes/ads.js";
 import chatRoutes from "./routes/chat.js";
+import presenceRoutes from "./routes/presence.js";
 import { closeDb, pool } from "./db.js";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -51,6 +52,7 @@ export async function buildServer(opts = {}) {
   await app.register(gamesRoutes, { prefix: "/api/games" });
   await app.register(adsRoutes, { prefix: "/api/ads" });
   await app.register(chatRoutes, { prefix: "/api/chat" });
+  await app.register(presenceRoutes, { prefix: "/api/presence" });
 
   // Opcjonalnie serwer oddaje też front — wtedy wszystko siedzi pod jednym
   // adresem i nie trzeba się przejmować CORS-em.

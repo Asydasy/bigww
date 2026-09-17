@@ -3,6 +3,30 @@
 Format: najnowsze na górze. Każdy wpis mówi, co zmieniło się w **zachowaniu**,
 a nie tylko w plikach.
 
+## [1.2.1] — 2026-09-18
+
+### Dodane
+- **Licznik „● N aktywnych” przy nagłówku czatu.** Liczy konta, z których
+  w ciągu ostatnich 5 minut przyszło żądanie z ważną sesją — czyli ile osób
+  jest teraz na stronie.
+- `GET /api/presence` oraz ten sam licznik w odpowiedzi `GET /api/chat`, żeby
+  panel czatu nie robił drugiego zapytania o to samo.
+- Migracja `006`: kolumna `users.last_seen_at` z indeksem. Ślad zapisuje się
+  przy żądaniu z sesją, ale **najwyżej raz na minutę na konto** — inaczej każde
+  kliknięcie kosztowałoby zapis do bazy.
+- Cztery nowe testy API (razem 38) i dwa sprawdzenia w teście przeglądarkowym
+  (razem 37).
+
+### Uwagi
+- **To nie jest ten sam licznik, co na Starcie, i celowo nazywa się inaczej.**
+  Start pokazuje „graczy online teraz”, czyli ogłoszenia z włączonym „szukam
+  teraz” — ilu ludzi szuka ekipy. Czat pokazuje „aktywnych” — ile osób jest
+  na stronie. Ta sama etykieta przy dwóch różnych liczbach wyglądałaby jak błąd,
+  więc różnią się nazwą, miejscem i kolorem.
+- **Gości nie liczymy.** Bez konta nie ma czego policzyć, a zostawianie
+  niezalogowanym znacznika w przeglądarce tylko po to, żeby podbić licznik,
+  nie jest tego warte.
+
 ## [1.2.0] — 2026-09-18
 
 Czat ogólny — pierwsze miejsce w serwisie, w którym widać, że ktoś tu jest.

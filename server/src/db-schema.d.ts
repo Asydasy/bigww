@@ -20,6 +20,8 @@ export interface UsersTable {
   coins: Generated<number>;
   premium_plan: string | null;
   premium_until: Timestamp | null;
+  /** Ostatnie żądanie z ważną sesją — do licznika „aktywnych teraz". */
+  last_seen_at: Timestamp | null;
   created_at: Generated<Timestamp>;
   updated_at: Generated<Timestamp>;
 }

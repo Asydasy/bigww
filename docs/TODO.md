@@ -75,8 +75,11 @@ osobnym etapem projektu.
 - [ ] **WebSocket zamiast odpytywania** — dopiero gdy będzie ruch, który to
       uzasadni. Przy kilku osobach zapytanie co 5 s jest tańsze niż utrzymywanie
       połączeń.
-- [ ] **Kto jest online** — licznik przy nagłówku czatu. Wymaga śladu
-      aktywności po stronie serwera (ostatnie zapytanie z konta).
+- [x] **Kto jest online** — licznik „N aktywnych" przy nagłówku czatu, liczony
+      z `users.last_seen_at` (okno 5 minut). Nazwany inaczej niż licznik na
+      Starcie, bo mierzy co innego.
+- [ ] **Pokazać aktywność na karcie gracza** — „widziany 5 min temu" obok
+      nicku, z tej samej kolumny `last_seen_at`.
 - [ ] **Pokoje tematyczne albo per gra**, jeśli jeden pokój zrobi się za głośny.
 
 ## 3. Backend — drugi etap

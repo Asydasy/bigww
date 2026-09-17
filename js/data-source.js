@@ -278,6 +278,14 @@ const DATA = (() => {
     await API.deleteChat(id);
   }
 
+  /** Ile kont jest teraz na stronie. Licznik ze strony startowej pokazuje co
+   *  innego (ogłoszenia z „szukam teraz"), więc nie mieszamy tych dwóch. */
+  async function aktywniTeraz() {
+    if (mode !== "api") throw bladBezSerwera();
+    const res = await API.presence();
+    return res.online;
+  }
+
   /* ---------- konto ---------- */
   /** Hasło na serwerze ma minimum 8 znaków — pilnujemy tego też we froncie,
    *  żeby błąd nie przychodził dopiero z odpowiedzi HTTP. */
@@ -334,6 +342,7 @@ const DATA = (() => {
     chatList,
     chatSend,
     chatDelete,
+    aktywniTeraz,
     login,
     register,
     logout,

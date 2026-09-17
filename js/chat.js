@@ -44,6 +44,18 @@ function ustawStanCzatu(tekst, klasa) {
   box.append(p);
 }
 
+/** Licznik „aktywnych teraz" przy nagłówku czatu.
+ *  Uwaga: to nie to samo, co „graczy online teraz" na Starcie — tamten liczy
+ *  ogłoszenia z włączonym „szukam teraz", ten konta aktywne w ostatnich
+ *  5 minutach. Dwie różne liczby, dwie różne nazwy. */
+function renderChatOnline(ile) {
+  const box = document.getElementById("chatOnline");
+  if (!box) return;
+  if (!czatWlaczony || ile == null) { box.textContent = ""; box.classList.remove("on"); return; }
+  box.textContent = "● " + ile + (ile === 1 ? " aktywny" : ile < 5 ? " aktywnych" : " aktywnych");
+  box.classList.toggle("on", ile > 0);
+}
+
 function renderChatBadge() {
   const b = document.getElementById("chatBadge");
   if (!b) return;
@@ -160,11 +172,14 @@ async function odswiezCzat(odNowa) {
     const doszlo = czatDoloz(res.messages, !odNowa && !czatOtwarty());
     if (doszlo || odNowa) renderChat();
     renderChatBadge();
+    // Licznik przyjeżdża z tą samą odpowiedzią, więc nie ma drugiego zapytania.
+    renderChatOnline(res.online);
     czatUstawPole();
   } catch (e) {
     if (e && e.status === 503) {
       czatWlaczony = false;
       renderChat();
+      renderChatOnline(null);
       czatUstawPole();
       zatrzymajCzat();
     }

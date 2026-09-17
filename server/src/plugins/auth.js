@@ -9,6 +9,24 @@ import jwt from "@fastify/jwt";
 import { config } from "../config.js";
 import { db } from "../db.js";
 
+/** Co ile najwyżej odświeżamy ślad aktywności konta. Bez tego każde żądanie
+ *  z sesją robiłoby zapis do bazy — licznik nie jest tego wart. */
+const SLAD_CO_SEKUND = 60;
+
+/** Zapis „konto było widziane". Dzięki dławieniu wyżej zapis leci najwyżej raz
+ *  na minutę na konto, więc czekanie na niego nic nie kosztuje. Błąd zapisu nie
+ *  psuje żądania — to tylko licznik. */
+async function odnotujAktywnosc(user) {
+  if (!user) return;
+  const ostatnio = user.last_seen_at ? new Date(user.last_seen_at).getTime() : 0;
+  if (Date.now() - ostatnio < SLAD_CO_SEKUND * 1000) return;
+  try {
+    await db.updateTable("users").set({ last_seen_at: new Date() }).where("id", "=", user.id).execute();
+  } catch (e) {
+    /* licznik nie jest wart przerywania żądania */
+  }
+}
+
 async function authPlugin(app) {
   await app.register(cookie);
   await app.register(jwt, {
@@ -39,6 +57,7 @@ async function authPlugin(app) {
       const user = await db.selectFrom("users").selectAll().where("id", "=", payload.uid).executeTakeFirst();
       if (!user) throw new Error("konto nie istnieje");
       request.currentUser = user;
+      await odnotujAktywnosc(user);
     } catch {
       return reply.code(401).send({ error: "Zaloguj się, żeby to zrobić." });
     }
@@ -50,6 +69,7 @@ async function authPlugin(app) {
       const payload = await request.jwtVerify();
       request.currentUser =
         (await db.selectFrom("users").selectAll().where("id", "=", payload.uid).executeTakeFirst()) || null;
+      await odnotujAktywnosc(request.currentUser);
     } catch {
       request.currentUser = null;
     }

@@ -150,6 +150,8 @@ body.sidebar-collapsed .main-inner{max-width:1280px}
 .chat-head:hover{background:var(--panel2);color:var(--txt)}
 .chat-chev{width:12px;text-align:center;font-size:10px;color:var(--txt-faint)}
 .chat-title{flex:1;text-align:left}
+.chat-online{color:var(--txt-faint);font-size:10.5px;font-weight:600;white-space:nowrap}
+.chat-online.on{color:var(--on)}
 .chat-badge{
   display:none;background:var(--acc);color:#fff;font-size:10.5px;font-weight:700;
   padding:1px 6px;border-radius:20px;min-width:17px;text-align:center;

@@ -515,3 +515,47 @@ describe("czat ogólny", () => {
     assert.equal(lista.json().messages.length, 2, "wiersz zostaje, żeby stronicowanie się nie rozjechało");
   });
 });
+
+describe("licznik aktywnych", () => {
+  let cookie;
+
+  before(async () => {
+    const login = await call({
+      method: "POST",
+      url: "/api/auth/login",
+      payload: { email: "seba@example.com", password: "haslo-testowe-1" }
+    });
+    cookie = sessionOf(login);
+  });
+
+  test("bez żadnej sesji licznik jest zerowy", async () => {
+    // Czyścimy ślady po wcześniejszych testach — liczymy okno 5 minut wstecz.
+    await db.updateTable("users").set({ last_seen_at: null }).execute();
+    const res = await call({ method: "GET", url: "/api/presence" });
+    assert.equal(res.statusCode, 200);
+    assert.equal(res.json().online, 0);
+    assert.equal(res.json().windowMinutes, 5);
+  });
+
+  test("żądanie z sesją odnotowuje konto jako aktywne", async () => {
+    await call({ method: "GET", url: "/api/auth/me", headers: { cookie } });
+    const res = await call({ method: "GET", url: "/api/presence" });
+    assert.equal(res.json().online, 1);
+  });
+
+  test("konto widziane dawno temu już się nie liczy", async () => {
+    await db
+      .updateTable("users")
+      .set({ last_seen_at: new Date(Date.now() - 20 * 60 * 1000) })
+      .execute();
+    const res = await call({ method: "GET", url: "/api/presence" });
+    assert.equal(res.json().online, 0, "okno to 5 minut, nie 20");
+  });
+
+  test("odpowiedź czatu niesie ten sam licznik", async () => {
+    await call({ method: "GET", url: "/api/auth/me", headers: { cookie } });
+    const czat = await call({ method: "GET", url: "/api/chat" });
+    assert.equal(typeof czat.json().online, "number");
+    assert.ok(czat.json().online >= 1, "front bierze licznik z odpowiedzi czatu, bez drugiego zapytania");
+  });
+});

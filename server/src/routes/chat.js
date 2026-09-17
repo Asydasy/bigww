@@ -8,6 +8,7 @@
 import { randomUUID } from "node:crypto";
 import { db } from "../db.js";
 import { publicChatMessage } from "../shape.js";
+import { liczAktywnych } from "./presence.js";
 
 const LIMIT_DEFAULT = 50;
 const LIMIT_MAX = 100;
@@ -52,6 +53,9 @@ export default async function chatRoutes(app) {
 
       return {
         messages: rows.map((r) => publicChatMessage(r, request.currentUser)),
+        // Panel czatu i tak pyta co kilka sekund — licznik jedzie z tą samą
+        // odpowiedzią, zamiast robić drugie zapytanie o to samo.
+        online: await liczAktywnych(),
         // Front zapisuje to sobie jako punkt odniesienia do kolejnego pytania —
         // dzięki temu nie zależy od zegara przeglądarki.
         serverTime: Date.now(),

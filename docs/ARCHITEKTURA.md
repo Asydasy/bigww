@@ -117,6 +117,7 @@ await DATA.setLookingNow(true)      // „szukam teraz" także w bazie
 await DATA.chatList(after)          // historia czatu (tylko tryb api)
 await DATA.chatSend(tekst)          // wysłanie na czat ogólny
 await DATA.chatDelete(id)           // skasowanie własnej wiadomości
+await DATA.aktywniTeraz()           // ile kont jest teraz na stronie
 await DATA.login({ email, password })
 await DATA.register({ email, password, displayName })
 await DATA.logout()
@@ -154,6 +155,13 @@ Panel siedzi w menu bocznym (`#chatPanel` w `index.html`), obsługa w
   wypadają z góry. Przewinięcie w górę wstrzymuje auto-scroll do dołu.
 - Stan panelu (rozwinięty / zwinięty) siedzi w `PREF.chatOpen`, licznik nowych
   wiadomości pokazuje odznaka `#chatBadge`.
+- **Licznik „N aktywnych" (`#chatOnline`) to co innego niż `#onlineNow` na
+  Starcie.** Przy czacie liczymy konta z żądaniem w ostatnich 5 minutach
+  (kolumna `users.last_seen_at`, zapis dławiony do raz na minutę na konto);
+  na Starcie liczymy ogłoszenia ze statusem `on`, czyli włączonym „szukam
+  teraz". Nazwy są różne celowo — ta sama etykieta przy dwóch różnych liczbach
+  wygląda jak błąd. Licznik jedzie w odpowiedzi `GET /api/chat`, a osobny
+  `GET /api/presence` jest dla wszystkiego innego, co go zechce.
 
 Limity są po stronie serwera: 300 znaków, 20 wiadomości na minutę z konta,
 ta sama treść drugi raz w ciągu 30 sekund to `429`. Front tego nie pilnuje

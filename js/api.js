@@ -122,6 +122,8 @@ const API = (() => {
     // ---- czat ogólny ----
     /** Bez `after` — ostatnie wiadomości; z `after` (ms) — tylko nowsze. */
     chat: (query) => request("/chat", { query }),
+    /** Ile kont było aktywnych w ostatnich minutach. */
+    presence: () => request("/presence"),
     sendChat: (body) => request("/chat", { method: "POST", body: { body } }),
     deleteChat: (id) => request("/chat/" + encodeURIComponent(id), { method: "DELETE" })
   };

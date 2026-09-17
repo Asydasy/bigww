@@ -143,6 +143,18 @@ try {
   const mojaNaLiscie = await page.textContent("#chatList");
   ok(mojaNaLiscie.includes(tekstCzatu), "wysłana wiadomość pojawia się w panelu");
 
+  // licznik aktywnych w nagłówku czatu — inna liczba niż ta na Starcie
+  const licznik = (await page.textContent("#chatOnline")) || "";
+  ok(/\d+\s+aktywn/.test(licznik), `nagłówek czatu pokazuje aktywnych (jest: "${licznik.trim()}")`);
+  const dwaLiczniki = await page.evaluate(() => ({
+    czat: document.getElementById("chatOnline").textContent,
+    start: document.getElementById("onlineNow").textContent
+  }));
+  ok(
+    !/aktywn/.test(dwaLiczniki.start),
+    "licznik na Starcie mówi o czym innym niż ten przy czacie (nie powiela nazwy)"
+  );
+
   // druga przeglądarka widzi to samo, bez przeładowania strony
   await stronaGoscia.evaluate(() => ustawCzatOtwarty(true));
   await stronaGoscia.waitForTimeout(6500); // jedno odpytanie co 5 s

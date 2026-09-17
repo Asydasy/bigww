@@ -17,9 +17,9 @@ monety, premium, prywatną skrzynkę, powiadomienia, giveawaye, oceny, blokady
 i zapisane filtry.
 
 **Front**: `index.html` + `css/style.css` + 25 plików w `js/`, waniliowy
-JavaScript, zero zależności. Wersja w `js/boot.js`: `APP_VERSION = "1.2.0"`.
+JavaScript, zero zależności. Wersja w `js/boot.js`: `APP_VERSION = "1.2.1"`.
 **Backend**: `server/`, Node + Fastify + PostgreSQL, zapytania przez Kysely,
-34 testy. Stawia się jednym `docker compose up`.
+38 testów. Stawia się jednym `docker compose up`.
 
 Widoki nie wiedzą, który tryb jest aktywny — czytają `allPlayers()`, `MINE`
 i `SAVED`, a zapisy robią przez `DATA`.
@@ -122,6 +122,14 @@ Własną wiadomość można skasować — wiersz zostaje w bazie, treść nie wy
 już z serwera, a w panelu widać „wiadomość usunięta”. Nick jest zapisywany
 razem z wiadomością, więc zmiana nazwy konta nie przepisuje historii.
 
+W nagłówku panelu stoi licznik **„● N aktywnych"** — konta, z których w ciągu
+ostatnich 5 minut przyszło żądanie z ważną sesją. **To nie jest ten sam licznik,
+co na Starcie**: tam „graczy online teraz" liczy ogłoszenia z włączonym
+„szukam teraz" (ilu ludzi szuka ekipy), tu liczymy, ile osób w ogóle jest na
+stronie. Dwie różne liczby, dwie różne nazwy i dwa różne miejsca — celowo.
+Licznik przyjeżdża razem z odpowiedzią czatu, więc nie robi dodatkowych zapytań;
+gości nie liczymy, bo bez konta nie ma czego policzyć.
+
 Bez backendu panel mówi wprost, że czat działa tylko z serwerem, i nie pokazuje
 pola do pisania — zamiast udawać rozmowę z samym sobą.
 
@@ -182,14 +190,16 @@ Szczegóły i lista endpointów: `server/README.md`.
   ogłoszeń na grę.
 - Czat ogólny: `GET /api/chat` (czyta każdy, `?after=` do odpytywania),
   `POST /api/chat` (zalogowany, 20/min), `DELETE /api/chat/:id` (właściciel).
+- Licznik aktywnych: `GET /api/presence` — konta widziane w ostatnich 5 minutach.
+  Ślad zapisuje się przy żądaniu z sesją, najwyżej raz na minutę na konto.
 - Ogłoszenia: dodawanie, edycja (`PATCH`), usuwanie, obserwowanie, lista
   z filtrami (gra, region, platforma, styl, pora, godziny, mikrofon, ranga,
   dzień tygodnia, tag, język, świeżość, „szukam teraz”), wyszukiwarką odporną
   na polskie znaki i stronicowaniem.
 - Limit ogłoszeń liczony po stronie serwera.
 - Kontakt tylko dla zalogowanych (`contactLocked` dla reszty).
-- **34 testy API** (`npm test`) i **test przeklikujący front w obu trybach**
-  (`npm run test:front`, 35 sprawdzeń — wymaga Playwrighta i działającego
+- **38 testów API** (`npm test`) i **test przeklikujący front w obu trybach**
+  (`npm run test:front`, 37 sprawdzeń — wymaga Playwrighta i działającego
   serwera).
 
 ## Czego NIE MA

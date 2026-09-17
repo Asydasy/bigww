@@ -65,7 +65,7 @@ Skrypt nie dotyka bazy — czyta tylko `js/data-games.js`.
 cd server
 cp .env.example .env.test    # w .env.test wskaż OSOBNĄ bazę, np. bigww_test
 npm run migrate              # z DATABASE_URL wskazującym na bazę testową
-npm test                     # 34 testy API
+npm test                     # 38 testów API
 ```
 
 Testy czyszczą tabele `ads`, `users`, `saves` i `chat_messages` przed startem — dlatego mają iść
@@ -113,6 +113,7 @@ Wszystko pod `/api`. Ciało i odpowiedzi w JSON-ie.
 | GET | `/chat` | każdy | czat ogólny: `?after=<ms>` daje tylko nowsze, `?limit=` (domyślnie 50, maks. 100) |
 | POST | `/chat` | zalogowany | wysyła wiadomość (maks. 300 znaków, 20/min) |
 | DELETE | `/chat/:id` | właściciel | kasuje treść własnej wiadomości |
+| GET | `/presence` | każdy | ile kont było aktywnych w ostatnich 5 minutach |
 
 Filtry listy ogłoszeń: `game`, `gameId`, `region`, `plat`, `style`, `time`,
 `hourFrom` i `hourTo` (okno godzinowe), `mic`, `lookingNow`, `lang`, `tag`,
@@ -159,6 +160,16 @@ w tabeli z `deleted_at`, a jej treść nie wychodzi już z serwera — dzięki t
 odpytywanie po czasie się nie rozjeżdża. Ochrona przed spamem jest po stronie
 serwera: 20 wiadomości na minutę z konta i odrzucenie tej samej treści
 powtórzonej w ciągu 30 sekund (`429`).
+
+**Licznik aktywnych mierzy co innego niż licznik na Starcie.** `GET /presence`
+liczy konta z `last_seen_at` w ostatnich 5 minutach, czyli ile osób jest na
+stronie. Licznik na stronie startowej liczy ogłoszenia z włączonym „szukam
+teraz", czyli ilu ludzi szuka ekipy. Dwie różne liczby — w interfejsie mają
+dwie różne nazwy („aktywnych" kontra „graczy online teraz"), żeby nikt ich nie
+mylił. Ślad aktywności zapisuje `plugins/auth.js` przy żądaniu z ważną sesją,
+najwyżej raz na minutę na konto; gości nie liczymy, bo bez konta nie ma czego.
+Odpowiedź `GET /chat` niesie ten sam licznik, żeby panel czatu nie robił
+drugiego zapytania o to samo.
 
 **Kontakt widzi każdy zalogowany.** Płatne odblokowywanie za monety wróci razem
 z prawdziwą bramką płatniczą — do tego czasu blokowanie kontaktu za walutę,

@@ -3,7 +3,7 @@
 /* =========================================================
    START APLIKACJI — splash, cookies, PWA, wybór źródła danych
 ========================================================= */
-const APP_VERSION = "1.2.0";
+const APP_VERSION = "1.2.1";
 
 function hideSplash() {
   const s = $("#splash");
