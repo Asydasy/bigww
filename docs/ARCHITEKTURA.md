@@ -3,9 +3,9 @@
 Projekt ma dwie części: front (katalog główny) i backend (`server/`).
 Ten plik opisuje front; backend ma własny `server/README.md`.
 
-**Front i backend nie są ze sobą spięte.** Front w wersji 1.0.0 działa
-wyłącznie na generatorze i localStorage. Warstwy `DATA`, która kiedyś wybierała
-między serwerem a danymi demo, już nie ma.
+Front i backend są spięte przez warstwę `DATA` (`js/data-source.js`), która
+przy starcie sprawdza, czy serwer odpowiada, i działa w trybie `api` albo
+`local`.
 
 ## Układ plików
 
@@ -24,34 +24,36 @@ js/data-demo.js         generator demo: PLAYERS (720), TEAMS (80), LIVES (36),
 js/state.js             localStorage: KEY, SCOPED_KEYS, USERS, SESSION,
                         load/save z podziałem na konta, hashPass, powiadomienia,
                         blokady, zgłoszenia, skrzynka, oceny, matchScore,
-                        stałe cenowe, adLimit(), canSeeContact()
-js/api.js               ZAŚLEPKA — dwie linie komentarza. API żyje w boot.js
-js/data-source.js       ZAŚLEPKA — po usuniętej warstwie DATA
-js/auth-ui.js           rejestracja, logowanie, „Google/Discord", telefon,
-                        weryfikacja e-maila, menu konta, requireLogin()
+                        stałe cenowe, adLimit(), canSeeContact(), allPlayers()
+js/api.js               surowe wywołania HTTP do serwera (API.login, API.ads, …)
+js/data-source.js       DATA — jedyne wejście do zapisu danych; wybiera między
+                        serwerem a danymi lokalnymi i tłumaczy kształty
+js/auth-ui.js           rejestracja, logowanie, Discord, telefon (tryb lokalny),
+                        rozwijane menu konta (#userMenu) z animacją,
+                        requireLogin()
 js/nav.js               go(view), AUTH_REQUIRED_VIEWS, zwijanie sidebara,
-                        setLooking(), applyAuthVisibility()
+                        setLooking(), applyAuthVisibility(), playHomeHero()
 js/cards.js             playerCard, gameCard, teamCard, renderProfilePage,
                         showContact, openModal, toggleSave, podgląd mediów
 js/view-players.js      QUICK (5 szybkich filtrów), zestawy filtrów, siatka/lista,
                         filterPlayers(), renderPlayers()
 js/view-games.js        baza gier z filtrem gatunku
-js/view-teams-live.js   ekipy oraz transmisje live
+js/view-teams-live.js   ekipy oraz transmisje live (dane demo w obu trybach)
 js/view-add.js          formularz ogłoszenia, szablony opisu, podgląd, submitAd,
                         edycja, renderMine, renderSaved
 js/view-home.js         strona startowa i statystyki
 js/view-premium.js      PLANS, checkout (udawany), FAQ
 js/view-settings.js     motyw, kraj, eksport/import JSON, kasowanie danych
 js/view-terms.js        regulamin i polityka prywatności (PL + EN)
-js/view-inbox.js        ZAŚLEPKA — skrzynka siedzi w state.js
+js/view-inbox.js        pusty plik — skrzynka siedzi w state.js
 js/view-giveaways.js    GIVEAWAYS (4 losowania), bilety, historia
 js/monetization.js      monety WW, sklep, zadania, battle pass, reklamy,
                         polecenia, interstitial, karta sponsorowana
                         oraz OPAKOWANIA go / renderPlayers / submitAd
 js/onboard.js           onboarding przy pierwszym wejściu
 js/main.js              start aplikacji — kolejność wywołań, skróty, deep linki
-js/boot.js              APP_VERSION, API (adapter na localStorage), splash,
-                        pasek cookies, service worker, window.BigWW
+js/boot.js              APP_VERSION, splash, pasek cookies, service worker,
+                        DATA.init() i wskaźnik trybu, window.BigWW
 ```
 
 ## Kolejność ładowania
@@ -65,16 +67,67 @@ w `index.html`. Nie ma modułów ES — wszystko żyje w zasięgu globalnym, wi�
 3. `js/util.js` — **przed** `data-demo.js`, bo generator woła `timeLabel()`
    już przy ładowaniu
 4. `js/i18n.js` — przed `state.js`, bo `loadUserData()` ustawia `LANG`
-5. `js/data-demo.js`, `js/state.js`, `js/api.js`, `js/data-source.js`
-6. `js/auth-ui.js`, `js/nav.js`, `js/cards.js`, widoki
-7. `js/monetization.js` — **musi być po** `nav.js`, `view-players.js`
-   i `view-add.js`, bo opakowuje ich funkcje (patrz niżej)
-8. `js/onboard.js`
-9. `js/main.js` — uruchamia aplikację
-10. `js/boot.js` — splash, cookies, PWA; ostatni
+5. `js/data-demo.js`, `js/state.js`
+6. `js/api.js` — **przed** `data-source.js`, bo `DATA` woła `API`
+7. `js/data-source.js`, `js/auth-ui.js`, `js/nav.js`, `js/cards.js`, widoki
+8. `js/monetization.js` — **po** `nav.js`, `view-players.js` i `view-add.js`,
+   bo opakowuje ich funkcje (patrz niżej)
+9. `js/onboard.js`
+10. `js/main.js` — pierwsze rysowanie na danych lokalnych
+11. `js/boot.js` — splash, cookies, PWA, `DATA.init()` i przerysowanie
 
 Przy dokładaniu nowego pliku: dopisz `<script src>` w odpowiednim miejscu listy,
 nie na końcu.
+
+## Dwa tryby działania
+
+`DATA.init()` w `js/boot.js` pyta `/api/health` pod kolejnymi adresami
+(`window.BIGWW_API_URL`, ten sam host co strona, `http://localhost:3000`)
+i zostaje przy pierwszym, który odpowie. Wynik:
+
+- **`api`** — ogłoszenia, gry, konta i obserwowani z bazy,
+- **`local`** — generator demo i localStorage.
+
+Tryb widać w stopce menu bocznego (`#dataMode`): zielone „● serwer” albo żółte
+„● lokalnie”.
+
+Podział odpowiedzialności:
+
+| co | tryb api | tryb local |
+|---|---|---|
+| ogłoszenia, gry, konta, obserwowani | serwer (PostgreSQL) | generator + localStorage |
+| monety, premium, sklep, zadania, battle pass | localStorage | localStorage |
+| skrzynka, powiadomienia, blokady, zgłoszenia, oceny | localStorage | localStorage |
+| giveawaye | localStorage | localStorage |
+| ekipy i transmisje live | generator demo | generator demo |
+
+**Czytanie** idzie przez globalne `allPlayers()`, `MINE` i `SAVED` — `DATA`
+wypełnia je danymi z serwera, więc filtry, sortowanie, karty i profil działają
+tak samo w obu trybach. **Zapis** idzie wyłącznie przez `DATA`:
+
+```js
+await DATA.createAd(draft())        // dodanie ogłoszenia
+await DATA.updateAd(id, draft())    // edycja
+await DATA.deleteAd(id)             // usunięcie
+await DATA.toggleSave(id)           // obserwowanie
+await DATA.setLookingNow(true)      // „szukam teraz" także w bazie
+await DATA.login({ email, password })
+await DATA.register({ email, password, displayName })
+await DATA.logout()
+DATA.isApi, DATA.user, DATA.games, DATA.limits, DATA.minPassword
+```
+
+**Nowy zapis podpinamy do `DATA`, nie do `API` i nie do `MINE`/`SAVED`
+bezpośrednio.** Inaczej zadziała tylko w jednym z dwóch trybów.
+
+### Ile danych ściągamy
+
+`DATA.refresh()` pobiera ogłoszenia stronami po 60, maksymalnie `MAX_ADS = 480`,
+i trzyma je w pamięci. Filtrowanie i sortowanie robi front (`filterPlayers()`
+w `js/view-players.js`) — jedna ścieżka kodu dla obu trybów. Backend ma komplet
+filtrów (`?game=`, `?region=`, `?rank=`, `?day=`, `?q=`, `?page=`…) i przejmie
+to, gdy ogłoszeń zrobi się więcej niż jedno pobranie; wtedy `renderPlayers()`
+trzeba przepiąć na zapytania i zrobić asynchronicznym.
 
 ## Opakowywanie funkcji (uwaga, wróciło)
 
@@ -96,39 +149,27 @@ Nowe punkty wejścia rób zwykłym wywołaniem na końcu funkcji, nie kolejnym
 opakowaniem. Jeśli będziesz przepisywać monetyzację — te trzy miejsca zamień
 na wywołania i usuń podmiany.
 
-## Dwa tryby? Już nie
-
-`STORAGE_MODE` w `js/boot.js` ma wartość `"local"` i nie ma drugiej gałęzi.
-`API` z `boot.js` to adapter na localStorage z trzema metodami (`getPlayers`,
-`saveListing`, `health`) — żadna z nich nie wychodzi w sieć. Widoki i tak wołają
-bezpośrednio globalne tablice (`PLAYERS`, `MINE`, `TEAMS`, `LIVES`) i `save()`.
-
-Backend w `server/` jest kompletny i przetestowany, ale front go nie zna.
-Ewentualny powrót do trybu serwerowego opisuje `docs/TODO.md`, punkt 0.
-
 ## Konta i podział danych
 
-`js/state.js` trzyma listę kont w `bigww_users_v2`, a sesję w
-`bigww_session_v2`. Wszystko, co należy do konkretnego użytkownika, idzie pod
-klucz z przyrostkiem:
+Konta w trybie `api` są w bazie; front zna je przez `DATA.user`, a `isLoggedIn()`
+i `currentUser()` w `js/state.js` podają je reszcie kodu w tym samym kształcie,
+co konta lokalne. Konta lokalne (`bigww_users_v2`, `bigww_session_v2`) działają
+tylko w trybie `local`.
+
+Dane lokalne są przypisane do konta — w obu trybach:
 
 ```js
-scopeSuffix()  ->  "_u_<id>"  albo  "_guest"
+scopeSuffix()  ->  "_u_<id konta>"  albo  "_guest"
 resolveKey(k)  ->  SCOPED_KEYS.has(k) ? k + scopeSuffix() : k
 load/save      ->  zawsze przez resolveKey()
 ```
 
-Dzięki temu dwa konta w tej samej przeglądarce mają osobne ogłoszenia, monety
-i skrzynki. Klucze spoza `SCOPED_KEYS` (`bigww_users_v2`, `bigww_session_v2`,
-`bigww_cookie_v1`, `bigww_gw_entries`, `bigww_gw_day`, `bigww_extra_slot`,
-`bigww_unlock_cred`) są wspólne dla całej przeglądarki.
+Dzięki temu dwa konta w tej samej przeglądarce mają osobne monety, skrzynki
+i ustawienia. Po zalogowaniu i wylogowaniu `DATA` woła `loadUserData()`, żeby
+przeczytać dane spod właściwego klucza.
 
-Jednorazowa migracja starych, nieprzypisanych danych do gościa siedzi w
-`migrateLegacy()` i zapisuje znacznik `bigww_migrated_v3`.
-
-Hasła: `hashPass()` liczy SHA-256 z soli i hasła przez `crypto.subtle`, a gdy
-go nie ma — FNV-1a. **To zabezpieczenie na pokaz**: hash leży w localStorage
-obok konta.
+Jednorazowa migracja starych, nieprzypisanych danych do gościa siedzi
+w `migrateLegacy()` i zapisuje znacznik `bigww_migrated_v3`.
 
 ## Gość kontra zalogowany
 
@@ -137,6 +178,18 @@ zalogowaniu: `add`, `mine`, `saved`, `inbox`, `premium`, `shop`. Pilnują tego:
 
 - `go()` — przy każdym przejściu woła `requireLogin()` z nazwą akcji,
 - `applyAuthVisibility()` — chowa te pozycje w menu razem z saldem monet.
+
+Wejścia do tych widoków są w rozwijanym menu pod awatarem (`#userMenu`
+w `index.html`, obsługa w `updateAuthUI()`): monety, Premium, Dodaj ogłoszenie,
+Moje ogłoszenia, Obserwowani, Wiadomości, Sklep, Ustawienia, Discord, Wyloguj.
+Gość widzi w tym miejscu przycisk „Zaloguj / Załóż konto”. Menu boczne zostaje
+dla widoków publicznych. Odznaki (liczba wątków, moich ogłoszeń, obserwowanych,
+otwartych giveawayów, stan Premium) ustawia `updateBadges()`
+w `js/monetization.js`.
+
+Kontakt: w trybie `api` decyduje backend (widzi go każdy zalogowany), a
+`contactStr()` pokazuje „ukryty”, zamiast zmyślać tag Discorda. W trybie
+`local` kontakt odblokowuje się za monety albo za Premium.
 
 ## Okładki gier
 
@@ -157,34 +210,38 @@ Po sklonowaniu repozytorium uruchamia się `cd server && npm run covers`.
 ## Godziny grania
 
 Ogłoszenie ma `hourFrom` i `hourTo` (0–23). Zakres może przechodzić przez
-północ. Nachodzenie liczy `hoursOverlap()` w `js/data-demo.js`. Ta sama logika
-istnieje w bazie jako `bigww_hours_overlap()` — dopóki backend jest odłączony,
-nie da się ich rozjechać w praktyce, ale przy powrocie do trybu serwerowego
-trzeba je zestawić.
+północ. Sprawdzanie, czy dwa zakresy się nachodzą, jest **zdublowane celowo**:
+`hoursOverlap()` w `js/data-demo.js` dla frontu i `bigww_hours_overlap()`
+w bazie dla filtrów serwerowych. Zmieniając jedno, zmień drugie.
 
 ## Model danych
 
 **Gra**
 ```js
-{ id, name, genre, mode, plats: ["PC","PS",...], pop: 1..5 }
+{ id, name, genre, mode, plats: ["PC","PS",...], pop: 1..5, ads? }
 ```
+`ads` dochodzi w trybie `api` przy `?withCounts=true`.
 
 **Gracz / ogłoszenie**
 ```js
 { id, nick, age, region, game, gameId, plat, style, rank, time,
-  hourFrom, hourTo, mic, lang, hours, rating, status, prem,
+  hourFrom, hourTo, mic, lang, hours, rating, status, prem, boosted,
   days: ["mon","fri"], tags: [], desc, added, mine, ownerId?,
-  contact?, clipUrl?, fileData?, fileType? }
+  contact?, contactLocked?, clipUrl?, fileData?, fileType? }
 ```
-`rank` to jedno z `beginner` / `mid` / `high` / `pro` (etykiety w `RANK_LABEL`).
-`days` to dni tygodnia z `WEEK_DAYS`. `mine: true` oznacza ogłoszenie
-użytkownika (tablica `MINE`, zawsze na górze listy); `ownerId` wiąże je
-z kontem. `allPlayers()` zwraca `MINE.concat(PLAYERS)`.
+`rank` to `beginner` / `mid` / `high` / `pro` (etykiety w `RANK_LABEL`),
+`days` to dni z `WEEK_DAYS`. `mine: true` oznacza ogłoszenie użytkownika
+(tablica `MINE`, zawsze na górze listy). W trybie `api` pola `hours`, `rating`
+i `fileData` przychodzą puste — baza ich nie liczy i nie przechowuje.
 
-**Konto**
+**Konto z bazy** (`DATA.user`)
 ```js
-{ id, nick, email, emailVerified, salt?, passHash?, provider?, providerId?,
-  phone?, verifyCode?, created }
+{ id, displayName, email, discordTag, avatarSeed, region, coins, premium, createdAt }
+```
+
+**Konto lokalne** (`bigww_users_v2`)
+```js
+{ id, nick, email, emailVerified, salt?, passHash?, provider?, phone?, created }
 ```
 
 **Ekipa**
@@ -205,15 +262,15 @@ z kontem. `allPlayers()` zwraca `MINE.concat(PLAYERS)`.
 
 ## Klucze localStorage
 
-Wszystkie z prefiksem `bigww_`. Kolumna „per konto" mówi, czy klucz dostaje
+Wszystkie z prefiksem `bigww_`. Kolumna „per konto” mówi, czy klucz dostaje
 przyrostek `_u_<id>` / `_guest`.
 
 | klucz | per konto | co trzyma |
 |---|---|---|
-| `bigww_users_v2` | nie | lista kont (nick, e-mail, hash hasła) |
-| `bigww_session_v2` | nie | zalogowane konto |
-| `bigww_mine_v2` | tak | własne ogłoszenia |
-| `bigww_saved_v2` | tak | obserwowani (id graczy) |
+| `bigww_users_v2` | nie | konta lokalne (tylko tryb bez backendu) |
+| `bigww_session_v2` | nie | zalogowane konto lokalne |
+| `bigww_mine_v2` | tak | własne ogłoszenia (tryb lokalny) |
+| `bigww_saved_v2` | tak | obserwowani (tryb lokalny) |
 | `bigww_pref_v2` | tak | motyw, kraj, awatar, język, „szukam teraz", filtry, onboarding, widok listy |
 | `bigww_premium_v2` | tak | `{active, plan, until, since}` |
 | `bigww_coins_v2` | tak | `{bal, earned, spent}` — start 40 WW |
@@ -240,8 +297,8 @@ przyrostek `_u_<id>` / `_guest`.
 | `bigww_cookie_v1` | nie | zgoda na cookies |
 | `bigww_migrated_v3` | nie | znacznik jednorazowej migracji |
 
-`sWipe` w `js/view-settings.js` kasuje dziś tylko część tej tabeli — brakujące
-klucze wypisuje `docs/STAN.md`, punkt 2 „Znane błędy".
+W trybie `api` `MINE` i `SAVED` przychodzą z serwera i **nie** są zapisywane
+do localStorage — `DATA` pilnuje, żeby zapis leciał tylko w trybie lokalnym.
 
 ## Stałe cenowe
 
@@ -269,8 +326,9 @@ BOOST_OPTS           6 h / 25 WW, 24 h / 60 WW, 72 h / 140 WW
 ```
 
 Limit ogłoszeń liczy `adLimit()`: free 3, +1 z `bigww_extra_slot`, premium 10,
-pro/rok 20. Te same liczby siedzą w `adLimitFor()` w `server/src/config.js` —
-gdyby backend wrócił do gry, trzeba je zestawić.
+pro/rok 20. **Te same liczby siedzą w `adLimitFor()` w `server/src/config.js`**
+— zmieniasz jedno, zmień drugie, inaczej front obiecuje więcej, niż serwer
+pozwala.
 
 Ceny planów są w `PLANS` w `js/view-premium.js`, pakiety monet w `COIN_PACKS`,
 przedmioty sklepu w `SHOP_ITEMS`, nagrody battle passa w `BP_REWARDS`,
@@ -281,11 +339,9 @@ zadania w `QUEST_DEFS` — wszystkie cztery w `js/monetization.js`.
 `js/i18n.js` trzyma dwa obiekty tłumaczeń (`I18N.pl`, `I18N.en`), po ok. 180
 kluczy. `t("nav.home")` zwraca napis w bieżącym języku, z zejściem na polski,
 a na końcu na sam klucz. `setLang()` zapisuje wybór w `PREF.lang`, przestawia
-`document.documentElement.lang` i przerysowuje widoki dynamiczne bez
-przeładowania strony.
+`document.documentElement.lang` i przerysowuje widoki dynamiczne.
 
 Napisy statyczne podmienia `applyStaticI18n()` — mapa `id -> klucz` w kodzie,
-nie atrybuty w markupie. W `index.html` są tylko trzy atrybuty `data-i18n`.
-Oznacza to, że **każdy nowy napis w HTML wymaga dopisania linijki w
-`applyStaticI18n()`**, a napisy generowane w JavaScripcie (toasty, modale,
-komunikaty błędów) są w większości po polsku na sztywno.
+nie atrybuty w markupie. Oznacza to, że **każdy nowy napis w HTML wymaga
+dopisania linijki w `applyStaticI18n()`**, a napisy generowane w JavaScripcie
+(toasty, modale, komunikaty błędów) są w większości po polsku na sztywno.

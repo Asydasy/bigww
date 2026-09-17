@@ -3,22 +3,32 @@
 Node + Fastify + PostgreSQL, zapytania przez Kysely. Sesje w ciasteczku
 httpOnly, logowanie e-mailem z hasłem albo przez Discorda.
 
+Front rozmawia z tym backendem przez warstwę `DATA` (`js/data-source.js`):
+jeśli `/api/health` odpowiada, ogłoszenia, gry, konta i obserwowani idą z bazy;
+jeśli nie — strona wraca na dane lokalne. Monety, premium, skrzynka,
+powiadomienia i giveawaye nie przechodzą przez serwer (patrz „Czego tu jeszcze
+nie ma").
+
 ## Uruchomienie przez Dockera (zalecane)
 
 ```
-cp server/.env.example server/.env      # i wpisz własny JWT_SECRET
 docker compose up
-docker compose exec api npm run migrate
-docker compose exec api npm run seed
 ```
 
-Serwer stoi na http://localhost:3000, baza na porcie 5432.
+To wszystko. Kontener sam robi `npm install`, migracje i seed, a potem stawia
+serwer razem z plikami frontu na http://localhost:3000 (baza na 5432).
 Sprawdzenie, czy żyje: http://localhost:3000/api/health
 
-Własny `JWT_SECRET` wygenerujesz tak:
+Bez pliku `server/.env` serwer wstaje na **kluczu testowym** i wypisuje o tym
+ostrzeżenie. Do pracy na poważnie skopiuj wzór i wpisz własny klucz:
+
 ```
+cp server/.env.example server/.env
 node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
 ```
+
+Przy `NODE_ENV=production` brak `JWT_SECRET` albo `DATABASE_URL` jest błędem
+i serwer się nie podniesie — tak ma być.
 
 ## Uruchomienie bez Dockera
 
@@ -54,11 +64,24 @@ Skrypt nie dotyka bazy — czyta tylko `js/data-games.js`.
 ```
 cd server
 cp .env.example .env.test    # w .env.test wskaż OSOBNĄ bazę, np. bigww_test
-npm test
+npm run migrate              # z DATABASE_URL wskazującym na bazę testową
+npm test                     # 26 testów API
 ```
 
 Testy czyszczą tabele `ads`, `users` i `saves` przed startem — dlatego mają iść
 na osobną bazę, nie na tę, w której klikasz.
+
+Do tego test przeklikujący front w obu trybach (serwerowym i lokalnym):
+
+```
+npm i -D playwright && npx playwright install chromium
+npm run test:front           # wymaga działającego serwera
+```
+
+Sprawdza rejestrację i logowanie przez API, dodanie ogłoszenia z rangą,
+przeżycie przeładowania, obserwowanie, ukryty kontakt u niezalogowanego oraz
+powrót na dane lokalne po odcięciu `/api`. Dopisuje do bazy jedno konto
+i jedno ogłoszenie.
 
 ## Endpointy
 
@@ -76,6 +99,7 @@ Wszystko pod `/api`. Ciało i odpowiedzi w JSON-ie.
 | GET | `/games` | każdy | katalog gier; `?q=`, `?genre=`, `?withCounts=true` |
 | GET | `/games/genres` | każdy | lista gatunków |
 | GET | `/ads` | każdy | lista ogłoszeń z filtrami i stronicowaniem |
+| — | — | — | (filtry niżej, razem z `rank` i `day`) |
 | GET | `/ads/:id` | każdy | jedno ogłoszenie |
 | GET | `/ads/mine` | zalogowany | moje ogłoszenia + limit konta |
 | GET | `/ads/saved` | zalogowany | obserwowane ogłoszenia |
@@ -87,7 +111,10 @@ Wszystko pod `/api`. Ciało i odpowiedzi w JSON-ie.
 
 Filtry listy ogłoszeń: `game`, `gameId`, `region`, `plat`, `style`, `time`,
 `hourFrom` i `hourTo` (okno godzinowe), `mic`, `lookingNow`, `lang`, `tag`,
+`rank` (`beginner`/`mid`/`high`/`pro`), `day` (`mon`…`sun`),
 `newHours`, `q`, `page`, `perPage` (domyślnie 24, maks. 60).
+Ogłoszenie bez zadeklarowanych dni pasuje do każdego filtru `day` — tak samo
+jak ogłoszenie bez godzin pasuje do każdego okna godzinowego.
 Sortowanie: najpierw wypromowane, potem konta premium, potem „szukam teraz",
 na końcu po dacie — tak samo jak we froncie.
 

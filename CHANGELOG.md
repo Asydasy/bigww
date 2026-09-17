@@ -3,6 +3,63 @@
 Format: najnowsze na górze. Każdy wpis mówi, co zmieniło się w **zachowaniu**,
 a nie tylko w plikach.
 
+## [1.1.0] — 2026-09-18
+
+Front znowu rozmawia z backendem, a `docker compose up` stawia całość zaraz po
+sklonowaniu repozytorium.
+
+### Naprawione
+- **`docker compose up` działa u kogoś, kto klonuje repo.** Wcześniej compose
+  wymagał `server/.env`, a plik wzorcowy `server/.env.example` zniknął przy
+  scalaniu frontu — nie było z czego go zrobić. Wzór wrócił, kontener sam robi
+  migracje i seed, a brak `JWT_SECRET` i `DATABASE_URL` poza produkcją daje
+  wartości testowe i ostrzeżenie w logu zamiast błędu przy starcie.
+- **„Usuń wszystkie dane” w Ustawieniach kasuje wreszcie wszystko.** Zostawiało
+  skrzynkę, powiadomienia, blokady, zgłoszenia, oceny, zestawy filtrów
+  i udziały w giveawayach — czyli większość tego, co doszło w wersji 1.0.0.
+
+### Zmienione
+- **Warstwa `DATA` wróciła.** Po scaleniu równoległej wersji frontu (commit
+  `c247099`) `js/api.js` i `js/data-source.js` były dwulinijkowymi zaślepkami,
+  a cała strona chodziła na localStorage — backend stał obok i nikt go nie
+  wołał. Teraz strona przy starcie pyta `/api/health` i działa w trybie
+  serwerowym albo lokalnym, a tryb widać w stopce menu.
+- **Podział danych**: serwer trzyma ogłoszenia, katalog gier, konta
+  i obserwowanych; przeglądarka monety, premium, skrzynkę, powiadomienia,
+  giveawaye, oceny i blokady. Ekipy i transmisje zostają na danych demo.
+- **Konta w trybie serwerowym zakłada backend**: e-mail plus hasło (min.
+  8 znaków, scrypt po stronie serwera), sesja w ciasteczku `httpOnly`,
+  a przycisk „Discord” przekierowuje na prawdziwy OAuth. Konta lokalne, kod
+  z SMS-a i „Google” zostają dla trybu bez backendu — tam to dalej warstwa
+  pokazowa.
+- **Kontakt nie jest już zmyślany.** Niezalogowanemu karta pisze „ukryty —
+  zaloguj się", zamiast układać tag Discorda z nicku. Dla danych demo zmyślanie
+  zostaje, bo tam nie ma czego pokazać.
+- **„Szukam teraz” zapisuje się w bazie** (`lookingNow` na moich ogłoszeniach),
+  więc status widzą inni, a nie tylko właściciel u siebie.
+- **Filtrowanie i sortowanie zostaje po stronie przeglądarki w obu trybach** —
+  jedna ścieżka kodu, więc nie da się mieć innych wyników z backendem i bez
+  niego. Front pobiera do 480 ogłoszeń na raz; przy większej bazie filtry
+  przechodzą na serwer, który już je ma.
+- **Eksport, import i kasowanie danych mówią wprost**, że ogłoszenia
+  i obserwowani siedzą w bazie i zostają.
+
+### Dodane
+- **Ranga i dni tygodnia w bazie** (migracja `004`): kolumny `rank` i `days`,
+  filtry `?rank=` i `?day=`, walidacja listą wartości. Ogłoszenie bez
+  zadeklarowanych dni pasuje do każdego filtru dnia.
+- **Test przeklikujący front w obu trybach** — `server/test/front.e2e.mjs`,
+  `npm run test:front`. 26 sprawdzeń: rejestracja, dodanie ogłoszenia, ranga
+  w bazie, przeżycie przeładowania, obserwowanie, ukryty kontakt u gościa
+  i powrót na dane lokalne po odcięciu API. Do tego 26 testów API (`npm test`).
+- Wskaźnik źródła danych w stopce menu: zielone „● serwer”, żółte „● lokalnie”.
+
+### Uwagi
+- Pliki wrzucane do ogłoszenia **zostają tylko w przeglądarce autora** — serwer
+  nie przyjmuje data URL-i. Formularz mówi o tym przy wysyłce.
+- Monety i premium dalej siedzą w przeglądarce, więc każdy może zmienić sobie
+  saldo w konsoli. To jest blokada przed prawdziwymi płatnościami, nie detal.
+
 ## [0.7.0] — 2026-09-17
 
 Przeniesienie tego, co dało się wziąć z kolejnej równoległej wersji frontu

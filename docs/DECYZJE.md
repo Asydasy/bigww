@@ -40,11 +40,28 @@ przy każdym odświeżeniu i nie dałoby się o nim sensownie rozmawiać.
 przepływ (dodaj ogłoszenie → zobacz je na liście → wypromuj → kup premium) bez
 ani jednej linijki serwera.
 
-**Monetyzacja doszyta przez nadpisanie funkcji** — cofnięte 17.09.2026.
-`go`, `renderPlayers` i `submitAd` były podmieniane w sekcji monetyzacji
-zamiast przepisywania oryginałów. Przy rozdzielaniu plików to by się rozsypało
-albo zaczęło działać losowo w zależności od kolejności ładowania, więc
-monetyzacja wchodzi teraz przez trzy zwykłe wywołania.
+**Monetyzacja doszyta przez nadpisanie funkcji** — cofnięte 17.09.2026,
+a potem **przywrócone razem ze scaleniem równoległej wersji frontu**.
+`go`, `renderPlayers` i `submitAd` są znowu opakowywane na końcu
+`js/monetization.js`. Działa to tylko dlatego, że ten plik ładuje się po
+plikach z oryginałami. Zostaje na razie, bo przepisywanie monetyzacji w trakcie
+spinania z backendem byłoby dwiema zmianami naraz — jest w `docs/TODO.md`,
+punkt 1.
+
+**Dane z serwera wchodzą pod istniejące globalne tablice, zamiast przepisywać
+widoki na async.** Po powrocie warstwy `DATA` (18.09.2026) `allPlayers()`,
+`MINE` i `SAVED` są w trybie serwerowym wypełniane danymi z bazy, a filtry,
+sortowanie i karty zostają bez zmian. Alternatywą było przerobienie
+`renderPlayers()` i wszystkich jego wywołań na asynchroniczne — przy froncie,
+który w międzyczasie urósł o skrzynkę, giveawaye i profil gracza, to ryzyko
+było większe niż zysk. Cena: front pobiera do 480 ogłoszeń na raz i filtruje
+je u siebie. Przy większej bazie filtrowanie przenosi się na serwer, który ma
+już komplet filtrów.
+
+**Zapis tylko przez `DATA`.** Czytanie może iść po globalnych tablicach, ale
+każdy zapis (dodanie, edycja, usunięcie, obserwowanie, „szukam teraz”,
+logowanie) przechodzi przez `DATA`. Dzięki temu nie da się napisać kodu, który
+działa wyłącznie z backendem albo wyłącznie bez niego.
 
 **Okładki gier pobierane raz na dysk, nie podłączane z cudzego serwera.**
 Obrazki idą ze Steama, ale zapisujemy je u siebie i serwujemy z własnego hosta.
@@ -92,6 +109,20 @@ wpisany tekst daje inne wyniki. Stąd funkcja `bigww_norm()`, kolumna
 **Monety i premium po stronie serwera.** W przeglądarce każdy wpisze sobie
 dowolne saldo w konsoli. Dopóki nie ma prawdziwych pieniędzy, to nie boli, ale
 schemat bazy jest już przygotowany pod przeniesienie portfela.
+
+**Serwer wstaje bez pliku `.env` — poza produkcją.** Brak `DATABASE_URL`
+i `JWT_SECRET` daje wartości testowe i ostrzeżenie w logu, a przy
+`NODE_ENV=production` jest błędem, który zatrzymuje start. Powód: „git clone
+&& docker compose up" ma działać u kogoś, kto widzi repo pierwszy raz, i nie
+kończyć się błędem o brakującym pliku. Compose robi też migracje i seed sam,
+bo trzy polecenia do wpisania po kolei to trzy okazje do pomyłki.
+
+**Konta lokalne zostają, ale tylko bez backendu.** Rejestracja w przeglądarce,
+kod weryfikacyjny pokazywany na ekranie i „logowanie przez Google" to warstwa
+pokazowa — wygląda jak konto, nie jest kontem. W trybie serwerowym nic z tego
+nie jest używane: konto zakłada backend, hasło hashuje scrypt po stronie
+serwera, a Discord to prawdziwy OAuth. Usunięcie kodu lokalnych kont zabrałoby
+możliwość pokazania serwisu z pliku na dysku, więc zostaje — z wyraźną granicą.
 
 ## Sposób prowadzenia projektu
 

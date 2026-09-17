@@ -6,78 +6,90 @@ osobnym etapem projektu.
 ## 0. Zrobione
 
 - [x] Rozdzielić `index.html` na `css/style.css` i pliki w `js/`.
-- [x] Usunąć nadpisywanie funkcji `go`, `renderPlayers`, `submitAd`.
-- [x] Wybrać stos backendu i sposób logowania.
-- [x] Postawić backend: konta, sesje, katalog gier, CRUD ogłoszeń z filtrami,
-      limitami i obserwowaniem. 24 testy przechodzą.
-- [x] `docker-compose.yml`, migracje z runnerem, seed gier z `js/data-games.js`.
-- [x] `js/api.js` i `js/data-source.js` — warstwa `DATA` z trybem serwerowym
-      i demo; widoki graczy, ogłoszeń, moich ogłoszeń, obserwowanych i bazy gier
-      przepięte na nią.
-- [x] Ekran logowania i rejestracji plus panel konta w menu bocznym.
-- [x] Scalenie równoległej pracy: godziny grania od–do, edycja ogłoszenia,
-      siatka/lista, chipy filtrów, eksport i import danych.
-- [x] Wycięcie udawanych funkcji w trybie serwerowym.
+- [x] Backend: konta, sesje, katalog gier, CRUD ogłoszeń z filtrami, limitami
+      i obserwowaniem, migracje, seed, `docker-compose.yml`.
+- [x] Warstwa `DATA` z trybem serwerowym i lokalnym — **przywrócona po tym, jak
+      scalenie równoległej wersji frontu (commit `c247099`) zostawiło z niej
+      dwulinijkowe zaślepki.**
+- [x] `docker compose up` stawia całość zaraz po sklonowaniu repozytorium:
+      migracje i seed lecą same, front i API siedzą pod jednym adresem.
+- [x] Ranga i dni tygodnia w bazie (migracja `004`) razem z filtrami `?rank=`
+      i `?day=`.
+- [x] Konta przez serwer w trybie API (e-mail z hasłem, Discord OAuth), konta
+      lokalne tylko dla trybu bez backendu.
+- [x] „Szukam teraz” zapisywane w bazie, nie tylko w przeglądarce.
+- [x] Test przeklikujący front w obu trybach jako część repo
+      (`server/test/front.e2e.mjs`, `npm run test:front`).
+- [x] „Usuń wszystkie dane” kasuje też skrzynkę, powiadomienia, blokady,
+      zgłoszenia, oceny, zestawy filtrów i udziały w giveawayach.
+- [x] Regulamin i polityka prywatności jako widok w serwisie.
+- [x] Rzeczy konta przeniesione z menu bocznego do rozwijanego menu pod awatarem.
 
-## 1. Dokończyć spinanie frontu z backendem
+## 1. Poprawki, każda na jedną sesję
 
-- [ ] **Przełącznik „szukam teraz" na serwerze.** Dziś ustawia się tylko przy
-      dodawaniu ogłoszenia (`lookingNow`), a przycisk w interfejsie zmienia
-      wyłącznie `PREF.looking` w przeglądarce.
-- [ ] **Ekipy i transmisje w bazie** — jako jedyne zostały na danych demo nawet
-      w trybie serwerowym.
-- [ ] **Odświeżanie trybu bez przeładowania strony.** Teraz uruchomienie
-      backendu przy otwartej stronie wymaga odświeżenia.
-- [ ] **Test przeklikujący front jako część repo.** Sprawdzał oba tryby i
-      wyłapał dwa błędy, ale mieszka w katalogu tymczasowym.
-
-## 1b. Zaległości po scaleniu
-
-- [ ] **Ekipy w bazie** — dziś pokazują „wkrótce" w trybie serwerowym.
-- [ ] **Transmisje live** — to samo.
-- [ ] **Portfel monet na serwerze**, a po nim przywrócenie Sklepu i Premium
-      (razem z prawdziwą bramką płatniczą — bez niej zostają schowane).
-
-## 1c. Do rozstrzygnięcia
-
-- [ ] **Wielojęzyczność PL/EN.** Gotowe tłumaczenia (~156 kluczy) są w
-      równoległej wersji frontu. Jeśli wchodzimy, to atrybutami `data-i18n`
-      w markupie, a nie jedną funkcją przepisującą interfejs.
-
-## 2. Poprawki w prototypie (po jednej sesji każda)
-
-- [ ] **Obsłużyć przepełnienie localStorage.** `save()` w `js/state.js` łyka
-      błąd po cichu. Ma pokazywać toast „Brak miejsca — usuń stare ogłoszenie
-      albo plik" i nie udawać, że zapisał.
+- [ ] **Obsłużyć przepełnienie localStorage.** `rawSave()` w `js/state.js` łyka
+      błąd po cichu (`catch (e) {}`). Ma pokazywać toast „Brak miejsca — usuń
+      stare ogłoszenie albo plik” i nie udawać, że zapisał.
 - [ ] **Ograniczyć wielkość wrzucanego pliku** (np. 2 MB) i skalować obrazy
       przed zapisem jako data URL.
-- [ ] **Walidacja formularza ogłoszenia** po stronie frontu — serwer już to
-      sprawdza, ale użytkownik powinien wiedzieć przed wysłaniem.
-- [ ] **Zgłoś / zablokuj** na karcie gracza.
-- [ ] Zaktualizować `docs/ARCHITEKTURA.md` i `CHANGELOG.md` po tych zmianach.
+- [ ] **Naprawić sprzeczność w liczbie darmowych wiadomości**: `FREE_MSG_LIMIT`
+      to 10, a plan Darmowy w `js/view-premium.js` obiecuje 5.
+- [ ] **Dopisać `inboxUnreadCount()`** albo wyciąć wywołanie z `updateBadges()`
+      (`js/monetization.js`, linia 514) — dziś odznaka pokazuje liczbę wątków,
+      nie nieprzeczytanych.
+- [ ] **Walidacja formularza ogłoszenia** po stronie frontu — serwer sprawdza
+      swoje, ale użytkownik powinien wiedzieć przed wysłaniem.
+- [ ] **Usunąć opakowania funkcji z `monetization.js`** (`go`, `renderPlayers`,
+      `submitAd`) i zastąpić je zwykłymi wywołaniami.
 
-## 3. Testy (naturalny wkład użytkownika — tester manualny)
+## 2. Dokończyć spinanie z backendem
+
+- [ ] **Filtrowanie po stronie serwera.** Dziś front ściąga do 480 ogłoszeń
+      (`MAX_ADS` w `js/data-source.js`) i filtruje u siebie. Endpoint ma już
+      komplet filtrów — trzeba przepiąć `renderPlayers()` na zapytania
+      i zrobić go asynchronicznym. Zrobić to, zanim ogłoszeń będzie więcej
+      niż jedno pobranie.
+- [ ] **Ekipy i transmisje w bazie** — jedyne części, które zostały na danych
+      demo także w trybie serwerowym. Nowa migracja, `server/src/routes/teams.js`,
+      przepięcie `js/view-teams-live.js` na `DATA`.
+- [ ] **Pliki z ogłoszeń na serwerze.** Dziś data URL zostaje w przeglądarce
+      autora, więc nikt inny go nie zobaczy. Do decyzji: upload do katalogu czy
+      tylko odsyłacze do klipów.
+- [ ] **Odświeżanie trybu bez przeładowania strony.** Uruchomienie backendu przy
+      otwartej stronie wymaga dziś odświeżenia.
+- [ ] **Usunąć martwy kod kont lokalnych z trybu serwerowego** albo wyraźnie go
+      oznaczyć: udawana weryfikacja e-maila, SMS i „Google” działają tylko bez
+      backendu, a kod siedzi w tym samym pliku.
+
+## 3. Backend — drugi etap
+
+- [ ] **Portfel monet po stronie serwera**: wydawanie, doładowania, historia
+      operacji. Dopóki saldo siedzi w przeglądarce, monety nie znaczą nic —
+      każdy wpisze sobie dowolny balans w konsoli.
+- [ ] **Premium w bazie** i sprawdzanie go po stronie serwera (limit ogłoszeń
+      już tam jest, reszta nie).
+- [ ] **Odblokowywanie kontaktu za monety** — tabela `unlocks` i sprawdzanie
+      w `publicAd()`. Dziś kontakt widzi każdy zalogowany.
+- [ ] **Wiadomości między użytkownikami.** Do przemyślenia razem z decyzją, czy
+      w ogóle chcemy je u siebie, czy zostajemy przy pokazywaniu Discorda.
+- [ ] **Moderacja**: zgłoszenia i blokady w bazie, kolejka do przejrzenia.
+      Dziś zapisują się u zgłaszającego, więc nikt ich nie widzi.
+- [ ] **Giveawaye w bazie**, jeśli mają być prawdziwe — losowanie po stronie
+      serwera, inaczej to tylko ozdoba.
+- [ ] **Hosting** i domena.
+
+## 4. Testy (naturalny wkład użytkownika — tester manualny)
 
 - [ ] Spisać scenariusze testowe dla przepływów: rejestracja, logowanie,
       onboarding, dodanie ogłoszenia, filtrowanie, zakup premium, wydanie
-      monet, dzienny reset zadań.
+      monet, dzienny reset zadań — osobno dla trybu serwerowego i lokalnego.
 - [ ] Sprawdzić zachowanie przy wyczyszczonym localStorage i przy pełnym.
-- [ ] Sprawdzić motyw jasny na wszystkich 11 widokach — to najczęstsze miejsce
+- [ ] Sprawdzić motyw jasny na wszystkich 15 widokach — to najczęstsze miejsce
       na przeoczone kolory.
+- [ ] Rozszerzyć `server/test/front.e2e.mjs` o edycję ogłoszenia, limit kont
+      darmowych i przełączanie języka.
 - [ ] Zdecydować, czy błędy prowadzić w Redmine (jak w pracy), czy w issues
       repozytorium.
-
-## 4. Backend — drugi etap
-
-- [ ] **Portfel monet po stronie serwera**: wydawanie, doładowania, historia
-      operacji. Dopóki saldo siedzi w przeglądarce, monety nie znaczą nic.
-- [ ] **Odblokowywanie kontaktu za monety** — tabela `unlocks` i sprawdzanie
-      w `publicAd()`. Dziś kontakt widzi właściciel i premium.
-- [ ] **Ekipy i transmisje w bazie** — teraz istnieją tylko we froncie.
-- [ ] **Wiadomości między użytkownikami.** Do przemyślenia razem z decyzją,
-      czy w ogóle chcemy je u siebie, czy zostajemy przy pokazywaniu Discorda.
-- [ ] **Model kontaktu** — decyzja wciąż otwarta.
-- [ ] **Hosting** i domena.
 
 ## 5. Zanim wpuścimy prawdziwych ludzi
 
@@ -89,9 +101,10 @@ osobnym etapem projektu.
       Prawo do bycia zapomnianym nie jest opcjonalne.
 - [ ] Minimalny wiek i jego weryfikacja — ogłoszenia dopuszczają od 13 lat,
       co przy serwisie kojarzącym ludzi wymaga przemyślenia.
-- [ ] Moderacja: zgłoszenia, blokowanie, kolejka do przejrzenia.
 - [ ] Prawdziwa bramka płatnicza (Przelewy24 / Stripe) i obsługa zwrotów.
-- [ ] `JWT_SECRET` i hasło do bazy inne niż przykładowe, HTTPS, `secure` na
-      ciasteczku (kod już to robi przy `NODE_ENV=production`).
+- [ ] `JWT_SECRET` inny niż testowy, hasło do bazy inne niż `bigww`, HTTPS,
+      `secure` na ciasteczku (kod robi to przy `NODE_ENV=production`).
+      Serwer wypisuje ostrzeżenie, gdy chodzi na kluczu testowym — na produkcji
+      brak klucza jest błędem i serwer nie wstanie.
 - [ ] Problem pustego serwisu: skąd pierwszych stu użytkowników. Bez tego
       reszta nie ma znaczenia.

@@ -8,14 +8,14 @@ Przeczytaj przed pierwszą zmianą.
 ```
 git clone https://github.com/Asydasy/bigww.git
 cd bigww
-cp server/.env.example server/.env      # w środku wpisz własny JWT_SECRET
 docker compose up -d
-docker compose exec api npm run migrate
-docker compose exec api npm run seed
 cd server && npm run covers && cd ..   # okładki gier, opcjonalne
 ```
 
-W `server/.env` ustaw też `SERVE_STATIC=1` i wejdź na http://localhost:3000.
+To wszystko — migracje i seed lecą przy starcie kontenera, front i API siedzą
+pod http://localhost:3000. Własny `JWT_SECRET` i dane Discorda wpisujesz
+w `server/.env` (wzór: `server/.env.example`); bez tego pliku serwer wstaje na
+kluczu testowym i mówi o tym w logu.
 
 **Każdy ma własną bazę.** Nie współdzielimy Postgresa przy pracy — konta i
 ogłoszenia, które dodajesz u siebie, widzisz tylko Ty. Wspólną instancję
@@ -64,16 +64,22 @@ zanim ktokolwiek zacznie pisać.
 | strona startowa | `js/view-home.js` |
 | premium i płatności | `js/view-premium.js` |
 | ustawienia | `js/view-settings.js` |
-| monety, sklep, zadania | `js/monetization.js` |
-| logowanie i konto | `js/auth-ui.js` |
+| giveawaye | `js/view-giveaways.js` |
+| regulamin i prywatność | `js/view-terms.js` |
+| monety, sklep, zadania, odznaki | `js/monetization.js` |
+| logowanie, konto, menu konta | `js/auth-ui.js` |
+| tłumaczenia | `js/i18n.js` |
 | trasy API | `server/src/routes/*.js` — po jednym pliku na osobę |
 
 **Pliki wspólne — uprzedź drugiego, zanim wejdziesz:**
 
 `index.html`, `css/style.css`, `js/util.js`, `js/cards.js`, `js/state.js`,
-`js/data-source.js`, `js/api.js`, `js/nav.js`, `js/main.js`,
+`js/data-source.js`, `js/api.js`, `js/nav.js`, `js/main.js`, `js/boot.js`,
 `server/src/server.js`, `server/src/config.js`, `server/src/shape.js`,
 `server/src/db-schema.d.ts`, `CHANGELOG.md`.
+
+`js/data-source.js` i `js/api.js` to warstwa, przez którą przechodzi każdy
+zapis danych — zmiana tam dotyka obu trybów naraz i obu osób.
 
 W tych plikach schodzą się wszyscy i to tam powstają konflikty.
 
@@ -144,8 +150,12 @@ wtedy trzyma się swojego obszaru.
 
 ## Zanim wystawisz pull request
 
-- `cd server && npm test` — wszystkie testy przechodzą.
-- Przeklikaj oba tryby: z uruchomionym backendem i bez niego (`docker compose down`).
+- `cd server && npm test` — 26 testów API przechodzi.
+- `cd server && npm run test:front` — przeklikanie obu trybów. Wymaga
+  działającego serwera i Playwrighta (`npm i -D playwright && npx playwright
+  install chromium`). Test dopisuje do bazy jedno konto i jedno ogłoszenie.
+- Po zmianie w `server/migrations/` puść `npm run migrate` na obu bazach:
+  roboczej i testowej.
 - Dopisz wpis do `CHANGELOG.md`.
 - Zaktualizuj `docs/STAN.md`, jeśli zmieniło się, co działa.
 
