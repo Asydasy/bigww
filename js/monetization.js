@@ -493,14 +493,18 @@ function shopBuy(it) {
 }
 
 function updateBadges() {
-  $("#nb-players").textContent = nf(DATA.totalAds);
-  $("#nb-games").textContent = nf(DATA.games.length);
+  // Część odznaczek znika razem z przyciskami menu, które chowamy w trybie
+  // serwerowym (Sklep, Premium) — dlatego każde przypisanie jest sprawdzane.
+  const badge = (sel, value) => { const n = $(sel); if (n) n.textContent = value; };
+
+  badge("#nb-players", nf(DATA.totalAds));
+  badge("#nb-games", nf(DATA.games.length));
   // Ekipy i transmisje istnieją na razie tylko w danych demo.
-  $("#nb-teams").textContent = TEAMS.length;
-  if ($("#nb-live")) $("#nb-live").textContent = LIVES.length;
-  $("#nb-mine").textContent = DATA.mineCount || "";
-  $("#nb-saved").textContent = DATA.savedCount || "";
-  $("#nb-prem").textContent = isPrem() ? (isPro() ? "PRO" : "aktywne") : "";
+  badge("#nb-teams", DATA.isApi ? "" : TEAMS.length);
+  badge("#nb-live", DATA.isApi ? "" : LIVES.length);
+  badge("#nb-mine", DATA.mineCount || "");
+  badge("#nb-saved", DATA.savedCount || "");
+  badge("#nb-prem", isPrem() ? (isPro() ? "PRO" : "aktywne") : "");
   updateCoinUI();
 }
 
@@ -513,6 +517,8 @@ const INTER_ADS = [
   { title: "Serwer VPS od 12 zł/mies.", sub: "Hostuj swój klan" }
 ];
 function maybeShowInterstitial() {
+  // Reklama pełnoekranowa to atrapa — nie pokazujemy jej prawdziwym użytkownikom.
+  if (DATA.isApi) return;
   if (isPrem()) return;
   NAVCOUNT++;
   save(KEY.navcount, NAVCOUNT);
@@ -567,6 +573,9 @@ function sponsoredCard() {
 
 /** Wstawia kartę sponsorowaną na górę listy graczy. Wołane z renderPlayers(). */
 function addSponsoredSlot() {
+  // Karta „sponsorowana" jest zmyślona — w trybie serwerowym udawałaby
+  // płacącego partnera, którego nie ma.
+  if (DATA.isApi) return;
   const box = $("#playerList");
   if (box && box.children.length && !box.querySelector(".sponsored-card")) {
     box.insertBefore(sponsoredCard(), box.firstChild);

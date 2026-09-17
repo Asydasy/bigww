@@ -4,6 +4,13 @@
  * słowa zastrzeżone w SQL) — tutaj wracają jako time i desc.
  */
 
+/** „17:00–22:00" z pary godzin; null, gdy ich nie ma. */
+export function timeLabel(from, to) {
+  if (from === null || from === undefined || to === null || to === undefined) return null;
+  const pad = (n) => String(((Number(n) % 24) + 24) % 24).padStart(2, "0") + ":00";
+  return pad(from) + "–" + pad(to);
+}
+
 export function isPremium(user) {
   return Boolean(user?.premium_until && new Date(user.premium_until) > new Date());
 }
@@ -39,7 +46,9 @@ export function publicAd(row, viewer = null) {
     gameId: row.game_id,
     plat: row.plat,
     style: row.style,
-    time: row.time_of_day,
+    time: timeLabel(row.hour_from, row.hour_to) || row.time_of_day || "Elastycznie",
+    hourFrom: row.hour_from,
+    hourTo: row.hour_to,
     mic: row.mic,
     lang: row.lang,
     tags: row.tags,
@@ -50,10 +59,12 @@ export function publicAd(row, viewer = null) {
     prem: ownerPremium,
     added: new Date(row.created_at).getTime(),
     mine,
-    // Kontakt widzi właściciel i posiadacz premium. Odblokowywanie za monety
-    // dojdzie razem z portfelem po stronie serwera.
-    contact: mine || isPremium(viewer) ? row.contact : null,
-    contactLocked: !(mine || isPremium(viewer)) && Boolean(row.contact)
+    // Kontakt widzi każdy zalogowany. Płatne odblokowywanie wróci dopiero
+    // wtedy, gdy będzie prawdziwa bramka płatnicza — do tego czasu blokowanie
+    // kontaktu za monety, których nie da się kupić, zamykałoby serwis
+    // dokładnie w tym miejscu, po co ludzie na niego wchodzą.
+    contact: viewer ? row.contact : null,
+    contactLocked: !viewer && Boolean(row.contact)
   };
 }
 

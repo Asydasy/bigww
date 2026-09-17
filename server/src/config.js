@@ -33,10 +33,12 @@ export const config = {
   isProd: process.env.NODE_ENV === "production"
 };
 
-/** Ile ogłoszeń wolno mieć na koncie. Te same liczby co w js/state.js. */
+/** Ile ogłoszeń wolno mieć na koncie. Te same liczby co w js/state.js —
+ *  gdy zmieniasz tutaj, zmień też tam, inaczej front obiecuje co innego,
+ *  niż serwer pozwala. */
 export function adLimitFor(user) {
   const active = user.premium_until && new Date(user.premium_until) > new Date();
-  if (!active) return 2;
+  if (!active) return 3;
   if (user.premium_plan === "pro" || user.premium_plan === "year") return 20;
   return 10;
 }

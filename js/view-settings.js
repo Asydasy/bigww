@@ -15,11 +15,65 @@ $("#sRegion").onchange = e => {
   $("#aRegion").value = PREF.region;
   toast("Domyślny kraj zapisany");
 };
+if ($("#sImport")) $("#sImport").onclick = () => {
+  openModal(`<h3 style="margin-bottom:10px">Import danych</h3>
+    <p class="note" style="margin-bottom:10px">Wklej wcześniej wyeksportowany plik JSON. Obecne ogłoszenia i ustawienia zostaną nadpisane.</p>
+    <textarea id="importArea" style="height:180px" placeholder='{"version":3,...}'></textarea>
+    <button class="btn pri" id="importGo" style="margin-top:12px">Wczytaj</button>`);
+  $("#importGo").onclick = () => {
+    let data;
+    try {
+      data = JSON.parse($("#importArea").value);
+    } catch (e) {
+      toast("To nie wygląda na poprawny plik JSON");
+      return;
+    }
+    if (!data || typeof data !== "object") { toast("Nieprawidłowy format pliku"); return; }
+
+    if (Array.isArray(data.mine)) MINE = data.mine;
+    else if (Array.isArray(data)) MINE = data;
+    if (Array.isArray(data.saved)) SAVED = data.saved;
+    if (data.pref) PREF = Object.assign(PREF, data.pref);
+    if (data.prem) PREM = data.prem;
+    if (data.coins) COINS = data.coins;
+    if (data.ref) REF = data.ref;
+    if (Array.isArray(data.unlocks)) UNLOCKS = data.unlocks;
+
+    save(KEY.mine, MINE); save(KEY.saved, SAVED); save(KEY.pref, PREF);
+    save(KEY.prem, PREM); save(KEY.coins, COINS); save(KEY.ref, REF); save(KEY.unlocks, UNLOCKS);
+    countCache = null;
+
+    $("#modal").classList.remove("on");
+    applyTheme(); updateBadges(); updateCoinUI();
+    renderMine(); renderSaved(); renderPlayers(true); renderHome();
+    if (!DATA.isApi) { renderShop(); renderPremium(); }
+    toast("Dane wczytane");
+  };
+};
+
 $("#sExport").onclick = () => {
-  if (!MINE.length) return toast("Nie masz ogłoszeń do pobrania");
-  openModal(`<h3 style="margin-bottom:10px">Twoje ogłoszenia</h3>
-    <textarea readonly style="height:220px">${JSON.stringify(MINE, null, 2).replace(/</g, "&lt;")}</textarea>
-    <p class="note" style="margin-top:10px">Skopiuj i zachowaj, jeśli chcesz je przenieść gdzie indziej.</p>`);
+  // Eksportujemy cały pakiet danych z przeglądarki, nie tylko ogłoszenia —
+  // dzięki temu da się przenieść stan na inny komputer albo zrobić kopię
+  // przed czyszczeniem danych.
+  const payload = {
+    version: 3,
+    exportedAt: new Date().toISOString(),
+    mine: MINE,
+    saved: SAVED,
+    pref: PREF,
+    prem: PREM,
+    coins: COINS,
+    ref: REF,
+    unlocks: UNLOCKS
+  };
+  const text = JSON.stringify(payload, null, 2);
+  openModal(`<h3 style="margin-bottom:10px">Eksport danych</h3>
+    <p class="note" style="margin-bottom:10px">Skopiuj poniższy tekst i zachowaj. Wczytasz go przyciskiem „Importuj dane".</p>
+    <textarea id="exportArea" readonly style="height:200px">${text.replace(/</g, "&lt;")}</textarea>
+    <button class="btn pri sm" id="exportCopy" style="margin-top:12px">Kopiuj do schowka</button>`);
+  $("#exportCopy").onclick = () => {
+    navigator.clipboard?.writeText(text).then(() => toast("Skopiowano")).catch(() => toast("Zaznacz i skopiuj ręcznie"));
+  };
 };
 $("#sWipe").onclick = () => {
   openModal(`<h3 style="margin-bottom:10px">Usunąć wszystkie dane?</h3>

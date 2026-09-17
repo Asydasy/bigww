@@ -13,10 +13,15 @@ const QUICK = [
   { id: "pl", label: "Po polsku" }
 ];
 let quickOn = new Set();
+/** "grid" albo "list" — przełącznik nad listą wyników. */
+let playerView = "grid";
 /** Numer ostatnio wczytanej strony wyników. */
 let page = 1;
 const PER_PAGE = 24;
 let lastTotal = 0;
+/** Zapisuje stan filtrów do PREF. Podstawiane w buildFilters(), żeby chipy
+ *  aktywnych filtrów mogły z niego skorzystać spoza tej funkcji. */
+let persistFilters = () => {};
 
 function buildFilters() {
   const gameNames = DATA.games.map(g => g.name).sort((a, b) => a.localeCompare(b, "pl"));
@@ -24,13 +29,15 @@ function buildFilters() {
   fillSelect($("#fRegion"), REGIONS, "Wszystkie kraje");
   fillSelect($("#fPlat"), PLATS.map(p => ({ value: p, label: PLAT_LABEL[p] })), "Każda platforma");
   fillSelect($("#fStyle"), STYLES, "Każdy styl");
-  fillSelect($("#fTime"), TIMES, "Dowolna pora");
+  fillHourSelect($("#fTimeFrom"), "Od");
+  fillHourSelect($("#fTimeTo"), "Do");
 
   fillSelect($("#aGame"), gameNames);
   fillSelect($("#aRegion"), REGIONS);
   fillSelect($("#aPlat"), PLATS.map(p => ({ value: p, label: PLAT_LABEL[p] })));
   fillSelect($("#aStyle"), STYLES);
-  fillSelect($("#aTime"), TIMES);
+  fillHourSelect($("#aTimeFrom"), null, "17");
+  fillHourSelect($("#aTimeTo"), null, "22");
   fillSelect($("#sRegion"), REGIONS);
   $("#sRegion").value = PREF.region;
   $("#aRegion").value = PREF.region;
@@ -43,19 +50,21 @@ function buildFilters() {
     });
   }
 
-  function persistFilters() {
+  persistFilters = function () {
     PREF.filters = {
       search: $("#pSearch").value,
       game: $("#fGame").value,
       region: $("#fRegion").value,
       plat: $("#fPlat").value,
       style: $("#fStyle").value,
-      time: $("#fTime").value,
+      timeFrom: $("#fTimeFrom").value,
+      timeTo: $("#fTimeTo").value,
       sort: $("#fSort").value,
       quick: Array.from(quickOn)
     };
+    PREF.playerView = playerView;
     save(KEY.pref, PREF);
-  }
+  };
 
   const box = $("#quickChips");
   QUICK.forEach(q => {
@@ -77,7 +86,8 @@ function buildFilters() {
     if (f.region && REGIONS.includes(f.region)) $("#fRegion").value = f.region;
     if (f.plat) $("#fPlat").value = f.plat;
     if (f.style) $("#fStyle").value = f.style;
-    if (f.time) $("#fTime").value = f.time;
+    if (f.timeFrom != null) $("#fTimeFrom").value = f.timeFrom;
+    if (f.timeTo != null) $("#fTimeTo").value = f.timeTo;
     if (f.sort && Array.from($("#fSort").options).some(o => o.value === f.sort)) $("#fSort").value = f.sort;
     if (f.quick && f.quick.length) {
       f.quick.forEach(id => quickOn.add(id));
@@ -86,6 +96,16 @@ function buildFilters() {
       });
     }
   }
+  if (PREF.playerView) playerView = PREF.playerView;
+  applyPlayerView();
+
+  document.querySelectorAll("#viewToggle button").forEach(b => {
+    b.onclick = () => {
+      playerView = b.dataset.view;
+      persistFilters();
+      applyPlayerView();
+    };
+  });
 
   // Wpisywanie w wyszukiwarkę odpytuje serwer, więc czekamy, aż użytkownik
   // skończy pisać — inaczej każde naciśnięcie klawisza to osobne zapytanie.
@@ -96,12 +116,12 @@ function buildFilters() {
     typing = setTimeout(() => renderPlayers(true), delay);
   };
   $("#pSearch").addEventListener("input", () => rerun(250));
-  ["#fGame", "#fRegion", "#fPlat", "#fStyle", "#fTime", "#fSort"].forEach(s => {
+  ["#fGame", "#fRegion", "#fPlat", "#fStyle", "#fTimeFrom", "#fTimeTo", "#fSort"].forEach(s => {
     $(s).addEventListener("input", () => rerun(0));
   });
 
   $("#pReset").onclick = () => {
-    ["#fGame", "#fRegion", "#fPlat", "#fStyle", "#fTime"].forEach(s => $(s).value = "");
+    ["#fGame", "#fRegion", "#fPlat", "#fStyle", "#fTimeFrom", "#fTimeTo"].forEach(s => $(s).value = "");
     $("#pSearch").value = ""; $("#fSort").value = "new";
     quickOn.clear();
     document.querySelectorAll("#quickChips .chip").forEach(c => c.classList.remove("on"));
@@ -110,6 +130,59 @@ function buildFilters() {
     renderPlayers(true);
   };
   $("#pMore").onclick = () => renderPlayers(false);
+}
+
+function applyPlayerView() {
+  const box = $("#playerList");
+  if (box) box.classList.toggle("list-view", playerView === "list");
+  document.querySelectorAll("#viewToggle button").forEach(b => {
+    b.classList.toggle("on", b.dataset.view === playerView);
+  });
+}
+
+/**
+ * Aktywne filtry jako klikalne chipy z krzyżykiem — widać na pierwszy rzut oka,
+ * co zawęża wyniki, i da się zdjąć pojedynczy warunek bez czyszczenia wszystkiego.
+ */
+function renderActiveFilters() {
+  const box = $("#activeFilters");
+  if (!box) return;
+  box.innerHTML = "";
+
+  const chips = [];
+  const add = (label, clear) => chips.push({ label, clear });
+
+  if ($("#pSearch").value.trim()) add("„" + $("#pSearch").value.trim() + "”", () => ($("#pSearch").value = ""));
+  if ($("#fGame").value) add($("#fGame").value, () => ($("#fGame").value = ""));
+  if ($("#fRegion").value) add($("#fRegion").value, () => ($("#fRegion").value = ""));
+  if ($("#fPlat").value) add(PLAT_LABEL[$("#fPlat").value] || $("#fPlat").value, () => ($("#fPlat").value = ""));
+  if ($("#fStyle").value) add($("#fStyle").value, () => ($("#fStyle").value = ""));
+  if ($("#fTimeFrom").value || $("#fTimeTo").value) {
+    add(timeLabel($("#fTimeFrom").value || 0, $("#fTimeTo").value || 23), () => {
+      $("#fTimeFrom").value = "";
+      $("#fTimeTo").value = "";
+    });
+  }
+  QUICK.forEach(q => {
+    if (!quickOn.has(q.id)) return;
+    add(q.label, () => {
+      quickOn.delete(q.id);
+      document.querySelectorAll("#quickChips .chip").forEach((c, i) => {
+        if (QUICK[i] && QUICK[i].id === q.id) c.classList.remove("on");
+      });
+    });
+  });
+
+  chips.forEach(ch => {
+    const b = el("button", "chip on", ch.label + " ×");
+    b.title = "Usuń ten filtr";
+    b.onclick = () => {
+      ch.clear();
+      persistFilters();
+      renderPlayers(true);
+    };
+    box.append(b);
+  });
 }
 
 /** Zbiera stan filtrów z formularza. DATA tłumaczy je na zapytanie do
@@ -121,7 +194,8 @@ function currentFilters() {
     region: $("#fRegion").value,
     plat: $("#fPlat").value,
     style: $("#fStyle").value,
-    time: $("#fTime").value,
+    hourFrom: $("#fTimeFrom").value,
+    hourTo: $("#fTimeTo").value,
     sort: $("#fSort").value,
     quick: Array.from(quickOn)
   };
@@ -164,6 +238,7 @@ async function renderPlayers(reset) {
     return;
   }
 
+  renderActiveFilters();
   lastTotal = res.total;
   $("#pCount").textContent = res.total ? wynikow(res.total) : "Brak wyników";
 
@@ -176,7 +251,9 @@ async function renderPlayers(reset) {
     if ($("#fRegion").value) active.push("region: " + $("#fRegion").value);
     if ($("#fPlat").value) active.push("platforma: " + $("#fPlat").value);
     if ($("#fStyle").value) active.push("styl: " + $("#fStyle").value);
-    if ($("#fTime").value) active.push("pora: " + $("#fTime").value);
+    if ($("#fTimeFrom").value || $("#fTimeTo").value) {
+      active.push("godziny: " + timeLabel($("#fTimeFrom").value || 0, $("#fTimeTo").value || 23));
+    }
     if (quickOn.size) active.push("szybkie filtry: " + quickOn.size);
     e.innerHTML = `<h3>Brak dokładnych wyników</h3>
       <p>${active.length ? "Aktywne: " + active.join(" · ") + "." : "Nikt nie pasuje."}

@@ -51,9 +51,13 @@ function canWatchLive(streamId) {
   return false;
 }
 
-const FREE_MSG_LIMIT = 5;
-const UNLOCK_CONTACT_COST = 20;
-const MSG_COST = 8;
+/* Limity darmowego planu. UWAGA: adLimit() poniżej musi zgadzać się z
+   adLimitFor() w server/src/config.js, inaczej front obiecuje więcej, niż
+   serwer pozwala. */
+const FREE_MSG_LIMIT = 10;
+const FREE_UNLOCK_DAILY = 3;
+const UNLOCK_CONTACT_COST = 15;
+const MSG_COST = 6;
 const BP_XP_PER_LEVEL = 100;
 const BP_MAX = 10;
 
@@ -62,7 +66,7 @@ function isPro() { return isPrem() && (PREM.plan === "pro" || PREM.plan === "yea
 function adLimit() {
   if (isPro()) return 20;
   if (isPrem()) return 10;
-  let lim = 2;
+  let lim = 3;
   const extra = Number(localStorage.getItem("bigww_extra_slot") || 0);
   if (extra > Date.now()) lim += 1;
   return lim;
@@ -85,12 +89,20 @@ function canSeeContact(p) {
 }
 function resetMsgDay() {
   const t = todayKey();
-  if (MSG.day !== t) { MSG.day = t; MSG.used = 0; save(KEY.msg, MSG); }
+  if (MSG.day !== t) { MSG.day = t; MSG.used = 0; MSG.freeUnlocks = 0; save(KEY.msg, MSG); }
+  if (MSG.freeUnlocks == null) MSG.freeUnlocks = 0;
 }
 function msgsLeft() {
   if (isPrem()) return 999;
   resetMsgDay();
   return Math.max(0, FREE_MSG_LIMIT - MSG.used);
+}
+
+/** Ile darmowych odblokowań kontaktu zostało dziś. */
+function freeUnlocksLeft() {
+  if (isPrem()) return 99;
+  resetMsgDay();
+  return Math.max(0, FREE_UNLOCK_DAILY - (MSG.freeUnlocks || 0));
 }
 
 function allPlayers() { return MINE.concat(PLAYERS); }

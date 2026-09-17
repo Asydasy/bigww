@@ -15,12 +15,12 @@ osobnym etapem projektu.
       i demo; widoki graczy, ogłoszeń, moich ogłoszeń, obserwowanych i bazy gier
       przepięte na nią.
 - [x] Ekran logowania i rejestracji plus panel konta w menu bocznym.
+- [x] Scalenie równoległej pracy: godziny grania od–do, edycja ogłoszenia,
+      siatka/lista, chipy filtrów, eksport i import danych.
+- [x] Wycięcie udawanych funkcji w trybie serwerowym.
 
 ## 1. Dokończyć spinanie frontu z backendem
 
-- [ ] **Edycja ogłoszenia na stronie.** Backend ma `PATCH /api/ads/:id`, front
-      wciąż każe skasować i dodać od nowa. Do zrobienia: przycisk „Edytuj" na
-      karcie w „Moich ogłoszeniach", który otwiera formularz z wypełnionymi polami.
 - [ ] **Przełącznik „szukam teraz" na serwerze.** Dziś ustawia się tylko przy
       dodawaniu ogłoszenia (`lookingNow`), a przycisk w interfejsie zmienia
       wyłącznie `PREF.looking` w przeglądarce.
@@ -30,6 +30,13 @@ osobnym etapem projektu.
       backendu przy otwartej stronie wymaga odświeżenia.
 - [ ] **Test przeklikujący front jako część repo.** Sprawdzał oba tryby i
       wyłapał dwa błędy, ale mieszka w katalogu tymczasowym.
+
+## 1b. Zaległości po scaleniu
+
+- [ ] **Ekipy w bazie** — dziś pokazują „wkrótce" w trybie serwerowym.
+- [ ] **Transmisje live** — to samo.
+- [ ] **Portfel monet na serwerze**, a po nim przywrócenie Sklepu i Premium
+      (razem z prawdziwą bramką płatniczą — bez niej zostają schowane).
 
 ## 2. Poprawki w prototypie (po jednej sesji każda)
 

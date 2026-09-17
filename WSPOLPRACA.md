@@ -92,6 +92,21 @@ Z bieżącego `docs/TODO.md`:
 Stykają się tylko na `js/cards.js` (przycisk na karcie) — i to jest ten moment,
 w którym jedno zdanie na Discordzie oszczędza godzinę odkręcania.
 
+## Czego nauczyło nas pierwsze scalenie
+
+17.09.2026 dwie osoby pracowały równolegle nad tymi samymi plikami frontu, bez
+wspólnej gałęzi. Druga wersja powstała na kodzie sprzed czterech commitów, więc
+`git merge` nie wchodził w grę — zmiany trzeba było przenosić ręcznie, plik po
+pliku, i porównywać zamiary, a nie tylko linijki. Zajęło to więcej niż napisanie
+tych funkcji od zera.
+
+Trzy wnioski:
+
+1. **Zacznij od `git pull`**, zawsze, nawet gdy „to tylko drobna zmiana".
+2. **Powiedz, co bierzesz**, zanim otworzysz edytor. Jedno zdanie wystarczy.
+3. **Nie buduj równolegle tej samej funkcji.** Powstały wtedy dwa systemy kont —
+   jeden na localStorage, drugi na backendzie. Jeden trzeba było wyrzucić.
+
 ## Gdy już dojdzie do konfliktu
 
 ```

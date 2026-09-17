@@ -12,8 +12,8 @@ function renderModeTag() {
   if (!foot) return;
   if (DATA.isApi) {
     foot.innerHTML = `<span class="mode-tag api">● serwer</span>
-      Ogłoszenia są zapisywane w bazie i widoczne dla wszystkich.
-      Ekipy i transmisje to na razie dane demonstracyjne.`;
+      Ogłoszenia i konta są prawdziwe — zapisują się w bazie i widzą je
+      wszyscy. Ekipy, transmisje i płatności dojdą w kolejnych wersjach.`;
   } else {
     foot.innerHTML = `<span class="mode-tag demo">● demo</span>
       Backend nie odpowiada, więc profile graczy są generowane lokalnie —
@@ -21,11 +21,29 @@ function renderModeTag() {
   }
 }
 
+/**
+ * W trybie serwerowym chowamy to, czego nie da się naprawdę kupić: Sklep,
+ * Premium i saldo monet. Ekrany, które proszą o 19,99 zł i pokazują
+ * potwierdzenie zapłaty, a nic nie pobierają, wyglądają jak próba oszustwa —
+ * wracają, gdy będzie prawdziwa bramka płatnicza.
+ */
+function hideFakeMonetization() {
+  if (!DATA.isApi) return;
+  document.querySelectorAll('#nav button[data-v="premium"], #nav button[data-v="shop"]').forEach(b => b.remove());
+  document.querySelectorAll('#bottomNav button[data-v="shop"], #bottomNav button[data-v="premium"]').forEach(b => b.remove());
+  const coins = $("#coinBal");
+  if (coins) coins.style.display = "none";
+  const setPrem = $("#setPrem");
+  if (setPrem) setPrem.style.display = "none";
+  document.querySelectorAll(".ad-banner").forEach(a => a.remove());
+}
+
 async function start() {
   applyTheme();
 
   // Zanim cokolwiek narysujemy, ustalamy skąd biorą się dane.
   await DATA.init();
+  hideFakeMonetization();
 
   renderAccount();
   renderModeTag();
@@ -40,12 +58,14 @@ async function start() {
   renderTeams();
   renderLives();
   renderInfo();
-  renderPremium();
-  renderSettingsPrem();
+  if (!DATA.isApi) {
+    renderPremium();
+    renderSettingsPrem();
+  }
 
   // Sklep potrzebuje wiedzieć, jakie mam ogłoszenia (do promowania).
   await DATA.myAds();
-  renderShop();
+  if (!DATA.isApi) renderShop();
 
   updateCoinUI();
   updateLookingUI();

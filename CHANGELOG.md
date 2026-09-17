@@ -3,6 +3,69 @@
 Format: najnowsze na górze. Każdy wpis mówi, co zmieniło się w **zachowaniu**,
 a nie tylko w plikach.
 
+## [0.5.0] — 2026-09-17
+
+Scalenie równoległej pracy nad frontem z naszą wersją. Tamta powstawała na
+kodzie sprzed czterech commitów, więc zmiany zostały przeniesione ręcznie,
+plik po pliku, a nie scalone gitem.
+
+### Dodane
+- **Godziny grania od–do** zamiast sztywnych pór dnia — w filtrach, w
+  formularzu i na kartach. Zakresy przechodzące przez północ (22–4) są
+  obsłużone. Filtr działa w obu trybach: w demo liczy to `hoursOverlap()`
+  w przeglądarce, na serwerze funkcja `bigww_hours_overlap()` w bazie.
+  Nowe kolumny `hour_from` / `hour_to` (migracja `003_hours.sql`).
+- **Edycja własnego ogłoszenia** — przycisk „Edytuj" na karcie wczytuje
+  ogłoszenie do formularza; przycisk publikacji zmienia się w „Zapisz zmiany".
+  Na serwerze idzie przez `PATCH /api/ads/:id`, w demo nadpisuje localStorage.
+- **Przełącznik siatka / lista** nad wynikami, zapamiętywany między wejściami.
+- **Aktywne filtry jako chipy z krzyżykiem** — widać, co zawęża wyniki, i da
+  się zdjąć pojedynczy warunek bez czyszczenia wszystkiego.
+- **Eksport i import danych** w Ustawieniach — cały pakiet z przeglądarki
+  (ogłoszenia, obserwowani, ustawienia, monety), do przeniesienia na inny
+  komputer albo jako kopia przed czyszczeniem.
+- Treść wyśrodkowana i ograniczona do 1100 px, żeby na szerokim monitorze nie
+  rozjeżdżała się na całą szerokość.
+
+### Zmienione
+- **Łagodniejszy darmowy plan**: 3 ogłoszenia zamiast 2, 10 wiadomości dziennie
+  zamiast 5, 3 darmowe odblokowania kontaktu dziennie, odblokowanie za 15 WW
+  zamiast 20. Liczby zmienione **po obu stronach** — `js/state.js` i
+  `adLimitFor()` w `server/src/config.js`.
+- **Udawane funkcje znikają w trybie serwerowym.** Sklep, Premium, saldo monet,
+  banery i reklama pełnoekranowa są widoczne tylko w trybie demo. Ekipy i
+  transmisje pokazują pusty stan „wkrótce" zamiast 80 wygenerowanych ekip i 36
+  zmyślonych streamów. Powód: ekran, który prosi o 19,99 zł i pokazuje
+  potwierdzenie zapłaty, a nic nie pobiera, wygląda jak próba oszustwa.
+- **Kontakt nie jest już towarem za monety.** Na serwerze widzi go każdy
+  zalogowany, niezalogowany dostaje kłódkę i zachętę do założenia konta.
+  Blokowanie kontaktu za monety, których nie da się kupić, zamykało serwis
+  dokładnie w tym miejscu, po co ludzie na niego wchodzą. Płatne odblokowania
+  wrócą razem z prawdziwą bramką płatniczą.
+- `js/util.js` ładuje się teraz **przed** `js/data-demo.js`, bo generator
+  graczy woła `timeLabel()` już przy ładowaniu strony.
+
+### Nieprzeniesione i dlaczego
+- **Konta w localStorage** (`js/auth.js` z tamtej wersji). Robiły to samo, co
+  nasz backend, ale trzymały hasła w przeglądarce, konto nie przechodziło na
+  inne urządzenie, a dwie osoby nigdy nie zobaczyłyby się nawzajem. Zostaje
+  logowanie przez serwer.
+- **Usunięcie napisów o wersji demonstracyjnej.** Zamiast chować informację, że
+  coś jest atrapą, usunęliśmy same atrapy — patrz wyżej.
+- **Skasowanie katalogu `server/src`** obecne w tamtej paczce. Wygląda na
+  przypadkowe; backend zostaje.
+
+### Naprawione
+- `updateBadges()` wywalało się w trybie serwerowym po usunięciu przycisków
+  Sklep i Premium z menu — próbowało wpisać liczbę do odznaczki, której już nie
+  było, i przerywało publikację ogłoszenia. Znalezione przez test.
+
+### Sprawdzone
+- 25 testów API (doszedł filtr godzin i widoczność kontaktu dla zalogowanego).
+- Test przeklikujący **oba tryby**: dodanie i edycja ogłoszenia, filtr godzin
+  21–23 kontra 6–9, chipy filtrów, przełącznik widoku z zapamiętaniem po
+  odświeżeniu, obecność albo brak Sklepu i Premium, ekipy i transmisje.
+
 ## [0.4.2] — 2026-09-17
 
 ### Dodane

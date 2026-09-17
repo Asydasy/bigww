@@ -6,6 +6,8 @@
    10. DODAWANIE OGŁOSZENIA
 ========================================================= */
 let pickedTags = [];
+/** Id ogłoszenia, które właśnie edytujemy; null = dodajemy nowe. */
+let editingAdId = null;
 function buildAdd() {
   const box = $("#aTags");
   TAGS.forEach(t => {
@@ -19,7 +21,7 @@ function buildAdd() {
     };
     box.append(b);
   });
-  ["#aNick", "#aAge", "#aGame", "#aRegion", "#aPlat", "#aStyle", "#aTime", "#aMic", "#aDesc", "#aContact", "#aClip"]
+  ["#aNick", "#aAge", "#aGame", "#aRegion", "#aPlat", "#aStyle", "#aTimeFrom", "#aTimeTo", "#aMic", "#aDesc", "#aContact", "#aClip"]
     .forEach(s => $(s).addEventListener("input", preview));
   $("#aDesc").addEventListener("input", () => $("#aLen").textContent = $("#aDesc").value.length);
   $("#aSubmit").onclick = submitAd;
@@ -60,6 +62,7 @@ function buildAdd() {
     pickedTags = [];
     document.querySelectorAll("#aTags .chip").forEach(c => c.classList.remove("on"));
     $("#aLen").textContent = "0";
+    cancelEdit();
     preview();
   };
   preview();
@@ -68,8 +71,10 @@ function buildAdd() {
 function draft() {
   const nick = $("#aNick").value.trim() || "twój_nick";
   const game = $("#aGame").value;
+  const hourFrom = Number($("#aTimeFrom").value);
+  const hourTo = Number($("#aTimeTo").value);
   return {
-    id: "my" + Date.now() + Math.floor(Math.random() * 999),
+    id: editingAdId || "my" + Date.now() + Math.floor(Math.random() * 999),
     nick,
     age: Number($("#aAge").value) || 20,
     region: $("#aRegion").value,
@@ -77,7 +82,9 @@ function draft() {
     gameId: DATA.gameIdByName(game),
     plat: $("#aPlat").value,
     style: $("#aStyle").value,
-    time: $("#aTime").value,
+    time: timeLabel(hourFrom, hourTo),
+    hourFrom,
+    hourTo,
     mic: $("#aMic").value,
     lang: "PL",
     hours: 0,
@@ -98,27 +105,63 @@ function preview() {
   box.innerHTML = "";
   box.append(playerCard(draft()));
 }
+/** Wczytuje ogłoszenie do formularza i przełącza go w tryb edycji. */
+function startEditAd(p) {
+  editingAdId = p.id;
+  $("#aNick").value = p.nick || "";
+  $("#aAge").value = p.age || "";
+  if (p.game) $("#aGame").value = p.game;
+  if (p.region) $("#aRegion").value = p.region;
+  if (p.plat) $("#aPlat").value = p.plat;
+  if (p.style) $("#aStyle").value = p.style;
+  if (p.hourFrom != null) $("#aTimeFrom").value = String(p.hourFrom);
+  if (p.hourTo != null) $("#aTimeTo").value = String(p.hourTo);
+  if (p.mic) $("#aMic").value = p.mic;
+  $("#aContact").value = p.contact || "";
+  $("#aDesc").value = p.desc || "";
+  $("#aLen").textContent = String(($("#aDesc").value || "").length);
+  $("#aClip").value = p.clipUrl || "";
+
+  pickedTags = (p.tags || []).slice(0, 4);
+  document.querySelectorAll("#aTags .chip").forEach(c => {
+    c.classList.toggle("on", pickedTags.includes(c.textContent));
+  });
+
+  $("#aSubmit").textContent = "Zapisz zmiany";
+  go("add");
+  preview();
+  toast("Edytujesz ogłoszenie — zapisz zmiany albo wyczyść formularz");
+}
+
+function cancelEdit() {
+  editingAdId = null;
+  $("#aSubmit").textContent = "Opublikuj ogłoszenie";
+}
+
 async function submitAd() {
   const nick = $("#aNick").value.trim();
   if (nick.length < 2) { toast("Wpisz nick"); $("#aNick").focus(); return; }
   if ($("#aDesc").value.trim().length < 10) { toast("Opisz krótko, czego szukasz"); $("#aDesc").focus(); return; }
 
   // Na serwerze ogłoszenie musi mieć właściciela.
-  if (DATA.isApi && !DATA.user) return requireLogin("dodać ogłoszenie");
+  if (DATA.isApi && !DATA.user) return requireLogin(editingAdId ? "edytować ogłoszenie" : "dodać ogłoszenie");
 
+  const edycja = Boolean(editingAdId);
   $("#aSubmit").disabled = true;
   try {
-    await DATA.createAd(draft());
+    if (edycja) await DATA.updateAd(editingAdId, draft());
+    else await DATA.createAd(draft());
   } catch (e) {
     $("#aSubmit").disabled = false;
-    if (e.status === 401) return requireLogin("dodać ogłoszenie");
+    if (e.status === 401) return requireLogin(edycja ? "edytować ogłoszenie" : "dodać ogłoszenie");
     if (e.status === 403) return limitModal();
-    toast(e.message || "Nie udało się opublikować ogłoszenia");
+    toast(e.message || "Nie udało się zapisać ogłoszenia");
     return;
   }
   $("#aSubmit").disabled = false;
+  cancelEdit();
 
-  toast("Ogłoszenie opublikowane");
+  toast(edycja ? "Ogłoszenie zaktualizowane" : "Ogłoszenie opublikowane");
   updateBadges();
   renderPlayers(true);
   go("mine");

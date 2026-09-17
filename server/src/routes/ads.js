@@ -18,7 +18,8 @@ function adsQuery() {
     .innerJoin("users", "users.id", "ads.user_id")
     .select([
       "ads.id", "ads.user_id", "ads.game_id", "ads.nick", "ads.age", "ads.region",
-      "ads.plat", "ads.style", "ads.time_of_day", "ads.mic", "ads.lang", "ads.descr",
+      "ads.plat", "ads.style", "ads.time_of_day", "ads.hour_from", "ads.hour_to",
+      "ads.mic", "ads.lang", "ads.descr",
       "ads.tags", "ads.contact", "ads.clip_url", "ads.looking_now", "ads.boost_until",
       "ads.created_at",
       "games.name as game_name",
@@ -37,6 +38,8 @@ const adBody = {
     plat: { type: "string", maxLength: 20 },
     style: { type: "string", maxLength: 40 },
     time: { type: "string", maxLength: 40 },
+    hourFrom: { type: "integer", minimum: 0, maximum: 23 },
+    hourTo: { type: "integer", minimum: 0, maximum: 23 },
     mic: { type: "string", maxLength: 40 },
     lang: { type: "string", maxLength: 10 },
     desc: { type: "string", minLength: 10, maxLength: 320 },
@@ -55,7 +58,9 @@ function toRow(body) {
     region: body.region || "Polska",
     plat: body.plat || "PC",
     style: body.style || "Na luzie",
-    time_of_day: body.time || "Wieczorami",
+    time_of_day: body.time || null,
+    hour_from: body.hourFrom ?? null,
+    hour_to: body.hourTo ?? null,
     mic: body.mic || "Mikrofon: tak",
     lang: body.lang || "PL",
     descr: body.desc.trim(),
@@ -86,6 +91,9 @@ export default async function adsRoutes(app) {
             plat: { type: "string", maxLength: 20 },
             style: { type: "string", maxLength: 40 },
             time: { type: "string", maxLength: 40 },
+            /** Okno godzinowe, w którym ma się mieścić granie z ogłoszenia. */
+            hourFrom: { type: "integer", minimum: 0, maximum: 23 },
+            hourTo: { type: "integer", minimum: 0, maximum: 23 },
             mic: { type: "string", maxLength: 40 },
             lookingNow: { type: "boolean" },
             lang: { type: "string", maxLength: 10 },
@@ -111,6 +119,15 @@ export default async function adsRoutes(app) {
       if (f.plat) q = q.where("ads.plat", "=", f.plat);
       if (f.style) q = q.where("ads.style", "=", f.style);
       if (f.time) q = q.where("ads.time_of_day", "=", f.time);
+      // Nachodzenie zakresów liczy funkcja w bazie — ta sama logika co
+      // hoursOverlap() we froncie. Ogłoszenia bez godzin pasują do wszystkiego.
+      if (f.hourFrom !== undefined && f.hourTo !== undefined) {
+        q = q.where(
+          sql`bigww_hours_overlap(ads.hour_from, ads.hour_to, ${f.hourFrom}, ${f.hourTo})`,
+          "=",
+          true
+        );
+      }
       if (f.mic) q = q.where("ads.mic", "=", f.mic);
       if (f.lookingNow !== undefined) q = q.where("ads.looking_now", "=", f.lookingNow);
       if (f.lang) q = q.where("ads.lang", "ilike", `${f.lang}%`);
@@ -232,7 +249,8 @@ export default async function adsRoutes(app) {
     // Zostawiamy tylko pola, które faktycznie przyszły w żądaniu.
     const map = {
       gameId: "game_id", nick: "nick", age: "age", region: "region", plat: "plat",
-      style: "style", time: "time_of_day", mic: "mic", lang: "lang", desc: "descr",
+      style: "style", time: "time_of_day", hourFrom: "hour_from", hourTo: "hour_to",
+      mic: "mic", lang: "lang", desc: "descr",
       tags: "tags", contact: "contact", clipUrl: "clip_url", lookingNow: "looking_now"
     };
     const set = { updated_at: new Date() };

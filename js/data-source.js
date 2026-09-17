@@ -34,6 +34,8 @@ const DATA = (() => {
       plat: a.plat,
       style: a.style,
       time: a.time,
+      hourFrom: a.hourFrom,
+      hourTo: a.hourTo,
       mic: a.mic,
       lang: a.lang,
       tags: a.tags || [],
@@ -65,6 +67,8 @@ const DATA = (() => {
       plat: draftAd.plat,
       style: draftAd.style,
       time: draftAd.time,
+      hourFrom: draftAd.hourFrom ?? undefined,
+      hourTo: draftAd.hourTo ?? undefined,
       mic: draftAd.mic,
       lang: draftAd.lang || "PL",
       desc: draftAd.desc,
@@ -87,7 +91,11 @@ const DATA = (() => {
       if (!regionMatches(f.region, p.region)) return;
       if (f.plat && p.plat !== f.plat) return;
       if (f.style && p.style !== f.style) return;
-      if (f.time && p.time !== f.time) return;
+      if ((f.hourFrom !== "" && f.hourFrom != null) || (f.hourTo !== "" && f.hourTo != null)) {
+        const od = f.hourFrom === "" || f.hourFrom == null ? 0 : f.hourFrom;
+        const doG = f.hourTo === "" || f.hourTo == null ? 23 : f.hourTo;
+        if (!hoursOverlap(p.hourFrom, p.hourTo, od, doG)) return;
+      }
       if (quick.has("on") && p.status !== "on") return;
       if (quick.has("mic") && p.mic !== "Mikrofon: tak") return;
       if (quick.has("new") && Date.now() - p.added > 24 * HOUR) return;
@@ -122,7 +130,10 @@ const DATA = (() => {
     if (f.region) query.region = f.region;
     if (f.plat) query.plat = f.plat;
     if (f.style) query.style = f.style;
-    if (f.time) query.time = f.time;
+    if ((f.hourFrom !== "" && f.hourFrom != null) || (f.hourTo !== "" && f.hourTo != null)) {
+      query.hourFrom = Number(f.hourFrom === "" || f.hourFrom == null ? 0 : f.hourFrom);
+      query.hourTo = Number(f.hourTo === "" || f.hourTo == null ? 23 : f.hourTo);
+    }
     if (quick.has("on")) query.lookingNow = true;
     if (quick.has("mic")) query.mic = "Mikrofon: tak";
     if (quick.has("new")) query.newHours = 24;
@@ -205,6 +216,19 @@ const DATA = (() => {
     countCache = null;
     totalAds = allPlayers().length;
     return draftAd;
+  }
+
+  async function updateAd(id, draftAd) {
+    if (mode === "api") {
+      const res = await API.updateAd(id, toApi(draftAd));
+      return fromApi(res.ad);
+    }
+    const i = MINE.findIndex((m) => m.id === id);
+    if (i < 0) { const e = new Error("Nie ma takiego ogłoszenia"); e.status = 404; throw e; }
+    MINE[i] = Object.assign({}, MINE[i], draftAd, { id, mine: true });
+    save(KEY.mine, MINE);
+    countCache = null;
+    return MINE[i];
   }
 
   async function deleteAd(id) {
@@ -303,6 +327,7 @@ const DATA = (() => {
     gameIdByName,
     listAds,
     createAd,
+    updateAd,
     deleteAd,
     myAds,
     savedAds,

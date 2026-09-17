@@ -18,7 +18,11 @@ Widoki nie wiedzą, który tryb jest aktywny — pytają warstwę `DATA`
 **Front**: `index.html` + `css/style.css` + 19 plików w `js/`, waniliowy
 JavaScript, zero zależności.
 **Backend**: `server/`, Node + Fastify + PostgreSQL, zapytania przez Kysely,
-24 przechodzące testy. Stawia się przez `docker compose up`.
+25 przechodzących testów. Stawia się przez `docker compose up`.
+
+**Co znika w trybie serwerowym:** Sklep, Premium, saldo monet, banery i reklama
+pełnoekranowa. Ekipy i transmisje pokazują „wkrótce". Wszystko to są atrapy —
+wracają dopiero z prawdziwą bramką płatniczą i prawdziwymi danymi.
 
 ## Co DZIAŁA
 
@@ -42,7 +46,9 @@ YouTube/Twitch/Medal (parsowany na embed) albo plik z dysku (zostaje jako
 data URL w localStorage). Własne ogłoszenia lądują na górze listy graczy.
 
 **Filtry i wyszukiwarka**
-Filtrowanie po grze, regionie, platformie, stylu, porze grania, mikrofonie.
+Filtrowanie po grze, regionie, platformie, stylu, **godzinach grania od–do**
+(z obsługą zakresów przez północ) i mikrofonie. Aktywne filtry pokazują się jako
+chipy z krzyżykiem. Nad wynikami przełącznik siatka / lista, zapamiętywany.
 Wyszukiwarka tokenowa z AND i scoringiem trafności, ignoruje polskie znaki
 diakrytyczne. Filtry zapisują się w localStorage. Paginacja po 24 wyniki.
 
@@ -50,12 +56,12 @@ diakrytyczne. Filtry zapisują się w localStorage. Paginacja po 24 wyniki.
 Przełącznik, który podbija własne karty przy sortowaniu po aktywności; pasek
 statusu na Starcie i na liście graczy.
 
-**Monetyzacja (cała udawana, bez bramki płatniczej)**
+**Monetyzacja (cała udawana — widoczna TYLKO w trybie demo)**
 - Plany: Darmowy 0 zł, Premium 19,99 zł/mies., Pro/Clan 39,99 zł/mies.,
-  Premium na rok 149 zł. Limit ogłoszeń: 2 free (3 z dokupionym slotem),
+  Premium na rok 149 zł. Limit ogłoszeń: 3 free (4 z dokupionym slotem),
   10 premium, 20 pro.
-- Monety WW: start 40. Odblokowanie kontaktu 20 WW, wiadomość 8 WW, bilet na
-  jednego streama 35 WW, przepustka na wszystkie live 80 WW.
+- Monety WW: start 40. Odblokowanie kontaktu 15 WW (3 darmowe dziennie),
+  wiadomość 6 WW, bilet na jednego streama 35 WW, przepustka na live 80 WW.
 - Sklep: boost 6 h 25 WW, boost 24 h 60 WW, dodatkowy slot na 7 dni 80 WW,
   nowy awatar 10 WW, pakiet 5 kontaktów 70 WW.
 - Pakiety monet za złotówki: 100 za 9,99 zł; 500+100 bonus za 39,99 zł;
@@ -63,7 +69,7 @@ statusu na Starcie i na liście graczy.
 - Reklamy z nagrodą, dzienne zadania (2 reklamy → 10 WW, wiadomość → 8 WW,
   boost → 15 WW, ogłoszenie → 12 WW), battle pass 10 poziomów po 100 XP,
   program polecający z kodem BIG-XXXX, interstitial co kilka przejść nawigacji.
-- Darmowe wiadomości: 5 dziennie, potem za monety albo premium.
+- Darmowe wiadomości: 10 dziennie, potem za monety albo premium.
 
 **Ustawienia**
 Motyw ciemny/jasny (zapisywany), region domyślny, zmiana awatara, kasowanie
@@ -83,8 +89,9 @@ Szczegóły i lista endpointów: `server/README.md`.
   (gra, region, platforma, styl, pora, mikrofon, „szukam teraz"),
   wyszukiwarką odporną na polskie znaki i stronicowaniem.
 - Limit ogłoszeń na konto liczony po stronie serwera: 2 / 10 / 20.
-- Kontakt widzi właściciel i konto premium; reszta dostaje `contactLocked`.
-- 24 testy (`npm test` w `server/`) i ograniczenie liczby prób logowania.
+- Kontakt widzi każdy zalogowany; niezalogowany dostaje `contactLocked`.
+- Filtr godzin liczony przez `bigww_hours_overlap()` w bazie.
+- 25 testów (`npm test` w `server/`) i ograniczenie liczby prób logowania.
 
 ## Czego NIE MA
 
@@ -99,8 +106,6 @@ Szczegóły i lista endpointów: `server/README.md`.
 - **Płatności.** Checkout to modal z opóźnieniem i komunikatem sukcesu.
 - **Ekip i transmisji w bazie.** Istnieją tylko we froncie, na danych demo —
   także wtedy, gdy reszta strony chodzi na serwerze.
-- **Edycji ogłoszenia z poziomu strony.** Backend ma `PATCH /api/ads/:id`,
-  front wciąż każe skasować i dodać od nowa.
 - **Live.** Kafelki i licznik widzów są statyczne, nie ma odtwarzacza strumienia.
 - **Moderacji, zgłoszeń, blokowania.** Nie ma nawet zalążka.
 - **RODO / regulaminu / polityki prywatności.** Przy prawdziwych użytkownikach

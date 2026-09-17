@@ -14,6 +14,7 @@ js/data-demo.js         generator demo: PLAYERS (720), TEAMS (80), LIVES (36),
 js/state.js             localStorage: obiekt KEY, load/save, premium, monety,
                         limity, canSeeContact(), adLimit()
 js/util.js              $, el, norm, nf, tokens, searchScore, ago, toast, fillSelect
+                        oraz godziny: fmtHour, timeLabel, hoursOverlap, fillHourSelect
 js/api.js               surowe wywołania HTTP do serwera (API.login, API.ads, ...)
 js/data-source.js       DATA — jedyne wejście do danych dla widoków; wybiera
                         między serwerem a danymi demo i tłumaczy filtry
@@ -37,7 +38,8 @@ js/main.js              start aplikacji — kolejność wywołań, skrót klawis
 ## Kolejność ładowania
 
 Skrypty są zwykłymi `<script src>`, ładowanymi w kolejności zapisanej w
-`index.html` — od `data-games.js` do `main.js`. Wszystko żyje w zasięgu
+`index.html` — od `data-games.js` do `main.js`. **`util.js` musi być przed
+`data-demo.js`**, bo generator graczy woła `timeLabel()` już przy ładowaniu. Wszystko żyje w zasięgu
 globalnym, więc **kolejność ma znaczenie**: `main.js` musi być ostatni, bo to on
 uruchamia aplikację, a plik z danymi musi być przed tym, który z nich korzysta.
 Nie ma modułów ES, dzięki czemu `index.html` otwiera się także przez podwójne
@@ -63,8 +65,19 @@ DATA.user / DATA.login() / DATA.logout()        // konto (tylko tryb api)
 W trybie `demo` te same funkcje filtrują dane z generatora i zapisują do
 localStorage. **Nowy widok podpinamy do `DATA`, nie do `API` ani do `PLAYERS`.**
 
-Co zostaje demonstracyjne niezależnie od trybu: ekipy, transmisje live, monety
-WW, premium, sklep, zadania i battle pass. Tego backend jeszcze nie obsługuje.
+Czego backend jeszcze nie obsługuje: ekipy, transmisje live, monety WW, premium,
+sklep, zadania i battle pass. **W trybie `api` te rzeczy są chowane** —
+`hideFakeMonetization()` w `main.js` usuwa Sklep, Premium, saldo i banery, a
+`renderTeams()` i `renderLives()` pokazują pusty stan „wkrótce". W trybie `demo`
+widać je wszystkie, bo tam cała strona jest demonstracją.
+
+## Godziny grania
+
+Ogłoszenie ma `hourFrom` i `hourTo` (0-23). Zakres może przechodzić przez
+północ. Sprawdzanie, czy dwa zakresy się nachodzą, jest **zdublowane celowo**:
+`hoursOverlap()` w `js/util.js` dla trybu demo i `bigww_hours_overlap()` w bazie
+dla trybu serwerowego. Zmieniając jedno, zmień drugie — inaczej ten sam filtr da
+inne wyniki z backendem i bez niego.
 
 ## Model danych
 

@@ -5,7 +5,22 @@
 /* =========================================================
    9. EKIPY
 ========================================================= */
+/** Pusty stan dla funkcji, których backend jeszcze nie obsługuje. */
+function soonBox(tytul, opis) {
+  return `<div class="soon"><h3>${tytul}</h3><p>${opis}</p></div>`;
+}
+
 function renderTeams() {
+  // Ekip nie ma jeszcze w bazie — pokazywanie 80 wygenerowanych składów
+  // prawdziwym użytkownikom byłoby wprowadzaniem w błąd.
+  if (DATA.isApi) {
+    $("#teamList").innerHTML = soonBox(
+      "Ekipy wkrótce",
+      "Zakładanie ekip i szukanie składu pojawi się w kolejnej wersji. Na razie znajdziesz ludzi przez ogłoszenia w zakładce Szukaj graczy."
+    );
+    if ($("#tCount")) $("#tCount").textContent = "";
+    return;
+  }
   const toks = tokens($("#tSearch").value.trim());
   const list = TEAMS.filter(t => {
     if (!toks.length) return true;
@@ -132,6 +147,15 @@ function openLive(s) {
 }
 
 function renderLives() {
+  // To samo co przy ekipach: transmisje są na razie tylko w danych demo.
+  if (DATA.isApi) {
+    if ($("#liveList")) $("#liveList").innerHTML = soonBox(
+      "Transmisje wkrótce",
+      "Podpięcie streamów z Twitcha i YouTube'a planujemy po uruchomieniu wiadomości między graczami."
+    );
+    if ($("#lCount")) $("#lCount").textContent = "";
+    return;
+  }
   const toks = tokens(($("#lSearch") && $("#lSearch").value) || "");
   const sort = ($("#lSort") && $("#lSort").value) || "viewers";
   let list = LIVES.filter(s => {

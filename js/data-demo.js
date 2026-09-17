@@ -38,6 +38,11 @@ const PLATS = ["PC","PS","XBOX","SWITCH","MOBILE"];
 const PLAT_LABEL = { PC: "PC", PS: "PlayStation", XBOX: "Xbox", SWITCH: "Switch", MOBILE: "Mobile" };
 const STYLES = ["Na luzie","Półkompetytywnie","Rankedy","Turnieje / esport","Tylko fabuła i co-op","Roleplay","Granie z modami","Farmienie i grind"];
 const TIMES = ["Rano","Popołudniami","Wieczorami","Po północy","Weekendy","Nieregularnie"];
+/** Przelicznik dawnych pór dnia na godziny — używany przy generowaniu demo. */
+const TIME_BANDS = {
+  "Rano": [6, 12], "Popołudniami": [12, 17], "Wieczorami": [17, 23],
+  "Po północy": [22, 4], "Weekendy": [10, 22], "Nieregularnie": [0, 23]
+};
 const MICS = ["Mikrofon: tak","Mikrofon: czasem","Mikrofon: nie"];
 const LANGS = ["PL","PL / EN","PL / EN / DE","PL / EN / UA"];
 const TAGS = ["bez toksyczności","cierpliwy","uczę nowych","szukam stałej ekipy","gram codziennie","discord","tryb rankingowy","chill","dobry aim","gram taktycznie","lubię mody","wolne granie","gram z mamą xd","nocny marek","świeżak","weteran","gram na padzie","streamuję","bez mikrofonu też ok","lubię hardcore"];
@@ -171,6 +176,13 @@ for (let i = 0; i < 720; i++) {
   const nick = makeNick();
   const style = pick(STYLES);
   const time = pick(TIMES);
+  const band = TIME_BANDS[time] || [17, 23];
+  let hourFrom = band[0];
+  let hourTo = band[1];
+  if (hourFrom < hourTo && hourTo - hourFrom >= 3) {
+    hourFrom += int(0, Math.min(2, hourTo - hourFrom - 1));
+    hourTo -= int(0, Math.min(2, hourTo - hourFrom - 1));
+  }
   PLAYERS.push({
     id: "gen" + i,
     nick,
@@ -180,7 +192,9 @@ for (let i = 0; i < 720; i++) {
     gameId: game.id,
     plat,
     style,
-    time,
+    time: timeLabel(hourFrom, hourTo),
+    hourFrom,
+    hourTo,
     mic: R() < 0.72 ? MICS[0] : pick(MICS),
     lang: pick(LANGS),
     hours: int(12, 3600),

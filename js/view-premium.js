@@ -87,7 +87,7 @@ function renderPremium() {
 
   const faq = [
     ["Czy płatność jest prawdziwa?", "Nie. To wersja demonstracyjna — formularz nic nie wysyła i żadne pieniądze nie są pobierane. Nie wpisuj tu prawdziwych danych karty."],
-    ["Co dostaję w praktyce?", "Ogłoszenia z premium trafiają nad pozostałe wyniki, dostają złotą ramkę i odznakę, a limit ogłoszeń rośnie z 2 do 10."],
+    ["Co dostaję w praktyce?", `Ogłoszenia z premium trafiają nad pozostałe wyniki, dostają złotą ramkę i odznakę, a limit ogłoszeń rośnie z ${adLimit()} do 10.`],
     ["Czy bez premium widzę wszystkich graczy?", "Tak. Wyszukiwarka, filtry i kontakt działają tak samo w każdym planie."],
     ["Jak zrezygnować?", "Jednym przyciskiem na tej stronie albo w ustawieniach. Wyróżnienie znika od razu."]
   ];
@@ -201,7 +201,7 @@ function renderSettingsPrem() {
     f.append(shuffle);
     box.append(f);
   } else {
-    const line = el("p", "note", "Plan podstawowy: 2 ogłoszenia, bez wyróżnienia.");
+    const line = el("p", "note", `Plan podstawowy: ${adLimit()} ogłoszenia, bez wyróżnienia.`);
     const b = el("button", "btn gold sm", "Zobacz Premium");
     b.style.marginTop = "10px";
     b.onclick = () => go("premium");

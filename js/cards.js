@@ -84,6 +84,11 @@ function playerCard(p) {
     row.style.gap = "8px";
     row.style.marginTop = "10px";
     row.style.flexWrap = "wrap";
+    const edit = el("button", "btn sm", "Edytuj");
+    edit.onclick = () => startEditAd(p);
+    // Promowanie kosztuje monety WW, a tych nie da się kupić za prawdziwe
+    // pieniądze — w trybie serwerowym ten przycisk obiecywałby usługę,
+    // której nie ma. Zostaje w demo.
     const prom = el("button", "btn sm gold", isBoosted(p.id) ? "Wypromowane" : "Wypromuj (WW)");
     prom.onclick = () => {
       go("shop");
@@ -102,7 +107,9 @@ function playerCard(p) {
       toast("Ogłoszenie usunięte");
       renderMine(); renderPlayers(true); updateBadges();
     };
-    row.append(prom, del);
+    row.append(edit);
+    if (!DATA.isApi) row.append(prom);
+    row.append(del);
     c.append(row);
   }
   return c;
@@ -294,6 +301,28 @@ function showContact(p) {
   const unlocked = canSeeContact(p);
   const contact = contactStr(p);
   const left = msgsLeft();
+
+  // Tryb serwerowy: kontakt nie jest towarem za monety, tylko powodem, żeby
+  // mieć konto. Limity wiadomości i odblokowań zostają w trybie demo.
+  if (DATA.isApi) {
+    if (!unlocked) {
+      openModal(`<h3 style="margin-bottom:6px">${p.nick}</h3>
+        <p class="note" style="margin-bottom:14px">${p.game} · ${p.region}</p>
+        <div class="kv"><span>Kontakt</span><b class="blur-contact">${contact}</b></div>
+        <div class="kv"><span>Kiedy gra</span><b>${p.time}</b></div>
+        <p class="note" style="margin-top:14px">Kontakty widzą zalogowani gracze. Załóż konto — zajmuje chwilę i jest za darmo.</p>
+        <button class="btn pri" id="contactLogin" style="margin-top:14px;width:100%">Zaloguj się lub załóż konto</button>`);
+      $("#contactLogin").onclick = () => { $("#modal").classList.remove("on"); openAuth("login"); };
+      return;
+    }
+    openModal(`<h3 style="margin-bottom:6px">${p.nick}</h3>
+      <p class="note" style="margin-bottom:14px">${p.game} · ${p.region}</p>
+      <div class="kv"><span>Kontakt</span><b>${contact}</b></div>
+      <div class="kv"><span>Kiedy gra</span><b>${p.time}</b></div>
+      <div class="kv"><span>Mikrofon</span><b>${p.mic.replace("Mikrofon: ", "")}</b></div>
+      <p class="note" style="margin-top:14px">Skopiuj kontakt i napisz na Discordzie albo tam, gdzie gracz podał.</p>`);
+    return;
+  }
 
   if (unlocked) {
     // still consume free message quota for non-prem if they "write"

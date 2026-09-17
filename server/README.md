@@ -70,7 +70,8 @@ Wszystko pod `/api`. Ciało i odpowiedzi w JSON-ie.
 | DELETE | `/ads/:id/save` | zalogowany | przestaje obserwować |
 
 Filtry listy ogłoszeń: `game`, `gameId`, `region`, `plat`, `style`, `time`,
-`mic`, `lookingNow`, `q`, `page`, `perPage` (domyślnie 24, maks. 60).
+`hourFrom` i `hourTo` (okno godzinowe), `mic`, `lookingNow`, `lang`, `tag`,
+`newHours`, `q`, `page`, `perPage` (domyślnie 24, maks. 60).
 Sortowanie: najpierw wypromowane, potem konta premium, potem „szukam teraz",
 na końcu po dacie — tak samo jak we froncie.
 
@@ -95,6 +96,15 @@ udany XSS nie wynosi cudzej sesji. Ważność 30 dni.
 że Fastify zostawia trasom domyślny handler, który wysyła klientowi wewnętrzny
 komunikat błędu (np. nazwę brakującej funkcji w bazie). Nie przestawiać.
 
+**Godziny grania.** Ogłoszenie ma `hour_from` i `hour_to` (0-23), zakres może
+przechodzić przez północ. Nachodzenie liczy `bigww_hours_overlap()` — ta sama
+logika co `hoursOverlap()` we froncie. Ogłoszenie bez godzin pasuje do każdego
+filtru.
+
+**Kontakt widzi każdy zalogowany.** Płatne odblokowywanie za monety wróci razem
+z prawdziwą bramką płatniczą — do tego czasu blokowanie kontaktu za walutę,
+której nie da się kupić, zamykałoby serwis w jego najważniejszym miejscu.
+
 **Monety i premium są w bazie**, nie w przeglądarce. Front ma je tylko
 wyświetlać. Portfel i płatności to jeszcze nie jest zrobione — kolumny są,
 logiki wydawania nie ma.
@@ -102,7 +112,7 @@ logiki wydawania nie ma.
 ## Czego tu jeszcze nie ma
 
 - Portfela monet po stronie serwera (wydawanie, doładowania, historia).
-- Odblokowywania kontaktu za monety — dziś kontakt widzi właściciel i premium.
+- Odblokowywania kontaktu za monety.
 - Ekip i transmisji live (są tylko we froncie, na danych demo).
 - Wiadomości między użytkownikami.
 - Prawdziwych płatności.

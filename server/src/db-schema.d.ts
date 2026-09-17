@@ -42,7 +42,10 @@ export interface AdsTable {
   region: string;
   plat: string;
   style: string;
-  time_of_day: string;
+  time_of_day: string | null;
+  /** Godziny grania od–do (0-23). Null = nie podano. */
+  hour_from: number | null;
+  hour_to: number | null;
   mic: string;
   lang: Generated<string>;
   descr: string;

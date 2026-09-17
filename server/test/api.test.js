@@ -192,6 +192,8 @@ describe("ogłoszenia", () => {
         style: "Na luzie",
         time: "Wieczorami",
         mic: "Mikrofon: tak",
+        hourFrom: 18,
+        hourTo: 23,
         desc: "Szukam dwóch osób do wieczornych rankedów, bez krzyku.",
         tags: ["Na luzie", "Wieczorami"],
         contact: "discord: seba#0001"
@@ -203,15 +205,38 @@ describe("ogłoszenia", () => {
     assert.equal(ad.game, "VALORANT");
     assert.equal(ad.mine, true);
     assert.equal(ad.contact, "discord: seba#0001", "właściciel widzi swój kontakt");
+    assert.equal(ad.time, "18:00–23:00", "etykieta godzin liczona z hourFrom/hourTo");
     assert.ok(typeof ad.added === "number", "added ma być znacznikiem czasu dla frontu");
   });
 
-  test("lista ukrywa kontakt przed niezalogowanym", async () => {
-    const res = await call({ method: "GET", url: "/api/ads" });
-    const ad = res.json().ads.find((a) => a.id === adId);
-    assert.equal(ad.contact, null);
-    assert.equal(ad.contactLocked, true);
-    assert.equal(ad.mine, false);
+  test("lista ukrywa kontakt przed niezalogowanym, pokazuje zalogowanemu", async () => {
+    const anon = await call({ method: "GET", url: "/api/ads" });
+    const adAnon = anon.json().ads.find((a) => a.id === adId);
+    assert.equal(adAnon.contact, null);
+    assert.equal(adAnon.contactLocked, true);
+    assert.equal(adAnon.mine, false);
+
+    // Dopóki nie ma prawdziwych płatności, kontakt jest otwarty dla każdego,
+    // kto ma konto — inaczej serwis nie robi tego, po co powstał.
+    const zalogowany = await call({ method: "GET", url: "/api/ads", headers: { cookie } });
+    const adUser = zalogowany.json().ads.find((a) => a.id === adId);
+    assert.equal(adUser.contact, "discord: seba#0001");
+    assert.equal(adUser.contactLocked, false);
+  });
+
+  test("filtr godzin bierze pod uwagę nachodzenie zakresów", async () => {
+    // Ogłoszenie gra 18–23.
+    const trafia = await call({ method: "GET", url: "/api/ads?hourFrom=20&hourTo=22" });
+    assert.equal(trafia.json().total, 1, "20-22 mieści się w 18-23");
+
+    const nieTrafia = await call({ method: "GET", url: "/api/ads?hourFrom=6&hourTo=12" });
+    assert.equal(nieTrafia.json().total, 0, "poranek nie nachodzi na wieczór");
+
+    const przezPolnoc = await call({ method: "GET", url: "/api/ads?hourFrom=22&hourTo=4" });
+    assert.equal(przezPolnoc.json().total, 1, "zakres przez północ łapie koniec wieczoru");
+
+    const stykSie = await call({ method: "GET", url: "/api/ads?hourFrom=12&hourTo=18" });
+    assert.equal(stykSie.json().total, 0, "zakresy stykające się końcami nie nachodzą");
   });
 
   test("filtr po grze i wyszukiwarka", async () => {
@@ -274,7 +299,7 @@ describe("ogłoszenia", () => {
     assert.equal(off.json().saved, false);
   });
 
-  test("limit ogłoszeń na koncie darmowym to 2", async () => {
+  test("limit ogłoszeń na koncie darmowym to 3", async () => {
     const drugie = await call({
       method: "POST",
       url: "/api/ads",
@@ -287,14 +312,22 @@ describe("ogłoszenia", () => {
       method: "POST",
       url: "/api/ads",
       headers: { cookie },
-      payload: { gameId, nick: "zimnySeba", age: 29, desc: "Trzecie ogłoszenie, powinno odpaść." }
+      payload: { gameId, nick: "zimnySeba", age: 29, desc: "Trzecie ogłoszenie, jeszcze się mieści." }
     });
-    assert.equal(trzecie.statusCode, 403);
-    assert.match(trzecie.json().error, /Limit ogłoszeń/);
+    assert.equal(trzecie.statusCode, 201);
+
+    const czwarte = await call({
+      method: "POST",
+      url: "/api/ads",
+      headers: { cookie },
+      payload: { gameId, nick: "zimnySeba", age: 29, desc: "Czwarte ogłoszenie, powinno odpaść." }
+    });
+    assert.equal(czwarte.statusCode, 403);
+    assert.match(czwarte.json().error, /Limit ogłoszeń/);
 
     const mine = await call({ method: "GET", url: "/api/ads/mine", headers: { cookie } });
-    assert.equal(mine.json().limit, 2);
-    assert.equal(mine.json().used, 2);
+    assert.equal(mine.json().limit, 3);
+    assert.equal(mine.json().used, 3);
   });
 
   test("nie da się ruszyć cudzego ogłoszenia", async () => {
