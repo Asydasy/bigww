@@ -1,61 +1,43 @@
-# Mapa kodu — index.html
+# Architektura
 
-Numery linii dotyczą commita startowego. Po każdej większej zmianie warto je
-odświeżyć, bo to jedyna nawigacja po pliku o 3449 liniach.
-
-## Układ pliku
+## Układ plików
 
 ```
-1    - 12     <head>, fonty Google
-13   - 480    <style> — cały CSS
-481  - 853    <body> — 11 sekcji .page (widoki) + modale
-854  - 3448   <script> — cała logika
+index.html              sam markup — 11 sekcji .page, modale, lista skryptów
+css/style.css           całe style (435 linii)
+js/data-games.js        baza 205 gier jako tekst -> tablica GAMES
+js/data-demo.js         generator demo: PLAYERS (720), TEAMS (80), LIVES (36),
+                        awatary i okładki jako SVG z hasza nazwy
+js/state.js             localStorage: obiekt KEY, load/save, premium, monety,
+                        limity, canSeeContact(), adLimit()
+js/util.js              $, el, norm, nf, tokens, searchScore, ago, toast, fillSelect
+js/nav.js               go(view), podpięcie sidebara i bottom-nav, setLooking()
+js/cards.js             playerCard, gameCard, teamCard, openProfile, showContact,
+                        openModal, toggleSave, podgląd mediów
+js/view-players.js      filtry, wyszukiwarka, renderPlayers()
+js/view-games.js        baza gier z filtrem gatunku
+js/view-teams-live.js   ekipy oraz transmisje live
+js/view-add.js          formularz ogłoszenia, podgląd, submitAd, moje, obserwowani
+js/view-home.js         strona startowa i statystyki
+js/view-premium.js      plany, checkout (demonstracyjny), FAQ
+js/view-settings.js     motyw, region, awatar, kasowanie danych
+js/monetization.js      monety WW, sklep, zadania, battle pass, reklamy,
+                        polecenia, interstitial, karta sponsorowana
+js/onboard.js           onboarding przy pierwszym wejściu
+js/main.js              start aplikacji — kolejność wywołań, skrót klawiszowy
 ```
 
-## Sekcje w CSS (linie 13-480)
+## Kolejność ładowania
 
-Zmienne w `:root` (motyw ciemny) i `:root[data-theme="light"]` (jasny).
-Kolor akcentu `--acc` #7c5cff, złoty `--gold` dla premium i monet.
-Dalej kolejno: layout (shell, sidebar, main), nawigacja, karty gracza, karty
-gry, karty ekipy, live, formularz ogłoszenia, plany premium, sklep, modale,
-onboarding, bottom-nav (mobile).
+Skrypty są zwykłymi `<script src>`, ładowanymi w kolejności zapisanej w
+`index.html` — od `data-games.js` do `main.js`. Wszystko żyje w zasięgu
+globalnym, więc **kolejność ma znaczenie**: `main.js` musi być ostatni, bo to on
+uruchamia aplikację, a plik z danymi musi być przed tym, który z nich korzysta.
+Nie ma modułów ES, dzięki czemu `index.html` otwiera się także przez podwójne
+kliknięcie, bez serwera.
 
-## Widoki w HTML (sekcje `.page`, przełączane klasą `on`)
-
-| id | linia | co to |
-|---|---|---|
-| `v-home` | 482 | Start: hero, statystyki, popularne gry, najnowsze ogłoszenia |
-| `v-players` | 519 | Szukaj graczy — filtry, wyszukiwarka, lista kart |
-| `v-games` | 575 | Baza gier z filtrem gatunku |
-| `v-teams` | 599 | Ekipy szukające składu |
-| `v-live` | 620 | Transmisje (płatne dostępy) |
-| `v-add` | 644 | Formularz ogłoszenia + podgląd |
-| `v-mine` | 699 | Moje ogłoszenia |
-| `v-saved` | 705 | Obserwowani gracze |
-| `v-premium` | 711 | Plany i FAQ |
-| `v-shop` | 725 | Monety WW, sklep, zadania, battle pass, polecenia |
-| `v-settings` | 797 | Motyw, region, awatar, kasowanie danych |
-
-## Sekcje w JS (numerowane komentarzami w kodzie)
-
-| nr | linia | zawartość |
-|---|---|---|
-| 1 | 857 | `GAME_DATA` — 204 gry jako tekst `nazwa\|gatunek\|tryb\|platformy\|pop`, parsowane do `GAMES` |
-| 2 | 1081 | Generator graczy: `rng(seed)` (mulberry32), `hashOf`, `avatarArt`, `coverArt`, `makeNick`; tworzy `PLAYERS` (720), `TEAMS` (80), `LIVES` (36) |
-| 3 | 1334 | Pamięć lokalna: obiekt `KEY`, `load`/`save`, cały stan aplikacji, stałe cenowe |
-| 4 | 1437 | Pomocnicze: `$`, `el`, `norm`, `nf`, `tokens`, `searchScore`, `ago`, `toast`, `fillSelect` |
-| 5 | 1511 | Nawigacja: `go(view)`, podpięcie sidebara i bottom-nav, `setLooking` |
-| 6 | 1562 | Karty: `playerCard`, `gameCard`, `teamCard`, `liveCard`, `openProfile`, `showContact`, `openModal`, `toggleSave`, media |
-| 7 | 1929 | Filtry graczy: `buildFilters`, `filterPlayers`, `renderPlayers` |
-| 8 | 2097 | Gry: `buildGames`, `renderGames` |
-| 9 | 2150 | Ekipy: `renderTeams`; dalej (2186) live: `openLive`, `renderLives` |
-| 10 | 2316 | Dodawanie ogłoszenia: `buildAdd`, `draft`, `preview`, `submitAd`, `renderMine`, `renderSaved` |
-| 11 | 2456 | Start/statystyki: `renderHome`; dalej (2487) premium: `PLANS`, `renderPremium`, `checkout`, `processPay`, `cancelPrem` |
-| 12 | 2694 | Ustawienia: `applyTheme`, `renderInfo`, kasowanie danych |
-| — | 2757 | Monetyzacja: `SHOP_ITEMS`, `COIN_PACKS`, `BP_REWARDS`, `QUEST_DEFS`, monety, XP, zadania, reklamy, boosty, polecenia, `renderShop`, interstitiale |
-| — | 3300 | **Nadpisania**: `go`, `renderPlayers`, `submitAd` są podmieniane, żeby doszyć monetyzację |
-| — | 3355 | Onboarding: `OB_STEPS`, `startOnboard`, `finishOnboard` |
-| 13 | 3399 | START — kolejność wywołań przy załadowaniu strony |
+Przy dokładaniu nowego pliku: dopisz `<script src>` w odpowiednim miejscu listy,
+nie na końcu.
 
 ## Model danych
 
@@ -70,8 +52,8 @@ onboarding, bottom-nav (mobile).
   hours, rating, status, prem, tags: [], desc, added, mine,
   contact?, clipUrl?, fileData?, fileType? }
 ```
-`mine: true` oznacza ogłoszenie użytkownika (trzymane w `MINE`, na górze listy).
-`allPlayers()` = `MINE.concat(PLAYERS)`.
+`mine: true` oznacza ogłoszenie użytkownika (tablica `MINE`, zawsze na górze
+listy). `allPlayers()` zwraca `MINE.concat(PLAYERS)`.
 
 **Ekipa**
 ```js
@@ -85,17 +67,17 @@ onboarding, bottom-nav (mobile).
 
 ## Klucze localStorage
 
-Wszystkie z prefiksem `bigww_`, większość w obiekcie `KEY` (linie 1337-1352):
+Wszystkie z prefiksem `bigww_`, większość zebrana w obiekcie `KEY` w `state.js`:
 
 | klucz | co trzyma |
 |---|---|
 | `bigww_mine_v2` | własne ogłoszenia |
 | `bigww_saved_v2` | obserwowani (id graczy) |
-| `bigww_pref_v2` | motyw, region, awatar, „szukam teraz”, filtry, onboarding |
+| `bigww_pref_v2` | motyw, region, awatar, „szukam teraz", filtry, onboarding |
 | `bigww_premium_v2` | `{active, plan, until, since}` |
 | `bigww_coins_v2` | `{bal, earned, spent}` — start 40 WW |
 | `bigww_ref_v2` | kod polecający i statystyki |
-| `bigww_boosts_v2` | mapa id ogłoszenia → timestamp końca boosta |
+| `bigww_boosts_v2` | id ogłoszenia → timestamp końca boosta |
 | `bigww_adlog_v2` | licznik obejrzanych reklam w dniu |
 | `bigww_msg_v2` | zużyte darmowe wiadomości w dniu |
 | `bigww_bp_v2` | battle pass: poziom, XP, odebrane |
@@ -107,7 +89,9 @@ Wszystkie z prefiksem `bigww_`, większość w obiekcie `KEY` (linie 1337-1352):
 | `bigww_extra_slot` | **poza `KEY`** — timestamp końca dodatkowego slotu |
 | `bigww_unlock_cred` | **poza `KEY`** — kredyty na odblokowanie kontaktu |
 
-## Stałe cenowe (linie 1332, 1385-1388)
+## Stałe cenowe
+
+W `state.js` (poza `LIVE_TICKET_COST`, które siedzi na końcu `data-demo.js`):
 
 ```
 LIVE_TICKET_COST     35 WW
@@ -118,5 +102,18 @@ BP_XP_PER_LEVEL      100
 BP_MAX               10
 ```
 
-Limit ogłoszeń wylicza `adLimit()` (1391): free 2, +1 z `bigww_extra_slot`,
-premium 10, pro/rok 20.
+Limit ogłoszeń liczy `adLimit()`: free 2, +1 z `bigww_extra_slot`, premium 10,
+pro/rok 20.
+
+## Miejsca, w których monetyzacja wchodzi w resztę kodu
+
+Kiedyś robiły to podmiany funkcji; teraz są to trzy zwykłe wywołania:
+
+| skąd | co woła | po co |
+|---|---|---|
+| `nav.js`, koniec `go()` | `maybeShowInterstitial()` | reklama pełnoekranowa co kilka przejść |
+| `view-players.js`, koniec `renderPlayers()` | `addSponsoredSlot()` | karta sponsorowana na górze listy |
+| `view-add.js`, koniec `submitAd()` | `progressQuest("post")` | postęp dziennego zadania |
+
+Wszystkie trzy funkcje mieszkają w `monetization.js`, który ładuje się przed
+`main.js`, więc w chwili wywołania są już zdefiniowane.

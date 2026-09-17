@@ -3,11 +3,21 @@
 Uporządkowane od rzeczy, które da się zrobić w jednej sesji, do tych, które są
 osobnym etapem projektu.
 
+## 0. Zrobione
+
+- [x] **Rozdzielić `index.html`** na `css/style.css` i 16 plików w `js/`.
+- [x] **Usunąć nadpisywanie funkcji** `go`, `renderPlayers`, `submitAd`.
+- [x] **Wybrać stos backendu**: Node + Fastify + PostgreSQL w Dockerze, Prisma.
+- [x] **Wybrać sposób logowania**: Discord OAuth oraz e-mail z hasłem.
+
 ## 1. Poprawki w prototypie (po jednej sesji każda)
 
-- [ ] **Obsłużyć przepełnienie localStorage.** `save()` w linii 1339 łyka błąd
-      po cichu. Ma pokazywać toast „Brak miejsca — usuń stare ogłoszenie albo
-      plik” i nie udawać, że zapisał.
+- [ ] **Obsłużyć przepełnienie localStorage.** `save()` w `js/state.js` łyka
+      błąd po cichu. Ma pokazywać toast „Brak miejsca — usuń stare ogłoszenie
+      albo plik” i nie udawać, że zapisał.
+- [ ] **Karta sponsorowana przy zerowej liczbie wyników.** `addSponsoredSlot()`
+      wstawia ją także nad komunikat „Brak dokładnych wyników”. Powinna
+      pojawiać się tylko wtedy, gdy na liście są prawdziwe karty.
 - [ ] **Ograniczyć wielkość wrzucanego pliku** (np. 2 MB) i skalować obrazy
       przed zapisem jako data URL.
 - [ ] **Walidacja formularza ogłoszenia**: nick niepusty, gra wybrana, wiek
@@ -16,7 +26,7 @@ osobnym etapem projektu.
       treści — trzeba skasować i dodać od nowa.
 - [ ] **Zgłoś / zablokuj** na karcie gracza — nawet jako atrapa, żeby przepływ
       moderacji był widoczny w demo.
-- [ ] Odświeżyć numery linii w `docs/ARCHITEKTURA.md` po tych zmianach.
+- [ ] Zaktualizować `docs/ARCHITEKTURA.md` i `CHANGELOG.md` po tych zmianach.
 
 ## 2. Testy (naturalny wkład użytkownika — tester manualny)
 
@@ -30,12 +40,11 @@ osobnym etapem projektu.
 
 ## 3. Decyzje do podjęcia przed backendem
 
-- [ ] **Stos technologiczny.** Propozycja: Node + Fastify/Express + PostgreSQL,
-      bo jest najbliżej tego, co już jest w JS. Alternatywa z gotowym logowaniem
-      i bazą: Supabase — mniej kodu na start, mniej kontroli później.
-- [ ] **Logowanie**: e-mail + hasło czy od razu Discord OAuth? Discord jest
-      naturalny dla graczy i daje gotowy kontakt, ale wiąże projekt z jedną
-      platformą.
+- [x] **Stos technologiczny** — Node + Fastify + PostgreSQL w Dockerze, Prisma
+      jako ORM. Ten sam język co front, baza w kontenerze, SQL pisany przez
+      Prismę.
+- [x] **Logowanie** — obie drogi: Discord OAuth jako główna i e-mail z hasłem
+      dla reszty.
 - [ ] **Model kontaktu.** Czy pokazujemy cudzy Discord (jak teraz), czy budujemy
       wewnętrzne wiadomości? Wewnętrzne = więcej pracy, ale to jedyne miejsce,
       gdzie monetyzacja wiadomości ma sens i gdzie da się moderować.

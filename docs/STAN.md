@@ -2,10 +2,14 @@
 
 ## Krótko
 
-Jeden plik `index.html`, 3449 linii, w środku HTML + CSS + „use strict” JS bez
-żadnej biblioteki. Prototyp jest kompletny wizualnie i klikalny od początku do
-końca: da się przejść onboarding, dodać ogłoszenie, przefiltrować graczy,
-„kupić” premium, zarobić monety i wydać je w sklepie. Wszystko lokalnie.
+Front-end rozdzielony na `index.html` + `css/style.css` + 16 plików w `js/`.
+Waniliowy JavaScript, zero zależności, stan w localStorage. Backendu jeszcze
+nie ma — jest zdecydowany stos (Node + Fastify + PostgreSQL w Dockerze,
+Prisma) i logowanie przez Discorda oraz przez e-mail z hasłem.
+
+Prototyp jest kompletny wizualnie i klikalny od początku do końca: da się
+przejść onboarding, dodać ogłoszenie, przefiltrować graczy, „kupić" premium,
+zarobić monety i wydać je w sklepie. Wszystko lokalnie.
 
 ## Co DZIAŁA
 
@@ -15,11 +19,11 @@ Premium, Sklep, Ustawienia. Sidebar na desktopie, dolny pasek na telefonie,
 skrót `/` ustawia kursor w wyszukiwarce graczy.
 
 **Dane demo (generowane przy każdym załadowaniu, deterministycznie z seeda)**
-- 204 gry z gatunkiem, trybem, platformami i popularnością 1-5
+- 205 gier z gatunkiem, trybem, platformami i popularnością 1-5
 - 720 wygenerowanych graczy (nick, wiek, region, gra, platforma, styl, pora
   grania, mikrofon, język, godziny, ocena, tagi, opis)
 - 80 ekip z liczbą wolnych miejsc
-- 36 transmisji „live”
+- 36 transmisji „live"
 - awatary i okładki gier rysowane jako SVG z hasza nicku/nazwy — brak plików
   graficznych w repo, nic się nie ściąga z sieci
 
@@ -33,7 +37,7 @@ Filtrowanie po grze, regionie, platformie, stylu, porze grania, mikrofonie.
 Wyszukiwarka tokenowa z AND i scoringiem trafności, ignoruje polskie znaki
 diakrytyczne. Filtry zapisują się w localStorage. Paginacja po 24 wyniki.
 
-**Tryb „Szukam teraz”**
+**Tryb „Szukam teraz"**
 Przełącznik, który podbija własne karty przy sortowaniu po aktywności; pasek
 statusu na Starcie i na liście graczy.
 
@@ -59,38 +63,44 @@ wszystkich danych lokalnych.
 ## Czego NIE MA
 
 - **Backendu.** Zero. Żadnego API, serwera, bazy, kont, logowania, sesji.
-- **Prawdziwych użytkowników.** Wszyscy „gracze” to generator. Dwie osoby
+- **Prawdziwych użytkowników.** Wszyscy „gracze" to generator. Dwie osoby
   otwierające stronę nie widzą się nawzajem.
-- **Wysyłania wiadomości.** Przycisk „Napisz” pokazuje kontakt albo modal —
+- **Wysyłania wiadomości.** Przycisk „Napisz" pokazuje kontakt albo modal —
   nic nigdzie nie leci.
 - **Płatności.** Checkout to modal z opóźnieniem i komunikatem sukcesu.
 - **Live.** Kafelki i licznik widzów są statyczne, nie ma odtwarzacza strumienia.
 - **Moderacji, zgłoszeń, blokowania.** Nie ma nawet zalążka.
 - **RODO / regulaminu / polityki prywatności.** Przy prawdziwych użytkownikach
-  to jest warunek startu, nie „potem”.
-- **Testów.** Żadnych — ani jednostkowych, ani E2E.
+  to jest warunek startu, nie „potem".
+- **Testów automatycznych.** Jest tylko ręczny smoke test przeklikujący widoki.
 
 ## Znane ograniczenia i pułapki techniczne
 
 1. **localStorage ma ~5 MB.** Pliki wrzucane do ogłoszenia idą jako data URL,
-   więc jeden film z telefonu potrafi zapchać limit. `save()` łyka wyjątek po
-   cichu (`catch (e) {}`) — dane po prostu się nie zapisują i nikt się nie
-   dowiaduje. To pierwszy realny bug do naprawienia.
+   więc jeden film z telefonu potrafi zapchać limit. `save()` w `state.js` łyka
+   wyjątek po cichu (`catch (e) {}`) — dane po prostu się nie zapisują i nikt
+   się nie dowiaduje. To pierwszy realny bug do naprawienia.
 2. **Dane demo są generowane od nowa przy każdym odświeżeniu** z `Date.now()`
-   w polach `added`, więc „dodane 3 h temu” zmienia się między wejściami.
-3. **`go()` i kilka innych funkcji jest nadpisywanych niżej w pliku**
-   (linie 3300, 3327, 3337) — warstwa monetyzacji doczepia się do istniejących
-   funkcji przez podmianę. Przy edycji trzeba pamiętać, że wersja z góry pliku
-   nie jest tą, która się wykonuje.
+   w polach `added`, więc „dodane 3 h temu" zmienia się między wejściami.
+3. **Kolejność skryptów w `index.html` ma znaczenie** — wszystko żyje w zasięgu
+   globalnym. Nowy plik dopisujemy w odpowiednim miejscu listy, nie na końcu.
 4. **Kilka wartości siedzi poza obiektem `KEY`**: `bigww_extra_slot` i
    `bigww_unlock_cred` są czytane bezpośrednio z localStorage. Przy czyszczeniu
    danych trzeba je kasować osobno (kod to robi, ale łatwo przeoczyć).
 5. **Brak walidacji formularza** poza `maxlength` i `min/max` na wieku.
-6. **Klipy z Twitcha wymagają parametru `parent`** przy embedzie — na
+6. **Karta sponsorowana pokazuje się także przy zerowej liczbie wyników** —
+   nad komunikatem „Brak dokładnych wyników". Zachowanie odziedziczone po
+   pierwszej wersji, świadomie zostawione przy rozdzielaniu plików, żeby refaktor
+   nic nie zmieniał. Do poprawy osobno.
+7. **Klipy z Twitcha wymagają parametru `parent`** przy embedzie — na
    `file://` to nie zadziała, potrzebny jest serwowany host.
+8. **Monety i premium są po stronie klienta.** Każdy może otworzyć konsolę i
+   wpisać sobie dowolny balans. Dziś bez znaczenia, przy prawdziwych
+   płatnościach krytyczne — musi trafić do bazy.
 
-## Wersja i historia
+## Podjęte decyzje czekające na realizację
 
-Ten commit jest punktem zerowym repozytorium — cały dotychczasowy prototyp
-wchodzi jako jeden commit startowy. Wcześniejsze wersje powstawały w rozmowie
-i nie były wersjonowane.
+- Backend: **Node + Fastify + PostgreSQL w Dockerze, Prisma jako ORM**.
+- Logowanie: **Discord OAuth oraz e-mail z hasłem** (obie drogi).
+
+Szczegóły i kolejność prac: `docs/TODO.md`.

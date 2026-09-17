@@ -4,7 +4,7 @@ Serwis do szukania ludzi do wspólnego grania (nazwa robocza wcześniej: „Ekip
 Model wzorowany na ePal / Tinder: ogłoszenie gracza + filtry + kontakt, plus
 warstwa monetyzacji (premium, monety, sklep, reklamy).
 
-Stan na 2026-09-17: **działający prototyp front-endowy w jednym pliku HTML**.
+Stan na 2026-09-17: **działający prototyp front-endowy**, rozdzielony na pliki.
 Brak backendu, brak bazy, brak kont użytkowników — wszystko trzyma się w
 localStorage przeglądarki.
 
@@ -17,13 +17,18 @@ Google Fonts; bez internetu strona działa, tylko na fontach systemowych.
 ## Co jest w repo
 
 ```
-index.html            cały prototyp (HTML + CSS + JS, 3449 linii)
+index.html            markup — 11 widoków i modale
+css/style.css         style
+js/                   16 plików: dane, stan, widoki, monetyzacja, start
 docs/STAN.md          co jest zrobione, co nie działa, znane ograniczenia
-docs/ARCHITEKTURA.md  mapa kodu — gdzie co siedzi, numery linii, model danych
+docs/ARCHITEKTURA.md  układ plików, kolejność ładowania, model danych
 docs/DECYZJE.md       podjęte decyzje projektowe i dlaczego
 docs/TODO.md          kolejne kroki, uporządkowane
+CHANGELOG.md          co zmieniło się w której wersji
 CLAUDE.md             instrukcja dla Claude'a w kolejnych sesjach
 ```
+
+Co gdzie siedzi w `js/` — tabela w `docs/ARCHITEKTURA.md`.
 
 ## Podział ról
 
