@@ -54,15 +54,21 @@ function playerCard(p) {
   if (p.clipUrl || p.fileData) tags.append(el("span", "tag", p.fileType && p.fileType.startsWith("video") ? "🎬 klip" : p.clipUrl ? "▶ wideo" : "🖼 screen"));
 
   const foot = el("div", "p-foot");
+
+  // rząd 1: Kontakt + Obserwuj + czas
+  const row1 = el("div", "p-foot-row");
   const msg = el("button", "btn sm pri", canSeeContact(p) ? "Napisz" : "🔒 Kontakt");
   msg.onclick = () => showContact(p);
   const star = el("button", "btn sm", SAVED.includes(p.id) ? "★ Obserwujesz" : "☆ Obserwuj");
   star.onclick = () => { toggleSave(p.id); star.textContent = SAVED.includes(p.id) ? "★ Obserwujesz" : "☆ Obserwuj"; };
   const when = el("span", "note", ago(p.added));
-  foot.append(msg, star, el("span", "spacer"), when);
+  row1.append(msg, star, el("span", "spacer"), when);
+  foot.append(row1);
+
+  // rząd 2: Udostępnij / Oceń / Blokuj / Zgłoś
   if (!p.mine) {
-    const more = el("div");
-    more.style.cssText = "display:flex;gap:6px;flex-wrap:wrap;width:100%;margin-top:8px";
+    const more = el("div", "p-foot-row");
+    more.style.flexWrap = "wrap";
     const share = el("button", "btn sm ghost", "Udostępnij");
     share.onclick = e => { e.stopPropagation(); shareListing(p); };
     const rate = el("button", "btn sm ghost", "Oceń");
@@ -74,13 +80,15 @@ function playerCard(p) {
     more.append(share, rate, blk, rep);
     foot.append(more);
   }
+
+  // limit darmowych wiadomości
   if (!p.mine && !isPrem()) {
     const left = msgsLeft();
     if (left < FREE_MSG_LIMIT) {
       const lim = el("div", "msg-limit");
-      lim.style.width = "100%";
-      lim.style.marginTop = "6px";
-      lim.textContent = left > 0 ? "Darmowe wiadomości dziś: " + left + "/" + FREE_MSG_LIMIT : "Limit darmowych wiadomości wyczerpany — Premium lub monety";
+      lim.textContent = left > 0
+        ? "Darmowe wiadomości dziś: " + left + "/" + FREE_MSG_LIMIT
+        : "Limit darmowych wiadomości wyczerpany — Premium lub monety";
       foot.append(lim);
     }
   }

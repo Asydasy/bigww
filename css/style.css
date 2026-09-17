@@ -87,12 +87,26 @@ body.sidebar-collapsed .main-inner{max-width:1280px}
 .nav-sep{height:1px;background:var(--line-solid);margin:12px 6px}
 .side-foot{margin-top:auto;padding:12px 12px 0;color:var(--txt-faint);font-size:11.5px;line-height:1.6}
 .side-foot-links{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.side-foot-links .btn-discord{
+  width:100%;text-align:center;padding:10px 12px;border-radius:10px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  border:1px solid #5865f266;background:#5865f222;color:#c4caff;font-weight:600;font-size:13px;
+  text-decoration:none;transition:background .15s,border-color .15s,filter .15s,color .15s;
+}
+.side-foot-links .btn-discord:hover{background:#5865f233;border-color:#5865f2;color:#fff;filter:brightness(1.08)}
+.side-foot-links .btn-discord .dico{font-size:15px;line-height:1}
 .side-foot-links .btn-legal{
   width:100%;text-align:center;padding:9px 12px;border-radius:10px;cursor:pointer;
   border:1px solid #2ee6a866;background:#2ee6a818;color:var(--on);font-weight:600;font-size:12.5px;
   transition:background .15s,border-color .15s,filter .15s;
 }
 .side-foot-links .btn-legal:hover{background:#2ee6a828;border-color:var(--on);filter:brightness(1.08)}
+:root[data-theme="light"] .side-foot-links .btn-discord{
+  background:#5865f218;color:#3c45a5;border-color:#5865f244;
+}
+:root[data-theme="light"] .side-foot-links .btn-discord:hover{
+  background:#5865f228;color:#5865f2;border-color:#5865f2;
+}
 .auth-tabs{display:flex;gap:6px;margin-bottom:16px}
 .auth-tabs button{
   flex:1;padding:10px;border-radius:10px;border:1px solid var(--line-solid);
@@ -399,8 +413,24 @@ select{cursor:pointer}
 .tag{background:var(--panel2);color:var(--txt-dim);font-size:11.5px;padding:4px 9px;border-radius:7px;border:1px solid var(--line)}
 .tag.acc{background:var(--acc-soft);color:#b9a7ff;border-color:#7c5cff44}
 :root[data-theme="light"] .tag.acc{color:#5b3df5}
-.p-foot{display:flex;gap:8px;margin-top:14px;align-items:center}
+.p-foot{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  margin-top:14px;
+  align-items:stretch;
+}
+.p-foot .p-foot-row{
+  display:flex;
+  gap:8px;
+  align-items:center;
+}
 .p-foot .spacer{flex:1}
+.p-foot .msg-limit{
+  font-size:11.5px;
+  color:var(--warn);
+  margin-top:2px;
+}
 
 /* ---------- game cards ---------- */
 .gcard{

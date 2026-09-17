@@ -101,7 +101,7 @@ const RECZNE_NUMERY = {
   "Battlefield 2042": 1517290,
   "Battlefield V": 1238840,
   "Battlefield 1": 1237950,
-  "Escape from Tarkov": 0,
+  "Escape from Tarkov": 3932890,
   "Hunt: Showdown 1896": 594650,
   "The Finals": 2073850,
   "Halo Infinite": 1240440,
