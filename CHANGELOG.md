@@ -3,6 +3,28 @@
 Format: najnowsze na górze. Każdy wpis mówi, co zmieniło się w **zachowaniu**,
 a nie tylko w plikach.
 
+## [0.5.1] — 2026-09-17
+
+### Naprawione
+- **W polach e-mail i hasła nie było widać wpisywanego tekstu.** Style
+  formularza obejmowały tylko `input[type=text]` i `[type=number]`, więc pola
+  logowania dostawały białe tło przeglądarki i odziedziczony jasny kolor
+  tekstu — biały na białym. Reguła obejmuje teraz wszystkie pola tekstowe
+  (e-mail, hasło, szukaj, url, telefon, data) i ustawia kolor wprost, zamiast
+  liczyć na dziedziczenie. Doszło też stylowanie podpowiedzi w pustym polu.
+
+### Zmienione
+- **Podział na to, co widzi gość, i to, co widzi zalogowany.** Niezalogowany
+  widzi Start, Szukaj graczy, Bazę gier, Ekipy, Live i Ustawienia. Dodaj
+  ogłoszenie, Moje ogłoszenia, Obserwowani, Premium, Sklep i saldo monet WW
+  pojawiają się po zalogowaniu.
+- Wejście na zablokowany widok otwiera okno logowania zamiast pustej strony —
+  pilnuje tego `go()`, więc działa tak samo z menu, z przycisku na stronie
+  startowej i z odsyłaczy w pustych stanach.
+- Wylogowanie na widoku dla zalogowanych cofa na stronę startową.
+- **W trybie demo nic się nie chowa** — kont tam nie ma, więc cała strona
+  zostaje dostępna jak dotąd.
+
 ## [0.5.0] — 2026-09-17
 
 Scalenie równoległej pracy nad frontem z naszą wersją. Tamta powstawała na

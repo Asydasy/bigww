@@ -26,6 +26,12 @@ z generatora. Przy płatnościach jest o tym informacja w interfejsie.
 
 ## Co DZIAŁA
 
+**Gość kontra zalogowany (tylko w trybie serwerowym)**
+Niezalogowany widzi Start, Szukaj graczy, Bazę gier, Ekipy, Live i Ustawienia.
+Dodaj ogłoszenie, Moje ogłoszenia, Obserwowani, Premium, Sklep i saldo monet WW
+pojawiają się po zalogowaniu. Próba wejścia na zablokowany widok otwiera okno
+logowania. W trybie demo wszystko jest widoczne, bo kont tam nie ma.
+
 **Nawigacja i widoki (11 ekranów)**
 Start, Gracze, Gry, Ekipy, Live, Dodaj ogłoszenie, Moje ogłoszenia, Obserwowani,
 Premium, Sklep, Ustawienia. Sidebar na desktopie, dolny pasek na telefonie,
@@ -86,9 +92,9 @@ Szczegóły i lista endpointów: `server/README.md`.
   adresem jest dopinane do istniejącego, a nie dublowane.
 - Katalog 205 gier w bazie, wypełniany seedem z `js/data-games.js`.
 - Ogłoszenia: dodawanie, edycja, usuwanie, obserwowanie, lista z filtrami
-  (gra, region, platforma, styl, pora, mikrofon, „szukam teraz"),
+  (gra, region, platforma, styl, godziny od–do, mikrofon, „szukam teraz"),
   wyszukiwarką odporną na polskie znaki i stronicowaniem.
-- Limit ogłoszeń na konto liczony po stronie serwera: 2 / 10 / 20.
+- Limit ogłoszeń na konto liczony po stronie serwera: 3 / 10 / 20.
 - Kontakt widzi każdy zalogowany; niezalogowany dostaje `contactLocked`.
 - Filtr godzin liczony przez `bigww_hours_overlap()` w bazie.
 - 25 testów (`npm test` w `server/`) i ograniczenie liczby prób logowania.
@@ -110,7 +116,7 @@ Szczegóły i lista endpointów: `server/README.md`.
 - **Moderacji, zgłoszeń, blokowania.** Nie ma nawet zalążka.
 - **RODO / regulaminu / polityki prywatności.** Przy prawdziwych użytkownikach
   to jest warunek startu, nie „potem".
-- **Testów frontu w repozytorium.** Backend ma 24 testy uruchamiane przez
+- **Testów frontu w repozytorium.** Backend ma 25 testów uruchamianych przez
   `npm test`. Front był sprawdzany testem przeklikującym oba tryby, ale ten
   test nie jest jeszcze częścią repo.
 

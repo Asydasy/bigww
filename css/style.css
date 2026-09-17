@@ -109,10 +109,17 @@ button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit
 }
 .filters .wide{grid-column:1/-1}
 .field label{display:block;font-size:12px;color:var(--txt-faint);margin-bottom:6px}
-input[type=text],input[type=number],select,textarea{
-  width:100%;background:var(--bg2);border:1px solid var(--line-solid);border-radius:10px;
+/* Wszystkie pola tekstowe, nie tylko text i number. Bez e-maila i hasła na tej
+   liście pola logowania dostawały białe tło przeglądarki i odziedziczony jasny
+   tekst — czyli biały na białym. */
+input[type=text],input[type=number],input[type=email],input[type=password],
+input[type=search],input[type=url],input[type=tel],input[type=date],
+select,textarea{
+  width:100%;background:var(--bg2);color:var(--txt);
+  border:1px solid var(--line-solid);border-radius:10px;
   padding:11px 13px;outline:none;transition:border-color .15s;
 }
+input::placeholder,textarea::placeholder{color:var(--txt-faint);opacity:1}
 textarea{resize:vertical;min-height:96px;line-height:1.55}
 input:focus,select:focus,textarea:focus{border-color:var(--acc)}
 select{cursor:pointer}

@@ -28,6 +28,7 @@ async function start() {
   await DATA.init();
 
   renderAccount();
+  applyAuthVisibility();
   renderModeTag();
 
   buildFilters();

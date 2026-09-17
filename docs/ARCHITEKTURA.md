@@ -12,13 +12,14 @@ js/data-games.js        baza 205 gier jako tekst -> tablica GAMES
 js/data-demo.js         generator demo: PLAYERS (720), TEAMS (80), LIVES (36),
                         awatary i okładki jako SVG z hasza nazwy
 js/state.js             localStorage: obiekt KEY, load/save, premium, monety,
-                        limity, canSeeContact(), adLimit()
+                        limity, canSeeContact(), adLimit(), freeUnlocksLeft()
 js/util.js              $, el, norm, nf, tokens, searchScore, ago, toast, fillSelect
                         oraz godziny: fmtHour, timeLabel, hoursOverlap, fillHourSelect
 js/api.js               surowe wywołania HTTP do serwera (API.login, API.ads, ...)
 js/data-source.js       DATA — jedyne wejście do danych dla widoków; wybiera
                         między serwerem a danymi demo i tłumaczy filtry
-js/auth-ui.js           panel konta w menu i okno logowania/rejestracji
+js/auth-ui.js           panel konta w menu, okno logowania/rejestracji oraz
+                        podział na to, co widzi gość, a co zalogowany
 js/nav.js               go(view), podpięcie sidebara i bottom-nav, setLooking()
 js/cards.js             playerCard, gameCard, teamCard, openProfile, showContact,
                         openModal, toggleSave, podgląd mediów
@@ -72,6 +73,20 @@ w obu trybach — widać je zawsze, ale nie przechodzą przez serwer.
 Wyjątkiem jest kontakt: w trybie `api` o dostępie do niego decyduje backend
 (widzi go każdy zalogowany), więc `showContact()` ma dla tego trybu osobną
 gałąź zamiast odblokowywania za monety.
+
+## Gość kontra zalogowany
+
+`GUEST_HIDDEN` w `js/auth-ui.js` wymienia widoki dostępne dopiero po
+zalogowaniu: `add`, `mine`, `saved`, `premium`, `shop`. Pilnują tego dwie
+rzeczy:
+
+- `applyAuthVisibility()` chowa te pozycje w menu razem z saldem monet i,
+  gdyby ktoś został na ukrytym widoku po wylogowaniu, cofa na stronę startową;
+- `go()` w `js/nav.js` sprawdza to samo przy każdym przejściu, więc przycisk na
+  stronie startowej albo odsyłacz w pustym stanie też otworzy logowanie.
+
+`isGuest()` jest prawdziwe tylko w trybie `api`. W trybie demo kont nie ma,
+więc cała strona zostaje widoczna.
 
 ## Godziny grania
 
@@ -137,15 +152,18 @@ W `state.js` (poza `LIVE_TICKET_COST`, które siedzi na końcu `data-demo.js`):
 
 ```
 LIVE_TICKET_COST     35 WW
-FREE_MSG_LIMIT       5 / dzień
-UNLOCK_CONTACT_COST  20 WW
-MSG_COST             8 WW
+FREE_MSG_LIMIT       10 / dzień
+FREE_UNLOCK_DAILY    3 / dzień
+UNLOCK_CONTACT_COST  15 WW
+MSG_COST             6 WW
 BP_XP_PER_LEVEL      100
 BP_MAX               10
 ```
 
-Limit ogłoszeń liczy `adLimit()`: free 2, +1 z `bigww_extra_slot`, premium 10,
-pro/rok 20.
+Limit ogłoszeń liczy `adLimit()`: free 3, +1 z `bigww_extra_slot`, premium 10,
+pro/rok 20. **Te same liczby siedzą w `adLimitFor()` w
+`server/src/config.js`** — zmieniasz jedno, zmień drugie, inaczej front obiecuje
+więcej, niż serwer pozwala.
 
 ## Miejsca, w których monetyzacja wchodzi w resztę kodu
 

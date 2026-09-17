@@ -6,6 +6,40 @@
  * zamiast udawać, że da się zalogować.
  */
 
+/**
+ * Widoki dostępne dopiero po zalogowaniu. Gość ich nie widzi w menu, a próba
+ * wejścia (np. przyciskiem na stronie startowej) otwiera okno logowania.
+ */
+const GUEST_HIDDEN = ["add", "mine", "saved", "premium", "shop"];
+
+/** Czy patrzy na to niezalogowany gość. W trybie demo kont nie ma, więc nie. */
+function isGuest() {
+  return DATA.isApi && !DATA.user;
+}
+
+/** Pokazuje albo chowa to, co należy się dopiero zalogowanym. */
+function applyAuthVisibility() {
+  const guest = isGuest();
+
+  document.querySelectorAll("#nav button[data-v], #bottomNav button[data-v]").forEach(b => {
+    if (GUEST_HIDDEN.includes(b.dataset.v)) b.style.display = guest ? "none" : "";
+  });
+
+  // Druga przerwa w menu rozdziela grupy, które gościowi znikają w całości.
+  const seps = document.querySelectorAll("#nav .nav-sep");
+  if (seps[1]) seps[1].style.display = guest ? "none" : "";
+
+  // Saldo monet WW to część konta — gość nie ma czego oglądać.
+  const coin = $("#coinBal");
+  if (coin) coin.style.display = guest ? "none" : "";
+
+  // Gdyby gość został na ukrytym widoku (np. po wylogowaniu), wracamy na start.
+  if (guest) {
+    const current = document.querySelector(".page.on");
+    if (current && GUEST_HIDDEN.includes(current.id.replace("v-", ""))) go("home");
+  }
+}
+
 /** Rysuje kafelek konta nad monetami. */
 function renderAccount() {
   const box = $("#account");
@@ -42,6 +76,7 @@ function renderAccount() {
   out.onclick = async () => {
     await DATA.logout();
     renderAccount();
+    applyAuthVisibility();
     toast("Wylogowano");
     await renderPlayers(true);
     updateBadges();
@@ -117,8 +152,11 @@ function openAuth(startTab = "login") {
 
         $("#modal").classList.remove("on");
         renderAccount();
+        applyAuthVisibility();
         toast(isLogin ? "Zalogowano" : "Konto założone");
         await renderPlayers(true);
+        renderMine();
+        renderSaved();
         updateBadges();
       } catch (e) {
         $("#authGo").disabled = false;

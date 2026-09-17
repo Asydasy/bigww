@@ -6,6 +6,13 @@
    5. NAWIGACJA
 ========================================================= */
 function go(view) {
+  // Widoki dla zalogowanych: gościowi zamiast pustej strony pokazujemy
+  // logowanie. Łapie to wszystkie wejścia naraz — menu, przyciski na stronie
+  // startowej i odsyłacze w pustych stanach.
+  if (GUEST_HIDDEN.includes(view) && isGuest()) {
+    openAuth("login");
+    return;
+  }
   document.querySelectorAll(".page").forEach(p => p.classList.toggle("on", p.id === "v-" + view));
   document.querySelectorAll("#nav button").forEach(b => b.classList.toggle("on", b.dataset.v === view));
   document.querySelectorAll("#bottomNav button").forEach(b => b.classList.toggle("on", b.dataset.v === view));
