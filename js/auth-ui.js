@@ -523,6 +523,8 @@ function refreshAfterAuth() {
   // restore filters UI if needed
   if ($("#sTheme")) $("#sTheme").value = PREF.theme;
   if ($("#sRegion")) $("#sRegion").value = PREF.region;
+  // po zmianie konta zmienia się to, czy wolno pisać na czacie
+  if (typeof chatPoAuth === "function") chatPoAuth();
 }
 
 function requireLogin(actionLabel) {

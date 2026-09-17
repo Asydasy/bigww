@@ -24,6 +24,9 @@ osobnym etapem projektu.
       zgłoszenia, oceny, zestawy filtrów i udziały w giveawayach.
 - [x] Regulamin i polityka prywatności jako widok w serwisie.
 - [x] Rzeczy konta przeniesione z menu bocznego do rozwijanego menu pod awatarem.
+- [x] **Czat ogólny na serwerze** — jeden pokój, panel w menu bocznym, historia
+      w bazie (migracja `005`), odpytywanie co 5 s, limity i kasowanie własnych
+      wiadomości.
 
 ## 1. Poprawki, każda na jedną sesję
 
@@ -61,6 +64,21 @@ osobnym etapem projektu.
       oznaczyć: udawana weryfikacja e-maila, SMS i „Google” działają tylko bez
       backendu, a kod siedzi w tym samym pliku.
 
+## 2b. Czat — czego mu brakuje
+
+- [ ] **Moderacja czatu.** Dziś każdy zalogowany pisze do wszystkich i nikt nie
+      może tego zatrzymać. Minimum: rola admina, kasowanie cudzej wiadomości,
+      wyciszenie konta na czas. To jest pierwsza rzecz do zrobienia, gdy wejdą
+      obcy ludzie — nie po pierwszym trollu.
+- [ ] **Blokada w czacie działająca razem z `bigww_blocked_v2`** — dziś blokada
+      gracza chowa jego ogłoszenia, ale nie jego wiadomości na czacie.
+- [ ] **WebSocket zamiast odpytywania** — dopiero gdy będzie ruch, który to
+      uzasadni. Przy kilku osobach zapytanie co 5 s jest tańsze niż utrzymywanie
+      połączeń.
+- [ ] **Kto jest online** — licznik przy nagłówku czatu. Wymaga śladu
+      aktywności po stronie serwera (ostatnie zapytanie z konta).
+- [ ] **Pokoje tematyczne albo per gra**, jeśli jeden pokój zrobi się za głośny.
+
 ## 3. Backend — drugi etap
 
 - [ ] **Portfel monet po stronie serwera**: wydawanie, doładowania, historia
@@ -70,8 +88,10 @@ osobnym etapem projektu.
       już tam jest, reszta nie).
 - [ ] **Odblokowywanie kontaktu za monety** — tabela `unlocks` i sprawdzanie
       w `publicAd()`. Dziś kontakt widzi każdy zalogowany.
-- [ ] **Wiadomości między użytkownikami.** Do przemyślenia razem z decyzją, czy
-      w ogóle chcemy je u siebie, czy zostajemy przy pokazywaniu Discorda.
+- [ ] **Prywatne wiadomości 1:1 na serwerze.** Czat ogólny już działa, ale
+      skrzynka z karty gracza dalej zapisuje się tylko u nadawcy — to jedyna
+      funkcja, która wprost kłamie użytkownikowi. Można ją oprzeć na tej samej
+      tabeli co czat (kolumna `to_user_id`) albo zrobić osobną.
 - [ ] **Moderacja**: zgłoszenia i blokady w bazie, kolejka do przejrzenia.
       Dziś zapisują się u zgłaszającego, więc nikt ich nie widzi.
 - [ ] **Giveawaye w bazie**, jeśli mają być prawdziwe — losowanie po stronie

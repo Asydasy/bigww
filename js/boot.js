@@ -3,7 +3,7 @@
 /* =========================================================
    START APLIKACJI — splash, cookies, PWA, wybór źródła danych
 ========================================================= */
-const APP_VERSION = "1.1.0";
+const APP_VERSION = "1.2.0";
 
 function hideSplash() {
   const s = $("#splash");
@@ -92,11 +92,13 @@ DATA.init()
   .then(mode => {
     pokazTrybDanych(mode);
     odswiezPoStarcie();
+    if (typeof initChat === "function") initChat(mode);
     console.info("[BigWW]", APP_VERSION, "dane:", mode, mode === "api" ? API.base : "");
   })
   .catch(err => {
     console.warn("[BigWW] nie udało się rozpoznać trybu danych:", err);
     pokazTrybDanych("local");
+    if (typeof initChat === "function") initChat("local");
   });
 
 window.BigWW = { version: APP_VERSION, api: API, data: DATA, go, t };

@@ -64,6 +64,16 @@ export interface AdsTable {
   updated_at: Generated<Timestamp>;
 }
 
+export interface ChatMessagesTable {
+  id: string;
+  user_id: string;
+  /** Nick z chwili wysłania — zmiana nazwy konta nie przepisuje historii. */
+  nick: string;
+  body: string;
+  deleted_at: Timestamp | null;
+  created_at: Generated<Timestamp>;
+}
+
 export interface SavesTable {
   user_id: string;
   ad_id: string;
@@ -80,5 +90,6 @@ export interface DB {
   games: GamesTable;
   ads: AdsTable;
   saves: SavesTable;
+  chat_messages: ChatMessagesTable;
   _migrations: MigrationsTable;
 }

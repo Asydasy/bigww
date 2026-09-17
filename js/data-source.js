@@ -252,6 +252,32 @@ const DATA = (() => {
     return !on;
   }
 
+  /* ---------- czat ogólny ---------- */
+  /** Czat jest tylko na serwerze. Bez backendu nie ma z kim rozmawiać, więc
+   *  ścieżka lokalna mówi to wprost zamiast udawać pokój z samym sobą. */
+  function bladBezSerwera() {
+    const e = new Error("Czat działa tylko z uruchomionym serwerem.");
+    e.status = 503;
+    return e;
+  }
+
+  async function chatList(after) {
+    if (mode !== "api") throw bladBezSerwera();
+    return API.chat(after ? { after } : undefined);
+  }
+
+  async function chatSend(text) {
+    if (mode !== "api") throw bladBezSerwera();
+    if (!user) { const e = new Error("Zaloguj się, żeby pisać na czacie."); e.status = 401; throw e; }
+    const res = await API.sendChat(text);
+    return res.message;
+  }
+
+  async function chatDelete(id) {
+    if (mode !== "api") throw bladBezSerwera();
+    await API.deleteChat(id);
+  }
+
   /* ---------- konto ---------- */
   /** Hasło na serwerze ma minimum 8 znaków — pilnujemy tego też we froncie,
    *  żeby błąd nie przychodził dopiero z odpowiedzi HTTP. */
@@ -305,6 +331,9 @@ const DATA = (() => {
     deleteAd,
     setLookingNow,
     toggleSave,
+    chatList,
+    chatSend,
+    chatDelete,
     login,
     register,
     logout,

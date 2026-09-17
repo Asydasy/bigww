@@ -5,9 +5,9 @@ httpOnly, logowanie e-mailem z hasłem albo przez Discorda.
 
 Front rozmawia z tym backendem przez warstwę `DATA` (`js/data-source.js`):
 jeśli `/api/health` odpowiada, ogłoszenia, gry, konta i obserwowani idą z bazy;
-jeśli nie — strona wraca na dane lokalne. Monety, premium, skrzynka,
-powiadomienia i giveawaye nie przechodzą przez serwer (patrz „Czego tu jeszcze
-nie ma").
+jeśli nie — strona wraca na dane lokalne. Przez serwer idzie też czat ogólny.
+Monety, premium, prywatna skrzynka, powiadomienia i giveawaye nie przechodzą
+przez serwer (patrz „Czego tu jeszcze nie ma").
 
 ## Uruchomienie przez Dockera (zalecane)
 
@@ -65,10 +65,10 @@ Skrypt nie dotyka bazy — czyta tylko `js/data-games.js`.
 cd server
 cp .env.example .env.test    # w .env.test wskaż OSOBNĄ bazę, np. bigww_test
 npm run migrate              # z DATABASE_URL wskazującym na bazę testową
-npm test                     # 26 testów API
+npm test                     # 34 testy API
 ```
 
-Testy czyszczą tabele `ads`, `users` i `saves` przed startem — dlatego mają iść
+Testy czyszczą tabele `ads`, `users`, `saves` i `chat_messages` przed startem — dlatego mają iść
 na osobną bazę, nie na tę, w której klikasz.
 
 Do tego test przeklikujący front w obu trybach (serwerowym i lokalnym):
@@ -79,9 +79,11 @@ npm run test:front           # wymaga działającego serwera
 ```
 
 Sprawdza rejestrację i logowanie przez API, dodanie ogłoszenia z rangą,
-przeżycie przeładowania, obserwowanie, ukryty kontakt u niezalogowanego oraz
-powrót na dane lokalne po odcięciu `/api`. Dopisuje do bazy jedno konto
-i jedno ogłoszenie.
+przeżycie przeładowania, obserwowanie, ukryty kontakt u niezalogowanego, czat
+ogólny (wysyłka, dotarcie do drugiej przeglądarki przez odpytywanie, kasowanie
+własnej wiadomości, wstrzyknięcie `<img onerror>` jako tekst) oraz powrót na
+dane lokalne po odcięciu `/api`. Dopisuje do bazy jedno konto, jedno ogłoszenie
+i kilka wiadomości.
 
 ## Endpointy
 
@@ -108,6 +110,9 @@ Wszystko pod `/api`. Ciało i odpowiedzi w JSON-ie.
 | DELETE | `/ads/:id` | właściciel | usuwa |
 | POST | `/ads/:id/save` | zalogowany | obserwuje |
 | DELETE | `/ads/:id/save` | zalogowany | przestaje obserwować |
+| GET | `/chat` | każdy | czat ogólny: `?after=<ms>` daje tylko nowsze, `?limit=` (domyślnie 50, maks. 100) |
+| POST | `/chat` | zalogowany | wysyła wiadomość (maks. 300 znaków, 20/min) |
+| DELETE | `/chat/:id` | właściciel | kasuje treść własnej wiadomości |
 
 Filtry listy ogłoszeń: `game`, `gameId`, `region`, `plat`, `style`, `time`,
 `hourFrom` i `hourTo` (okno godzinowe), `mic`, `lookingNow`, `lang`, `tag`,
@@ -144,6 +149,17 @@ przechodzić przez północ. Nachodzenie liczy `bigww_hours_overlap()` — ta sa
 logika co `hoursOverlap()` we froncie. Ogłoszenie bez godzin pasuje do każdego
 filtru.
 
+**Czat ogólny: czyta każdy, pisze zalogowany.** Jeden pokój dla całego serwisu
+(`chat_messages`). Odpowiedź `GET /chat` niesie `serverTime` — front zapisuje
+go sobie jako punkt odniesienia do kolejnego pytania, żeby nie zależeć od zegara
+przeglądarki — oraz `canWrite`, czyli czy ta sesja może pisać. Nick jest
+zapisywany razem z wiadomością, bo historia ma pokazywać, kto pisał wtedy;
+zmiana nazwy konta nie przepisuje starych wpisów. Skasowana wiadomość zostaje
+w tabeli z `deleted_at`, a jej treść nie wychodzi już z serwera — dzięki temu
+odpytywanie po czasie się nie rozjeżdża. Ochrona przed spamem jest po stronie
+serwera: 20 wiadomości na minutę z konta i odrzucenie tej samej treści
+powtórzonej w ciągu 30 sekund (`429`).
+
 **Kontakt widzi każdy zalogowany.** Płatne odblokowywanie za monety wróci razem
 z prawdziwą bramką płatniczą — do tego czasu blokowanie kontaktu za walutę,
 której nie da się kupić, zamykałoby serwis w jego najważniejszym miejscu.
@@ -157,6 +173,7 @@ logiki wydawania nie ma.
 - Portfela monet po stronie serwera (wydawanie, doładowania, historia).
 - Odblokowywania kontaktu za monety.
 - Ekip i transmisji live (są tylko we froncie, na danych demo).
-- Wiadomości między użytkownikami.
+- Prywatnych wiadomości 1:1 (czat ogólny działa, skrzynka z karty gracza nie).
+- Moderacji czatu: kasowania cudzych wiadomości, wyciszeń, banów.
 - Prawdziwych płatności.
 - Moderacji i zgłoszeń.

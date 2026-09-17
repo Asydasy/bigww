@@ -76,6 +76,25 @@ export function publicAd(row, viewer = null) {
   };
 }
 
+/**
+ * Wiadomość z czatu ogólnego.
+ * @param row wiersz z chat_messages
+ * @param viewer zalogowany użytkownik albo null
+ */
+export function publicChatMessage(row, viewer = null) {
+  const usunieta = Boolean(row.deleted_at);
+  return {
+    id: row.id,
+    nick: row.nick,
+    userId: row.user_id,
+    // Treść usuniętej wiadomości nie wychodzi z serwera — front pokazuje ślad.
+    body: usunieta ? null : row.body,
+    deleted: usunieta,
+    mine: Boolean(viewer && row.user_id === viewer.id),
+    at: new Date(row.created_at).getTime()
+  };
+}
+
 export function publicGame(row) {
   return {
     id: row.id,

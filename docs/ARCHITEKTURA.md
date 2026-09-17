@@ -47,6 +47,8 @@ js/view-settings.js     motyw, kraj, eksport/import JSON, kasowanie danych
 js/view-terms.js        regulamin i polityka prywatności (PL + EN)
 js/view-inbox.js        pusty plik — skrzynka siedzi w state.js
 js/view-giveaways.js    GIVEAWAYS (4 losowania), bilety, historia
+js/chat.js              czat ogólny: panel w menu bocznym, odpytywanie co 5 s,
+                        wysyłka, kasowanie własnej wiadomości
 js/monetization.js      monety WW, sklep, zadania, battle pass, reklamy,
                         polecenia, interstitial, karta sponsorowana
                         oraz OPAKOWANIA go / renderPlayers / submitAd
@@ -72,7 +74,7 @@ w `index.html`. Nie ma modułów ES — wszystko żyje w zasięgu globalnym, wi�
 7. `js/data-source.js`, `js/auth-ui.js`, `js/nav.js`, `js/cards.js`, widoki
 8. `js/monetization.js` — **po** `nav.js`, `view-players.js` i `view-add.js`,
    bo opakowuje ich funkcje (patrz niżej)
-9. `js/onboard.js`
+9. `js/chat.js`, `js/onboard.js`
 10. `js/main.js` — pierwsze rysowanie na danych lokalnych
 11. `js/boot.js` — splash, cookies, PWA, `DATA.init()` i przerysowanie
 
@@ -96,6 +98,7 @@ Podział odpowiedzialności:
 | co | tryb api | tryb local |
 |---|---|---|
 | ogłoszenia, gry, konta, obserwowani | serwer (PostgreSQL) | generator + localStorage |
+| czat ogólny | serwer (PostgreSQL) | nie działa — panel mówi o tym wprost |
 | monety, premium, sklep, zadania, battle pass | localStorage | localStorage |
 | skrzynka, powiadomienia, blokady, zgłoszenia, oceny | localStorage | localStorage |
 | giveawaye | localStorage | localStorage |
@@ -111,6 +114,9 @@ await DATA.updateAd(id, draft())    // edycja
 await DATA.deleteAd(id)             // usunięcie
 await DATA.toggleSave(id)           // obserwowanie
 await DATA.setLookingNow(true)      // „szukam teraz" także w bazie
+await DATA.chatList(after)          // historia czatu (tylko tryb api)
+await DATA.chatSend(tekst)          // wysłanie na czat ogólny
+await DATA.chatDelete(id)           // skasowanie własnej wiadomości
 await DATA.login({ email, password })
 await DATA.register({ email, password, displayName })
 await DATA.logout()
@@ -128,6 +134,31 @@ w `js/view-players.js`) — jedna ścieżka kodu dla obu trybów. Backend ma kom
 filtrów (`?game=`, `?region=`, `?rank=`, `?day=`, `?q=`, `?page=`…) i przejmie
 to, gdy ogłoszeń zrobi się więcej niż jedno pobranie; wtedy `renderPlayers()`
 trzeba przepiąć na zapytania i zrobić asynchronicznym.
+
+## Czat ogólny
+
+Panel siedzi w menu bocznym (`#chatPanel` w `index.html`), obsługa w
+`js/chat.js`. Jeden pokój dla całego serwisu, historia w tabeli `chat_messages`.
+
+- **Odpytywanie zamiast WebSocketu.** `odswiezCzat()` pyta
+  `GET /api/chat?after=<czas ostatniej wiadomości, którą mamy>` co 5 sekund
+  (`CZAT_ODSTEP_MS`). Pytamy tylko przy rozwiniętym panelu i widocznej karcie
+  (`document.visibilityState`) — zwinięty panel i karta w tle nie robią ruchu.
+  WebSocket ma sens dopiero przy ruchu, którego jeszcze nie ma.
+- **Znacznik czasu bierzemy z wiadomości, nie z zegara przeglądarki**, więc
+  przesunięty zegar u użytkownika nie gubi wiadomości.
+- **Treść wchodzi na stronę przez `textContent`, nigdy przez `innerHTML`.**
+  To jest cudzy tekst — `innerHTML` w tym miejscu to gotowy XSS. Test e2e
+  wysyła `<img src=x onerror=…>` i sprawdza, że na stronie nie powstał obrazek.
+- W panelu trzymamy ostatnie `CZAT_MAX_W_PANELU` (120) wiadomości; starsze
+  wypadają z góry. Przewinięcie w górę wstrzymuje auto-scroll do dołu.
+- Stan panelu (rozwinięty / zwinięty) siedzi w `PREF.chatOpen`, licznik nowych
+  wiadomości pokazuje odznaka `#chatBadge`.
+
+Limity są po stronie serwera: 300 znaków, 20 wiadomości na minutę z konta,
+ta sama treść drugi raz w ciągu 30 sekund to `429`. Front tego nie pilnuje
+poza obcięciem pola do 300 znaków — pilnowanie w przeglądarce niczego nie
+chroni.
 
 ## Opakowywanie funkcji (uwaga, wróciło)
 
@@ -271,7 +302,7 @@ przyrostek `_u_<id>` / `_guest`.
 | `bigww_session_v2` | nie | zalogowane konto lokalne |
 | `bigww_mine_v2` | tak | własne ogłoszenia (tryb lokalny) |
 | `bigww_saved_v2` | tak | obserwowani (tryb lokalny) |
-| `bigww_pref_v2` | tak | motyw, kraj, awatar, język, „szukam teraz", filtry, onboarding, widok listy |
+| `bigww_pref_v2` | tak | motyw, kraj, awatar, język, „szukam teraz", filtry, onboarding, widok listy, otwarty czat |
 | `bigww_premium_v2` | tak | `{active, plan, until, since}` |
 | `bigww_coins_v2` | tak | `{bal, earned, spent}` — start 40 WW |
 | `bigww_ref_v2` | tak | kod polecający i statystyki |

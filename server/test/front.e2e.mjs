@@ -130,6 +130,46 @@ try {
   ok(widok && widok.kontakt === null && widok.locked === true, "niezalogowany nie dostaje kontaktu z serwera");
   ok(widok && /ukryty/.test(widok.napis), "karta mówi, że kontakt jest ukryty");
 
+  /* ---------- czat ogólny ---------- */
+  console.log("\nCzat ogólny");
+  await page.evaluate(() => ustawCzatOtwarty(true));
+  await page.waitForTimeout(800);
+  ok(await page.isVisible("#chatForm"), "panel czatu otwiera się w menu bocznym");
+
+  const tekstCzatu = "Test e2e " + Date.now();
+  await page.fill("#chatInput", tekstCzatu);
+  await page.evaluate(() => document.getElementById("chatSend").click());
+  await page.waitForTimeout(900);
+  const mojaNaLiscie = await page.textContent("#chatList");
+  ok(mojaNaLiscie.includes(tekstCzatu), "wysłana wiadomość pojawia się w panelu");
+
+  // druga przeglądarka widzi to samo, bez przeładowania strony
+  await stronaGoscia.evaluate(() => ustawCzatOtwarty(true));
+  await stronaGoscia.waitForTimeout(6500); // jedno odpytanie co 5 s
+  const uGoscia = await stronaGoscia.textContent("#chatList");
+  ok(uGoscia.includes(tekstCzatu), "druga przeglądarka dostaje wiadomość przez odpytywanie");
+  ok(!(await stronaGoscia.isEnabled("#chatInput")), "gość nie może pisać, ale czyta");
+
+  // XSS: treść ma trafić na stronę jako tekst, nie jako znacznik
+  const zlosliwa = "<img src=x onerror=alert(1)> " + Date.now();
+  await page.fill("#chatInput", zlosliwa);
+  await page.evaluate(() => document.getElementById("chatSend").click());
+  await page.waitForTimeout(900);
+  const bezObrazka = await page.evaluate(() => ({
+    obrazki: document.querySelectorAll("#chatList img").length,
+    tekst: document.getElementById("chatList").textContent
+  }));
+  ok(bezObrazka.obrazki === 0, "cudza treść nie staje się znacznikiem HTML");
+  ok(bezObrazka.tekst.includes("<img"), "znaczniki widać jako zwykły tekst");
+
+  // kasowanie własnej wiadomości
+  await page.evaluate(() => document.querySelector("#chatList .chat-msg .chat-del").click());
+  await page.waitForTimeout(800);
+  ok(
+    (await page.textContent("#chatList")).includes("wiadomość usunięta"),
+    "skasowana wiadomość zostawia ślad zamiast znikać"
+  );
+
   // wylogowanie
   await page.evaluate(() => doLogout());
   await page.waitForTimeout(1000);
@@ -151,6 +191,12 @@ try {
   const trybL = (await strona.textContent("#dataMode")) || "";
   ok(trybL.includes("lokalnie"), `stopka pokazuje tryb lokalny (jest: "${trybL.trim()}")`);
   ok((await strona.evaluate(() => allPlayers().length)) === 720, "720 wygenerowanych graczy");
+
+  await strona.evaluate(() => ustawCzatOtwarty(true));
+  await strona.waitForTimeout(600);
+  const czatLokalnie = await strona.textContent("#chatList");
+  ok(/tylko z uruchomionym serwerem/.test(czatLokalnie), "czat mówi wprost, że bez serwera nie działa");
+  ok(!(await strona.isVisible("#chatForm")), "bez serwera nie ma pola do pisania");
 
   await strona.click("#btnLoginOpen");
   await strona.click("#tabRegister");

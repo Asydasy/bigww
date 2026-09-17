@@ -11,14 +11,15 @@ rozpoznawanych raz przy starcie przez `DATA.init()`:
   w przeglądarce. `index.html` otwarty z dysku dalej pokazuje pełną aplikację.
   W stopce żółte „● lokalnie”.
 
-Podział jest prosty: **serwer trzyma ogłoszenia, gry, konta i obserwowanych**,
-**przeglądarka trzyma to, czego backend jeszcze nie ma** — monety, premium,
-skrzynkę, powiadomienia, giveawaye, oceny, blokady i zapisane filtry.
+Podział jest prosty: **serwer trzyma ogłoszenia, gry, konta, obserwowanych
+i czat ogólny**, **przeglądarka trzyma to, czego backend jeszcze nie ma** —
+monety, premium, prywatną skrzynkę, powiadomienia, giveawaye, oceny, blokady
+i zapisane filtry.
 
-**Front**: `index.html` + `css/style.css` + 24 pliki w `js/`, waniliowy
-JavaScript, zero zależności. Wersja w `js/boot.js`: `APP_VERSION = "1.1.0"`.
+**Front**: `index.html` + `css/style.css` + 25 plików w `js/`, waniliowy
+JavaScript, zero zależności. Wersja w `js/boot.js`: `APP_VERSION = "1.2.0"`.
 **Backend**: `server/`, Node + Fastify + PostgreSQL, zapytania przez Kysely,
-26 testów. Stawia się jednym `docker compose up`.
+34 testy. Stawia się jednym `docker compose up`.
 
 Widoki nie wiedzą, który tryb jest aktywny — czytają `allPlayers()`, `MINE`
 i `SAVED`, a zapisy robią przez `DATA`.
@@ -106,11 +107,30 @@ przejmie to, gdy ogłoszeń będzie dużo (patrz „Znane ograniczenia”, punkt
 Przełącznik ustawia `lookingNow` **na moich ogłoszeniach w bazie**, więc status
 widzą inni, a nie tylko właściciel u siebie. Auto-wyłączenie po 2 godzinach.
 
+### Czat ogólny (na serwerze)
+
+Jeden pokój dla całego serwisu, panel w menu bocznym — zwijany, stan zapamiętany
+w `PREF.chatOpen`. **Czytać może każdy, pisać tylko zalogowany.** Historia
+i wysyłka idą do bazy (`chat_messages`), front odpytuje serwer co 5 sekund
+o wiadomości nowsze niż ostatnia, którą ma — i tylko wtedy, gdy panel jest
+rozwinięty, a karta przeglądarki widoczna. Zwinięty panel pokazuje odznakę
+z liczbą nowych wiadomości.
+
+Reguły: 300 znaków na wiadomość, 20 wiadomości na minutę z konta (limit
+po stronie serwera), ta sama treść drugi raz w ciągu 30 sekund to `429`.
+Własną wiadomość można skasować — wiersz zostaje w bazie, treść nie wychodzi
+już z serwera, a w panelu widać „wiadomość usunięta”. Nick jest zapisywany
+razem z wiadomością, więc zmiana nazwy konta nie przepisuje historii.
+
+Bez backendu panel mówi wprost, że czat działa tylko z serwerem, i nie pokazuje
+pola do pisania — zamiast udawać rozmowę z samym sobą.
+
 ### Społeczność i moderacja (na razie lokalna)
 
-Skrzynka 1:1, powiadomienia (maks. 50), blokowanie, zgłoszenia z pięcioma
-powodami, ocena gracza 1–5, udostępnianie linku (`#player=<id>`, `#u/<nick>`).
-Wszystko zapisuje się u zgłaszającego — backend tego nie ma.
+Skrzynka 1:1 (osobna od czatu ogólnego), powiadomienia (maks. 50), blokowanie,
+zgłoszenia z pięcioma powodami, ocena gracza 1–5, udostępnianie linku
+(`#player=<id>`, `#u/<nick>`). Wszystko zapisuje się u zgłaszającego —
+backend tego nie ma.
 
 ### Giveawaye
 
@@ -160,14 +180,16 @@ Szczegóły i lista endpointów: `server/README.md`.
   Discord OAuth, ograniczenie liczby prób logowania (10 na 5 minut).
 - Katalog 205 gier, wypełniany seedem z `js/data-games.js`, z licznikami
   ogłoszeń na grę.
+- Czat ogólny: `GET /api/chat` (czyta każdy, `?after=` do odpytywania),
+  `POST /api/chat` (zalogowany, 20/min), `DELETE /api/chat/:id` (właściciel).
 - Ogłoszenia: dodawanie, edycja (`PATCH`), usuwanie, obserwowanie, lista
   z filtrami (gra, region, platforma, styl, pora, godziny, mikrofon, ranga,
   dzień tygodnia, tag, język, świeżość, „szukam teraz”), wyszukiwarką odporną
   na polskie znaki i stronicowaniem.
 - Limit ogłoszeń liczony po stronie serwera.
 - Kontakt tylko dla zalogowanych (`contactLocked` dla reszty).
-- **26 testów API** (`npm test`) i **test przeklikujący front w obu trybach**
-  (`npm run test:front`, 26 sprawdzeń — wymaga Playwrighta i działającego
+- **34 testy API** (`npm test`) i **test przeklikujący front w obu trybach**
+  (`npm run test:front`, 35 sprawdzeń — wymaga Playwrighta i działającego
   serwera).
 
 ## Czego NIE MA
@@ -176,8 +198,11 @@ Szczegóły i lista endpointów: `server/README.md`.
   nie ma — front trzyma saldo w przeglądarce, więc każdy może je zmienić
   w konsoli. Przy prawdziwych płatnościach to jest blokada startu.
 - **Premium w bazie.** To samo co wyżej: kolumny są, ruchu nie ma.
-- **Wysyłania wiadomości.** Skrzynka jest lokalna — odbiorca nigdy nic nie
-  dostanie.
+- **Prywatnych wiadomości.** Czat ogólny działa naprawdę, ale skrzynka 1:1
+  jest dalej lokalna — wiadomość z karty gracza nie dociera do odbiorcy.
+- **Moderacji czatu.** Każdy zalogowany pisze do wszystkich; nie ma banów,
+  wyciszeń ani kolejki zgłoszeń. Przy pierwszym trollu to będzie pierwsza
+  rzecz do zrobienia.
 - **Płatności.** Checkout to modal z opóźnieniem i komunikatem sukcesu.
 - **Ekip i transmisji w bazie.** Istnieją tylko we froncie, na danych demo,
   także wtedy, gdy reszta strony chodzi na serwerze.

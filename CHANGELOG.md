@@ -3,6 +3,45 @@
 Format: najnowsze na górze. Każdy wpis mówi, co zmieniło się w **zachowaniu**,
 a nie tylko w plikach.
 
+## [1.2.0] — 2026-09-18
+
+Czat ogólny — pierwsze miejsce w serwisie, w którym widać, że ktoś tu jest.
+
+### Dodane
+- **Czat ogólny na serwerze.** Jeden pokój dla całego serwisu, panel w menu
+  bocznym: zwijany, ze stanem zapamiętanym między wejściami i odznaką liczby
+  nowych wiadomości, gdy jest zwinięty. **Czytać może każdy, pisać tylko
+  zalogowany** — gość widzi rozmowę i wie, czego mu brakuje.
+- Historia trzymana w bazie (migracja `005`, tabela `chat_messages`), front
+  pyta co 5 sekund o wiadomości nowsze niż ostatnia, którą ma — i tylko wtedy,
+  gdy panel jest rozwinięty, a karta przeglądarki widoczna. Zamknięty panel
+  i karta w tle nie generują ruchu.
+- **Kasowanie własnej wiadomości.** Wiersz zostaje w bazie (żeby odpytywanie
+  po czasie się nie rozjechało), treść przestaje wychodzić z serwera, a w
+  panelu widać „wiadomość usunięta”.
+- Nowe endpointy: `GET /api/chat` (z `?after=` i `?limit=`), `POST /api/chat`,
+  `DELETE /api/chat/:id`. Osiem nowych testów API (razem 34).
+- Test e2e rozszerzony o czat: wysyłka, dotarcie wiadomości do **drugiej
+  przeglądarki** przez odpytywanie, gość, który czyta, ale nie pisze, kasowanie
+  własnej wiadomości i próba wstrzyknięcia `<img src=x onerror=…>` (razem 35
+  sprawdzeń).
+
+### Uwagi
+- **Ochrona przed spamem jest po stronie serwera**: 300 znaków na wiadomość,
+  20 wiadomości na minutę z konta, ta sama treść drugi raz w ciągu 30 sekund
+  to `429`. Front tego nie pilnuje, bo pilnowanie w przeglądarce niczego nie
+  chroni.
+- **Cudza treść wchodzi na stronę przez `textContent`, nigdy przez
+  `innerHTML`** — inaczej byłby to gotowy XSS. Pilnuje tego test.
+- **Moderacji czatu nie ma.** Każdy zalogowany pisze do wszystkich, nie ma
+  banów ani wyciszeń, a blokada gracza chowa jego ogłoszenia, ale nie jego
+  wiadomości. To pierwsza rzecz do zrobienia przed wpuszczeniem obcych ludzi —
+  `docs/TODO.md`, punkt 2b.
+- Bez backendu panel mówi wprost, że czat działa tylko z serwerem, i nie
+  pokazuje pola do pisania.
+- Prywatna skrzynka 1:1 (przycisk „Napisz” na karcie gracza) **dalej jest
+  lokalna** — to osobna funkcja i osobna pozycja na liście do zrobienia.
+
 ## [1.1.0] — 2026-09-18
 
 Front znowu rozmawia z backendem, a `docker compose up` stawia całość zaraz po

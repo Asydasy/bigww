@@ -117,6 +117,12 @@ const API = (() => {
     updateAd: (id, payload) => request("/ads/" + encodeURIComponent(id), { method: "PATCH", body: payload }),
     deleteAd: (id) => request("/ads/" + encodeURIComponent(id), { method: "DELETE" }),
     saveAd: (id) => request("/ads/" + encodeURIComponent(id) + "/save", { method: "POST" }),
-    unsaveAd: (id) => request("/ads/" + encodeURIComponent(id) + "/save", { method: "DELETE" })
+    unsaveAd: (id) => request("/ads/" + encodeURIComponent(id) + "/save", { method: "DELETE" }),
+
+    // ---- czat ogólny ----
+    /** Bez `after` — ostatnie wiadomości; z `after` (ms) — tylko nowsze. */
+    chat: (query) => request("/chat", { query }),
+    sendChat: (body) => request("/chat", { method: "POST", body: { body } }),
+    deleteChat: (id) => request("/chat/" + encodeURIComponent(id), { method: "DELETE" })
   };
 })();

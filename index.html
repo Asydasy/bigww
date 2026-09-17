@@ -61,6 +61,24 @@
     <button data-v="live"><span class="ico">●</span>Live<span class="badge" id="nb-live"></span></button>
     <button data-v="giveaways"><span class="ico">🎁</span>Giveawaye<span class="badge" id="nb-gw"></span></button>
   </nav>
+
+  <!-- Czat ogólny: jeden pokój dla całego serwisu. Czyta każdy, pisze zalogowany. -->
+  <section class="chat-panel" id="chatPanel" aria-label="Czat ogólny">
+    <button type="button" class="chat-head" id="chatToggle" aria-expanded="false" aria-controls="chatBody">
+      <span class="chat-chev" aria-hidden="true">▸</span>
+      <span class="chat-title">Czat ogólny</span>
+      <span class="chat-badge" id="chatBadge">0</span>
+    </button>
+    <div class="chat-body" id="chatBody">
+      <div class="chat-list" id="chatList" role="log" aria-live="polite"></div>
+      <form class="chat-form" id="chatForm" autocomplete="off">
+        <input type="text" id="chatInput" maxlength="300" placeholder="Napisz do wszystkich…" aria-label="Wiadomość na czat ogólny">
+        <button type="submit" class="btn sm pri" id="chatSend" title="Wyślij" aria-label="Wyślij">➤</button>
+      </form>
+      <p class="chat-info" id="chatFormInfo"></p>
+    </div>
+  </section>
+
   <div class="side-foot">
     BigWW — znajdź ekipę do grania. Baw się dobrze i graj fair.
     <div class="data-mode" id="dataMode" title="Źródło danych">● …</div>
@@ -733,6 +751,7 @@
 <script src="js/view-inbox.js"></script>
 <script src="js/view-giveaways.js"></script>
 <script src="js/monetization.js"></script>
+<script src="js/chat.js"></script>
 <script src="js/onboard.js"></script>
 <script src="js/main.js"></script>
 <script src="js/boot.js"></script>

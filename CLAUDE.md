@@ -6,7 +6,7 @@ Przeczytaj to na początku sesji, zanim cokolwiek zmienisz w kodzie.
 
 BigWW — serwis do szukania ludzi do wspólnego grania. Dwie części:
 
-**Front** (katalog główny): `index.html` + `css/style.css` + 24 pliki w `js/`,
+**Front** (katalog główny): `index.html` + `css/style.css` + 25 plików w `js/`,
 waniliowy JS, zero zależności. Wersja w `js/boot.js` (`APP_VERSION`).
 
 **Backend** (`server/`): Node + Fastify + PostgreSQL, zapytania przez Kysely,
@@ -18,9 +18,9 @@ przy starcie pyta `/api/health` i działa w trybie `api` albo `local`:
 - **`api`** — ogłoszenia, gry, konta i obserwowani z bazy,
 - **`local`** — generator demo i localStorage (strona otwarta z dysku).
 
-Podział: **serwer trzyma ogłoszenia, gry, konta i obserwowanych**;
-**przeglądarka trzyma monety, premium, skrzynkę, powiadomienia, giveawaye,
-oceny, blokady i ustawienia** — tego backend jeszcze nie ma.
+Podział: **serwer trzyma ogłoszenia, gry, konta, obserwowanych i czat ogólny**;
+**przeglądarka trzyma monety, premium, prywatną skrzynkę, powiadomienia,
+giveawaye, oceny, blokady i ustawienia** — tego backend jeszcze nie ma.
 
 Uruchomienie całości: `docker compose up`, potem http://localhost:3000.
 Nic więcej nie trzeba — migracje i seed lecą same.
@@ -99,29 +99,33 @@ repozytorium potrafi pójść do przodu między jedną rozmową a drugą.
     i Playwrighta — `npm i -D playwright && npx playwright install chromium`).
     Test sprawdza rejestrację, dodanie ogłoszenia, przeżycie przeładowania,
     ukryty kontakt u gościa i powrót na dane lokalne po odcięciu API.
-13. **Nie licz na `fileData` w trybie serwerowym.** Pliki z dysku zostają
+13. **Cudzy tekst wchodzi na stronę przez `textContent`, nigdy przez
+    `innerHTML`.** Dotyczy czatu, wiadomości i wszystkiego, co napisał inny
+    użytkownik — `innerHTML` w takim miejscu to gotowy XSS. Test e2e sprawdza
+    to na czacie; przy nowych miejscach dopisz podobny.
+14. **Nie licz na `fileData` w trybie serwerowym.** Pliki z dysku zostają
     w przeglądarce autora — serwer ich nie przyjmuje.
 
 ## Zasady dla backendu
 
-14. **Po każdej zmianie w `server/` puść `npm test`.** Testy idą na osobnej
+15. **Po każdej zmianie w `server/` puść `npm test`.** Testy idą na osobnej
     bazie z `.env.test` i wykryły już trzy realne błędy. Nowy endpoint = nowy
     test.
-15. **Handler błędów w `src/server.js` musi być rejestrowany PRZED trasami.**
+16. **Handler błędów w `src/server.js` musi być rejestrowany PRZED trasami.**
     Odwrotna kolejność zostawia trasom domyślny handler Fastify, który wysyła
     klientowi wewnętrzne komunikaty błędów. To nie jest kosmetyka.
-16. **Zmiana schematu = nowy plik w `server/migrations/`**, nigdy edycja
+17. **Zmiana schematu = nowy plik w `server/migrations/`**, nigdy edycja
     istniejącego (runner pamięta, co już poszło). Zaktualizuj też
     `server/src/db-schema.d.ts` — nie generuje się sam. Po dodaniu migracji
     puść `npm run migrate` na obu bazach: roboczej i testowej. Brakująca
     kolumna potrafi dać mylący błąd (`rank` bez kolumny to dla Postgresa
     funkcja okienkowa).
-17. **Wszystko, co szuka po tekście, przepuszczaj przez `bigww_norm()`.**
+18. **Wszystko, co szuka po tekście, przepuszczaj przez `bigww_norm()`.**
     Front zdejmuje polskie znaki od zawsze; baza musi robić to samo.
-18. **Nie przenoś pieniędzy ani limitów do przeglądarki.** Limit ogłoszeń liczy
+19. **Nie przenoś pieniędzy ani limitów do przeglądarki.** Limit ogłoszeń liczy
     serwer (`adLimitFor()` w `src/config.js`) i te same liczby są w `adLimit()`
     w `js/state.js` — zmieniasz jedno, zmień drugie.
-19. **Serwer ma wstawać bez `.env` poza produkcją.** Nie dokładaj nowych
+20. **Serwer ma wstawać bez `.env` poza produkcją.** Nie dokładaj nowych
     wymaganych zmiennych bez wartości domyślnej — inaczej „git clone &&
     docker compose up" przestanie działać.
 

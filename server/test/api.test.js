@@ -408,3 +408,110 @@ describe("ogłoszenia", () => {
     assert.ok(cleared && cleared.value === "", "ciasteczko ma zostać wyczyszczone");
   });
 });
+
+describe("czat ogólny", () => {
+  let cookie;
+  let idWiadomosci;
+
+  before(async () => {
+    await db.deleteFrom("chat_messages").execute();
+    const login = await call({
+      method: "POST",
+      url: "/api/auth/login",
+      payload: { email: "seba@example.com", password: "haslo-testowe-1" }
+    });
+    cookie = sessionOf(login);
+  });
+
+  test("bez logowania nie da się napisać", async () => {
+    const res = await call({ method: "POST", url: "/api/chat", payload: { body: "hej" } });
+    assert.equal(res.statusCode, 401);
+  });
+
+  test("bez logowania można czytać", async () => {
+    const res = await call({ method: "GET", url: "/api/chat" });
+    assert.equal(res.statusCode, 200);
+    assert.equal(res.json().canWrite, false, "gość ma wiedzieć, że nie napisze");
+  });
+
+  test("za długa wiadomość jest odrzucana", async () => {
+    const res = await call({
+      method: "POST",
+      url: "/api/chat",
+      headers: { cookie },
+      payload: { body: "x".repeat(301) }
+    });
+    assert.equal(res.statusCode, 400);
+  });
+
+  test("wysłanie wiadomości i odczyt historii", async () => {
+    const res = await call({
+      method: "POST",
+      url: "/api/chat",
+      headers: { cookie },
+      payload: { body: "  Szukam kogoś do Valoranta na wieczór  " }
+    });
+    assert.equal(res.statusCode, 201);
+    const msg = res.json().message;
+    idWiadomosci = msg.id;
+    assert.equal(msg.body, "Szukam kogoś do Valoranta na wieczór", "spacje z brzegów mają zniknąć");
+    assert.equal(msg.mine, true);
+    assert.ok(typeof msg.at === "number");
+
+    const lista = await call({ method: "GET", url: "/api/chat", headers: { cookie } });
+    assert.equal(lista.json().messages.length, 1);
+    assert.equal(lista.json().canWrite, true);
+  });
+
+  test("ta sama treść od razu drugi raz to 429", async () => {
+    const res = await call({
+      method: "POST",
+      url: "/api/chat",
+      headers: { cookie },
+      payload: { body: "Szukam kogoś do Valoranta na wieczór" }
+    });
+    assert.equal(res.statusCode, 429);
+  });
+
+  test("?after= oddaje tylko nowsze wiadomości", async () => {
+    const przed = Date.now();
+    await new Promise((r) => setTimeout(r, 25));
+    await call({ method: "POST", url: "/api/chat", headers: { cookie }, payload: { body: "druga wiadomość" } });
+
+    const nowe = await call({ method: "GET", url: `/api/chat?after=${przed}` });
+    assert.equal(nowe.json().messages.length, 1);
+    assert.equal(nowe.json().messages[0].body, "druga wiadomość");
+
+    const wszystkie = await call({ method: "GET", url: "/api/chat" });
+    assert.equal(wszystkie.json().messages.length, 2);
+    assert.ok(
+      wszystkie.json().messages[0].at <= wszystkie.json().messages[1].at,
+      "historia ma iść od najstarszej"
+    );
+  });
+
+  test("nie da się skasować cudzej wiadomości", async () => {
+    const obcy = await call({
+      method: "POST",
+      url: "/api/auth/register",
+      payload: { email: "czat-obcy@example.com", password: "haslo-testowe-2", displayName: "Obcy" }
+    });
+    const res = await call({
+      method: "DELETE",
+      url: `/api/chat/${idWiadomosci}`,
+      headers: { cookie: sessionOf(obcy) }
+    });
+    assert.equal(res.statusCode, 404);
+  });
+
+  test("własną wiadomość można skasować, ślad zostaje", async () => {
+    const res = await call({ method: "DELETE", url: `/api/chat/${idWiadomosci}`, headers: { cookie } });
+    assert.equal(res.statusCode, 200);
+
+    const lista = await call({ method: "GET", url: "/api/chat" });
+    const skasowana = lista.json().messages.find((m) => m.id === idWiadomosci);
+    assert.equal(skasowana.deleted, true);
+    assert.equal(skasowana.body, null, "treść skasowanej wiadomości nie wychodzi z serwera");
+    assert.equal(lista.json().messages.length, 2, "wiersz zostaje, żeby stronicowanie się nie rozjechało");
+  });
+});
