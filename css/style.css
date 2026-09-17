@@ -355,6 +355,26 @@ body.sidebar-collapsed .main-inner{max-width:1280px}
     radial-gradient(90% 120% at 0% 100%, #2ee6a81f 0%, transparent 60%),
     var(--panel);
 }
+/* żywe tło — tylko gdy Start jest widoczny (body.home-on) */
+.hero-glow{
+  position:absolute;inset:-40%;pointer-events:none;z-index:0;
+  background:
+    radial-gradient(circle at 30% 40%, #7c5cff44 0%, transparent 42%),
+    radial-gradient(circle at 70% 60%, #2ee6a822 0%, transparent 45%),
+    radial-gradient(circle at 50% 20%, #a855f722 0%, transparent 40%);
+  opacity:0;
+  transition:opacity .4s ease;
+}
+body.home-on .hero-glow{
+  opacity:1;
+  animation:heroGlowDrift 14s ease-in-out infinite alternate;
+}
+@keyframes heroGlowDrift{
+  0%{transform:translate(-4%,-3%) scale(1)}
+  50%{transform:translate(3%,2%) scale(1.08)}
+  100%{transform:translate(-2%,4%) scale(1.04)}
+}
+.hero > *:not(.hero-glow){position:relative;z-index:1}
 .hero-brand{
   font-family:"Space Grotesk",Inter,sans-serif;font-weight:700;
   font-size:clamp(52px,12vw,96px);line-height:1;letter-spacing:-.04em;
@@ -364,6 +384,33 @@ body.sidebar-collapsed .main-inner{max-width:1280px}
 .hero h1{font-size:clamp(22px,3.2vw,32px);line-height:1.2;max-width:22ch;margin-left:auto;margin-right:auto;font-weight:600}
 .hero p{margin-top:14px;color:var(--txt-dim);max-width:56ch;line-height:1.65;font-size:15px;margin-left:auto;margin-right:auto}
 .hero-cta{display:flex;gap:10px;margin-top:22px;flex-wrap:wrap;justify-content:center}
+/* wejście elementów przy otwarciu zakładki Start */
+.hero.hero-play .hero-in{
+  animation:heroIn .55s cubic-bezier(.22,1,.36,1) both;
+}
+.hero.hero-play .hero-in:nth-child(2){animation-delay:.05s}
+.hero.hero-play .hero-in:nth-child(3){animation-delay:.12s}
+.hero.hero-play .hero-in:nth-child(4){animation-delay:.2s}
+.hero.hero-play .hero-in:nth-child(5){animation-delay:.28s}
+.hero.hero-play .hero-in:nth-child(6){animation-delay:.36s}
+@keyframes heroIn{
+  from{opacity:0;transform:translateY(16px)}
+  to{opacity:1;transform:translateY(0)}
+}
+/* puls zielonej kropki online — gdy Start aktywny */
+body.home-on .hero .dot{
+  animation:dotPulse 2s ease-in-out infinite;
+}
+@keyframes dotPulse{
+  0%,100%{box-shadow:0 0 0 4px #2ee6a825}
+  50%{box-shadow:0 0 0 8px #2ee6a812}
+}
+@media (prefers-reduced-motion:reduce){
+  .hero-glow, body.home-on .hero-glow, .hero.hero-play .hero-in, body.home-on .hero .dot{
+    animation:none!important;
+  }
+  .hero-glow{opacity:.5}
+}
 .terms-box{max-height:none}
 .terms-box h3{font-size:15px;margin:18px 0 8px}
 .terms-box h3:first-child{margin-top:0}
@@ -851,6 +898,23 @@ select{cursor:pointer}
 .u-menu-item:hover{background:var(--panel2)}
 .u-menu-item.danger{color:#ff7b7b}
 .u-menu-item.danger:hover{background:#ff6b6b18}
+
+.u-menu-item{
+  display:flex;align-items:center;gap:8px;width:100%;
+}
+.u-menu-item .u-badge{
+  margin-left:auto;
+  font-size:11px;padding:2px 7px;border-radius:20px;
+  background:var(--panel2);color:var(--txt-faint);min-width:18px;text-align:center;
+}
+.u-menu-item .u-badge:empty{display:none}
+.u-menu-item .u-badge.alert{
+  background:#e11;color:#fff;font-weight:700;
+}
+.u-menu-item.gold{color:var(--gold)}
+.u-menu a.u-menu-item{
+  text-decoration:none;color:inherit;box-sizing:border-box;
+}
 .u-menu-sep{height:1px;background:var(--line);margin:6px 4px}
 
 .user-box .badge-verified,

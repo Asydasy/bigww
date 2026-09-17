@@ -46,7 +46,19 @@ function go(view) {
     if (u) $("#aNick").value = u.nick;
   }
   updateLookingUI();
+  document.body.classList.toggle("home-on", view === "home");
+  if (view === "home") playHomeHero();
 }
+
+function playHomeHero() {
+  const hero = document.getElementById("homeHero");
+  if (!hero) return;
+  hero.classList.remove("hero-play");
+  // reflow żeby animacja odpaliła się za każdym wejściem na Start
+  void hero.offsetWidth;
+  hero.classList.add("hero-play");
+}
+
 document.querySelectorAll("#nav button").forEach(b => b.onclick = () => go(b.dataset.v));
 document.querySelectorAll("#bottomNav button").forEach(b => b.onclick = () => go(b.dataset.v));
 document.addEventListener("click", e => {
@@ -149,4 +161,10 @@ function applyAuthVisibility() {
       document.querySelectorAll("#bottomNav button").forEach(b => b.classList.toggle("on", b.dataset.v === "home"));
     }
   }
+}
+
+// animacja hero przy starcie (zakładka Start)
+if (document.getElementById("v-home")?.classList.contains("on")) {
+  document.body.classList.add("home-on");
+  playHomeHero();
 }

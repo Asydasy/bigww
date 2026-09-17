@@ -73,6 +73,21 @@ function updateAuthUI() {
     if (settingsBtn) settingsBtn.onclick = () => { closeUserMenu(); go("settings"); };
     if (coinsBtn) coinsBtn.onclick = () => { closeUserMenu(); go("shop"); };
     if (logoutBtn) logoutBtn.onclick = () => { closeUserMenu(); doLogout(); };
+    const goClose = (v) => () => { closeUserMenu(); go(v); };
+    const addBtn = document.getElementById("userMenuAdd");
+    const mineBtn = document.getElementById("userMenuMine");
+    const savedBtn = document.getElementById("userMenuSaved");
+    const inboxBtn = document.getElementById("userMenuInbox");
+    const shopBtn = document.getElementById("userMenuShop");
+    const premBtn = document.getElementById("userMenuPremium");
+    if (addBtn) addBtn.onclick = goClose("add");
+    if (mineBtn) mineBtn.onclick = goClose("mine");
+    if (savedBtn) savedBtn.onclick = goClose("saved");
+    if (inboxBtn) inboxBtn.onclick = goClose("inbox");
+    if (shopBtn) shopBtn.onclick = goClose("shop");
+    if (premBtn) premBtn.onclick = goClose("premium");
+    const disc = document.getElementById("userMenuDiscord");
+    if (disc) disc.onclick = () => { closeUserMenu(); };
     if (btn) {
       btn.onclick = (e) => {
         e.stopPropagation();
