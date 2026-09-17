@@ -66,10 +66,12 @@ W trybie `demo` te same funkcje filtrują dane z generatora i zapisują do
 localStorage. **Nowy widok podpinamy do `DATA`, nie do `API` ani do `PLAYERS`.**
 
 Czego backend jeszcze nie obsługuje: ekipy, transmisje live, monety WW, premium,
-sklep, zadania i battle pass. **W trybie `api` te rzeczy są chowane** —
-`hideFakeMonetization()` w `main.js` usuwa Sklep, Premium, saldo i banery, a
-`renderTeams()` i `renderLives()` pokazują pusty stan „wkrótce". W trybie `demo`
-widać je wszystkie, bo tam cała strona jest demonstracją.
+sklep, zadania i battle pass. Te części działają na danych z przeglądarki
+w obu trybach — widać je zawsze, ale nie przechodzą przez serwer.
+
+Wyjątkiem jest kontakt: w trybie `api` o dostępie do niego decyduje backend
+(widzi go każdy zalogowany), więc `showContact()` ma dla tego trybu osobną
+gałąź zamiast odblokowywania za monety.
 
 ## Godziny grania
 

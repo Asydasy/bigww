@@ -32,11 +32,10 @@ plik po pliku, a nie scalone gitem.
   zamiast 5, 3 darmowe odblokowania kontaktu dziennie, odblokowanie za 15 WW
   zamiast 20. Liczby zmienione **po obu stronach** — `js/state.js` i
   `adLimitFor()` w `server/src/config.js`.
-- **Udawane funkcje znikają w trybie serwerowym.** Sklep, Premium, saldo monet,
-  banery i reklama pełnoekranowa są widoczne tylko w trybie demo. Ekipy i
-  transmisje pokazują pusty stan „wkrótce" zamiast 80 wygenerowanych ekip i 36
-  zmyślonych streamów. Powód: ekran, który prosi o 19,99 zł i pokazuje
-  potwierdzenie zapłaty, a nic nie pobiera, wygląda jak próba oszustwa.
+- **Wszystkie zakładki zostają w obu trybach** — Premium, Sklep, monety, Ekipy
+  i Live działają tak jak wcześniej. Przy płatnościach zostaje informacja, że
+  są demonstracyjne (pytanie „Czy płatność jest prawdziwa?" w FAQ Premium i
+  opis przy kupowaniu pakietów monet).
 - **Kontakt nie jest już towarem za monety.** Na serwerze widzi go każdy
   zalogowany, niezalogowany dostaje kłódkę i zachętę do założenia konta.
   Blokowanie kontaktu za monety, których nie da się kupić, zamykało serwis
@@ -50,21 +49,22 @@ plik po pliku, a nie scalone gitem.
   nasz backend, ale trzymały hasła w przeglądarce, konto nie przechodziło na
   inne urządzenie, a dwie osoby nigdy nie zobaczyłyby się nawzajem. Zostaje
   logowanie przez serwer.
-- **Usunięcie napisów o wersji demonstracyjnej.** Zamiast chować informację, że
-  coś jest atrapą, usunęliśmy same atrapy — patrz wyżej.
+- **Usunięcie napisów o wersji demonstracyjnej** przy płatnościach — zostają,
+  bo ekran, który prosi o 19,99 zł i pokazuje potwierdzenie zapłaty, nie może
+  udawać prawdziwego, dopóki nie ma bramki płatniczej.
 - **Skasowanie katalogu `server/src`** obecne w tamtej paczce. Wygląda na
   przypadkowe; backend zostaje.
 
 ### Naprawione
-- `updateBadges()` wywalało się w trybie serwerowym po usunięciu przycisków
-  Sklep i Premium z menu — próbowało wpisać liczbę do odznaczki, której już nie
-  było, i przerywało publikację ogłoszenia. Znalezione przez test.
+- `updateBadges()` wpisywało liczby do odznaczek bez sprawdzania, czy istnieją,
+  co przy każdej zmianie menu wywracało publikację ogłoszenia. Teraz każde
+  przypisanie jest sprawdzane. Znalezione przez test.
 
 ### Sprawdzone
 - 25 testów API (doszedł filtr godzin i widoczność kontaktu dla zalogowanego).
 - Test przeklikujący **oba tryby**: dodanie i edycja ogłoszenia, filtr godzin
   21–23 kontra 6–9, chipy filtrów, przełącznik widoku z zapamiętaniem po
-  odświeżeniu, obecność albo brak Sklepu i Premium, ekipy i transmisje.
+  odświeżeniu, komplet zakładek w menu, ekipy i transmisje.
 
 ## [0.4.2] — 2026-09-17
 

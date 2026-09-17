@@ -86,9 +86,6 @@ function playerCard(p) {
     row.style.flexWrap = "wrap";
     const edit = el("button", "btn sm", "Edytuj");
     edit.onclick = () => startEditAd(p);
-    // Promowanie kosztuje monety WW, a tych nie da się kupić za prawdziwe
-    // pieniądze — w trybie serwerowym ten przycisk obiecywałby usługę,
-    // której nie ma. Zostaje w demo.
     const prom = el("button", "btn sm gold", isBoosted(p.id) ? "Wypromowane" : "Wypromuj (WW)");
     prom.onclick = () => {
       go("shop");
@@ -107,9 +104,7 @@ function playerCard(p) {
       toast("Ogłoszenie usunięte");
       renderMine(); renderPlayers(true); updateBadges();
     };
-    row.append(edit);
-    if (!DATA.isApi) row.append(prom);
-    row.append(del);
+    row.append(edit, prom, del);
     c.append(row);
   }
   return c;

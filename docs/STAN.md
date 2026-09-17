@@ -20,9 +20,9 @@ JavaScript, zero zależności.
 **Backend**: `server/`, Node + Fastify + PostgreSQL, zapytania przez Kysely,
 25 przechodzących testów. Stawia się przez `docker compose up`.
 
-**Co znika w trybie serwerowym:** Sklep, Premium, saldo monet, banery i reklama
-pełnoekranowa. Ekipy i transmisje pokazują „wkrótce". Wszystko to są atrapy —
-wracają dopiero z prawdziwą bramką płatniczą i prawdziwymi danymi.
+**Uwaga:** Premium, Sklep, monety, Ekipy i transmisje działają w obu trybach, ale
+są demonstracyjne — płatności nic nie pobierają, a ekipy i streamy pochodzą
+z generatora. Przy płatnościach jest o tym informacja w interfejsie.
 
 ## Co DZIAŁA
 
@@ -56,7 +56,7 @@ diakrytyczne. Filtry zapisują się w localStorage. Paginacja po 24 wyniki.
 Przełącznik, który podbija własne karty przy sortowaniu po aktywności; pasek
 statusu na Starcie i na liście graczy.
 
-**Monetyzacja (cała udawana — widoczna TYLKO w trybie demo)**
+**Monetyzacja (cała udawana, bez bramki płatniczej)**
 - Plany: Darmowy 0 zł, Premium 19,99 zł/mies., Pro/Clan 39,99 zł/mies.,
   Premium na rok 149 zł. Limit ogłoszeń: 3 free (4 z dokupionym slotem),
   10 premium, 20 pro.
