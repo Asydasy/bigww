@@ -44,8 +44,13 @@ docker compose exec api npm run seed
 
 Sprawdzenie: http://localhost:3000/api/health
 
-**Front jeszcze z niego nie korzysta** — strona działa na danych demo.
-`js/api.js` jest gotową warstwą do przepięcia widoków na serwer.
+Najwygodniej ustawić w `server/.env` **`SERVE_STATIC=1`** — wtedy backend oddaje
+też pliki frontu i całość siedzi pod jednym adresem http://localhost:3000,
+bez kłopotów z CORS-em.
+
+**Widoki jeszcze z niego nie korzystają** — strona działa na danych demo.
+`js/api.js` jest gotową warstwą do przepięcia i da się go wywołać z konsoli
+przeglądarki: `await API.games({ q: "elden" })`.
 
 ## Podział ról
 

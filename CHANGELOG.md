@@ -29,6 +29,9 @@ a nie tylko w plikach.
   brakującej funkcji w bazie), bo handler błędów był rejestrowany po trasach i
   w ogóle nie działał. Teraz idzie przed nimi, a 500 zwraca ogólny komunikat.
   Znalezione przez smoke test po HTTP.
+- **`js/api.js` budowało zły adres przy otwarciu strony z dysku** — wychodziło
+  `file:///api/...`. Teraz wszystko poza portem 3000 celuje w
+  `http://localhost:3000/api`.
 
 ### Zmienione
 - **ORM: Kysely zamiast Prismy.** Prisma pobiera swój silnik z

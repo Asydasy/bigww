@@ -14,11 +14,12 @@
  */
 
 const API = (() => {
-  /** Adres serwera. Gdy front jest serwowany przez backend (SERVE_STATIC=1),
-   *  wystarczy pusty prefiks — wszystko leci na ten sam host. */
-  const base =
-    window.BIGWW_API_URL ||
-    (location.port === "3000" || location.protocol === "file:" ? "" : "http://localhost:3000") + "/api";
+  /** Adres serwera.
+   *  - front serwowany przez backend (SERVE_STATIC=1, port 3000) → ten sam host
+   *  - wszystko inne, łącznie z otwarciem pliku z dysku → localhost:3000
+   *  Własny adres: ustaw window.BIGWW_API_URL przed załadowaniem tego pliku. */
+  const sameHost = location.protocol.startsWith("http") && location.port === "3000";
+  const base = window.BIGWW_API_URL || (sameHost ? "" : "http://localhost:3000") + "/api";
 
   /** Błąd z serwera niosący kod HTTP — front może na niego reagować
    *  (np. 401 = pokaż logowanie, 403 = limit ogłoszeń). */
