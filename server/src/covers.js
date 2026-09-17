@@ -27,7 +27,7 @@
  * RECZNE_NUMERY ponizej.
  */
 import { mkdir, writeFile, access, readdir } from "node:fs/promises";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import path from "node:path";
 import { parseGames } from "./games-file.js";
 
@@ -35,7 +35,14 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(HERE, "..", "..");
 const OUT_DIR = path.join(ROOT, "img", "games");
 
-const LISTA_GIER = "https://api.steampowered.com/ISteamApps/GetAppList/v2/";
+// Steam czasem wyłącza / zmienia endpoint listy — próbujemy kilka adresów.
+const LISTY_GIER = [
+  "https://api.steampowered.com/ISteamApps/GetAppList/v2/",
+  "https://api.steampowered.com/ISteamApps/GetAppList/v0002/",
+  "https://api.steampowered.com/ISteamApps/GetAppList/v2/?format=json",
+];
+const STORE_SEARCH = "https://store.steampowered.com/api/storesearch/";
+
 const CDN = "https://cdn.cloudflare.steamstatic.com/steam/apps";
 
 /**
@@ -44,7 +51,71 @@ const CDN = "https://cdn.cloudflare.steamstatic.com/steam/apps";
  * store.steampowered.com/app/730/CounterStrike_2  ->  730
  */
 const RECZNE_NUMERY = {
-  // "Counter-Strike 2": 730,
+  "Counter-Strike 2": 730,
+  "Dota 2": 570,
+  "Team Fortress 2": 440,
+  "Rust": 252490,
+  "Apex Legends": 1172470,
+  "PUBG: BATTLEGROUNDS": 578080,
+  "Destiny 2": 1085660,
+  "Warframe": 230410,
+  "Path of Exile": 238960,
+  "Path of Exile 2": 2694490,
+  "Lost Ark": 1599340,
+  "New World: Aeternum": 1063730,
+  "Once Human": 2139460,
+  "Sea of Thieves": 1172620,
+  "Deep Rock Galactic": 548430,
+  "Lethal Company": 1966720,
+  "Phasmophobia": 739630,
+  "Among Us": 945360,
+  "Stardew Valley": 413150,
+  "Terraria": 105600,
+  "Minecraft": 0, // nie na Steamie jako standardowa gra
+  "Grand Theft Auto V": 271590,
+  "Red Dead Redemption 2": 1174180,
+  "Cyberpunk 2077": 1091500,
+  "The Witcher 3: Wild Hunt": 292030,
+  "Elden Ring": 1245620,
+  "Baldur's Gate 3": 1086940,
+  "Hades": 1145360,
+  "Hades II": 1145350,
+  "Dead by Daylight": 381210,
+  "Left 4 Dead 2": 550,
+  "Payday 2": 218620,
+  "Rocket League": 252950,
+  "FIFA": 0,
+  "EA Sports FC 25": 2669320,
+  "NBA 2K25": 2338770,
+  "Forza Horizon 5": 1551360,
+  "Assetto Corsa": 244210,
+  "iRacing": 0,
+  "World of Warcraft": 0,
+  "Final Fantasy XIV": 39210,
+  "Guild Wars 2": 1284210,
+  "Overwatch 2": 2357570,
+  "Rainbow Six Siege": 359550,
+  "Call of Duty: Warzone": 1962663,
+  "Call of Duty: Black Ops 6": 2933620,
+  "Call of Duty: Modern Warfare III": 2519060,
+  "Battlefield 2042": 1517290,
+  "Battlefield V": 1238840,
+  "Battlefield 1": 1237950,
+  "Escape from Tarkov": 0,
+  "Hunt: Showdown 1896": 594650,
+  "The Finals": 2073850,
+  "Halo Infinite": 1240440,
+  "Titanfall 2": 1237970,
+  "Insurgency: Sandstorm": 581320,
+  "Squad": 393380,
+  "Arma 3": 107410,
+  "Arma Reforger": 1874880,
+  "Hell Let Loose": 686810,
+  "VALORANT": 0,
+  "League of Legends": 0,
+  "Fortnite": 0,
+  "Roblox": 0,
+  "Genshin Impact": 0
 };
 
 /**
@@ -101,15 +172,31 @@ async function pobierz(url, sekundy) {
 async function pobierzListe(log) {
   log("1/3 Pobieram liste gier ze Steama (kilkanascie MB, moze potrwac minute)...");
   const start = Date.now();
-  const res = await pobierz(LISTA_GIER, 120);
-  if (!res.ok) throw new Error(`Steam oddal ${res.status} przy liscie gier`);
-  const dane = await res.json();
-  log(`    pobrano w ${Math.round((Date.now() - start) / 1000)} s`);
-  const apps = dane?.applist?.apps || [];
-  log(`    na liscie: ${apps.length} pozycji`);
+  let apps = [];
+  let lastErr = null;
 
-  // Ta sama nazwa potrafi wystąpić wiele razy (dodatki, serwery, edycje).
-  // Zostawiamy najniższy numer, bo to zwykle gra podstawowa.
+  for (const url of LISTY_GIER) {
+    try {
+      log(`    próba: ${url}`);
+      const res = await pobierz(url, 120);
+      if (!res.ok) {
+        lastErr = new Error(`HTTP ${res.status}`);
+        log(`    → ${res.status}, kolejny endpoint…`);
+        continue;
+      }
+      const dane = await res.json();
+      apps = dane?.applist?.apps || [];
+      if (apps.length) {
+        log(`    OK, pobrano w ${Math.round((Date.now() - start) / 1000)} s`);
+        break;
+      }
+      lastErr = new Error("pusta lista");
+    } catch (e) {
+      lastErr = e;
+      log(`    → błąd: ${e.message}`);
+    }
+  }
+
   const mapa = new Map();
   for (const app of apps) {
     if (!app.name || SMIECI.test(app.name)) continue;
@@ -118,7 +205,34 @@ async function pobierzListe(log) {
     const poprzedni = mapa.get(k);
     if (poprzedni === undefined || app.appid < poprzedni) mapa.set(k, app.appid);
   }
+
+  if (!mapa.size) {
+    log("    Lista Steam niedostępna — używam RECZNE_NUMERY + wyszukiwarki sklepu.");
+    if (lastErr) log(`    (ostatni błąd: ${lastErr.message})`);
+  } else {
+    log(`    na liscie: ${apps.length} pozycji, unikalnych kluczy: ${mapa.size}`);
+  }
   return mapa;
+}
+
+/** Szuka appid po nazwie w API sklepu Steam (gdy pełna lista padła). */
+async function szukajAppId(nazwa) {
+  const url = STORE_SEARCH + "?term=" + encodeURIComponent(nazwa) + "&l=english&cc=US";
+  const res = await pobierz(url, 20);
+  if (!res.ok) return null;
+  const dane = await res.json();
+  const items = dane?.items || [];
+  const k = klucz(nazwa);
+  for (const it of items) {
+    if (!it || it.type !== "app" || !it.id) continue;
+    if (SMIECI.test(it.name || "")) continue;
+    if (klucz(it.name) === k || klucz(it.name).includes(k) || k.includes(klucz(it.name))) {
+      return it.id;
+    }
+  }
+  // pierwszy wynik typu app jako ostatnia deska
+  const first = items.find((it) => it && it.type === "app" && it.id);
+  return first ? first.id : null;
 }
 
 /**
@@ -164,7 +278,17 @@ export async function pobierzOkladki({ force = false, log = console.log } = {}) 
     const plikDocelowy = path.join(OUT_DIR, slug(gra.name) + ".jpg");
     if (!force && (await istnieje(plikDocelowy))) { pominiete++; continue; }
 
-    const appid = RECZNE_NUMERY[gra.name] ?? mapa.get(klucz(gra.name));
+    let appid = RECZNE_NUMERY[gra.name] ?? mapa.get(klucz(gra.name));
+    if (!appid || appid === 0) appid = null;
+    if (!appid && !NIE_MA_NA_STEAMIE.has(gra.name) && mapa.size === 0) {
+      // pełna lista Steam padła — dociągnij appid z wyszukiwarki sklepu
+      try {
+        appid = await szukajAppId(gra.name);
+        if (appid) log(`    search: ${gra.name} → ${appid}`);
+      } catch (e) {
+        /* ignore */
+      }
+    }
     if (!appid) {
       if (!NIE_MA_NA_STEAMIE.has(gra.name)) bezNumeru.push(gra.name);
       continue;
@@ -212,7 +336,11 @@ export async function pobierzOkladki({ force = false, log = console.log } = {}) 
     path.join(OUT_DIR, "index.js"),
     "/* Spis pobranych okladek. Plik generowany przez: cd server && npm run covers\n" +
       `   Wygenerowano: ${new Date().toISOString()} */\n` +
-      "var OKLADKI_Z_DYSKU = " + JSON.stringify(slugi, null, 2) + ";\n"
+      "var OKLADKI_Z_DYSKU = " + JSON.stringify(slugi, null, 2) + ";\n" +
+      "window.OKLADKI = window.OKLADKI || {};\n" +
+      "if (typeof OKLADKI_Z_DYSKU !== 'undefined' && Array.isArray(OKLADKI_Z_DYSKU)) {\n" +
+      "  OKLADKI_Z_DYSKU.forEach(function (slug) { window.OKLADKI[slug] = true; });\n" +
+      "}\n"
   );
 
   const bezOkladki = bezNumeru.concat(bezPliku);
@@ -234,7 +362,20 @@ export async function pobierzOkladki({ force = false, log = console.log } = {}) 
   return { zapisane, pominiete, bezOkladki };
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+/** Czy ten plik jest uruchomiony bezpośrednio (nie importowany). Działa na Windows i Unix. */
+function isMain() {
+  const entry = process.argv[1];
+  if (!entry) return false;
+  try {
+    return pathToFileURL(path.resolve(entry)).href === import.meta.url;
+  } catch {
+    return false;
+  }
+}
+
+if (isMain()) {
+  console.log("BigWW — pobieranie okładek ze Steama…");
+  console.log("Katalog wyjściowy:", OUT_DIR);
   pobierzOkladki({ force: process.argv.includes("--force") })
     .then(() => process.exit(0))
     .catch((err) => {
@@ -248,3 +389,4 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       process.exit(1);
     });
 }
+

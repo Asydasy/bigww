@@ -1,18 +1,14 @@
 "use strict";
 
-/* BigWW - Widok: baza gier */
-
 /* =========================================================
    8. GRY
 ========================================================= */
-/** Wypełniane w buildGames(), bo lista gier jest znana dopiero po DATA.init(). */
-let GENRES = [];
+const GENRES = Array.from(new Set(GAMES.map(g => g.genre))).sort((a, b) => a.localeCompare(b, "pl"));
 let genreOn = "";
 
 function buildGames() {
-  GENRES = Array.from(new Set(DATA.games.map(g => g.genre))).sort((a, b) => a.localeCompare(b, "pl"));
   const box = $("#genreChips");
-  const all = el("button", "chip on", "Wszystkie");
+  const all = el("button", "chip on", t("games.all"));
   all.onclick = () => { genreOn = ""; setChip(all); renderGames(); };
   box.append(all);
   GENRES.forEach(gn => {
@@ -27,7 +23,7 @@ function setChip(active) {
 }
 function renderGames() {
   const toks = tokens($("#gSearch").value.trim());
-  const list = DATA.games.filter(g => {
+  const list = GAMES.filter(g => {
     if (genreOn && g.genre !== genreOn) return false;
     if (!toks.length) return true;
     const fields = [
@@ -43,9 +39,9 @@ function renderGames() {
       const sb = searchScore([{ text: norm(b.name), w: 10 }, { text: norm(b.genre), w: 5 }], toks);
       if (sb !== sa) return sb - sa;
     }
-    return DATA.adsForGame(b.name) - DATA.adsForGame(a.name) || a.name.localeCompare(b.name, "pl");
+    return countFor(b.name) - countFor(a.name) || a.name.localeCompare(b.name, "pl");
   });
-  $("#gCount").textContent = `${nf(list.length)} z ${nf(DATA.games.length)} gier w bazie`;
+  $("#gCount").textContent = `${nf(list.length)} z ${nf(GAMES.length)} gier w bazie`;
   const box = $("#gameList");
   box.innerHTML = "";
   if (!list.length) {
@@ -56,3 +52,4 @@ function renderGames() {
   list.forEach(g => frag.append(gameCard(g)));
   box.append(frag);
 }
+

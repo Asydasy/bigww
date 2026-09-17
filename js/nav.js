@@ -1,35 +1,51 @@
 "use strict";
 
-/* BigWW - Nawigacja miedzy widokami i tryb 'szukam teraz' */
-
 /* =========================================================
    5. NAWIGACJA
 ========================================================= */
+/** Widoki tylko dla zalogowanych: sklep, premium, monety, własne ogłoszenia, inbox */
+const AUTH_REQUIRED_VIEWS = new Set(["shop", "premium", "mine", "inbox", "saved", "add"]);
+
 function go(view) {
-  // Widoki dla zalogowanych: gościowi zamiast pustej strony pokazujemy
-  // logowanie. Łapie to wszystkie wejścia naraz — menu, przyciski na stronie
-  // startowej i odsyłacze w pustych stanach.
-  if (GUEST_HIDDEN.includes(view) && isGuest()) {
-    openAuth("login");
+  if (AUTH_REQUIRED_VIEWS.has(view) && typeof isLoggedIn === "function" && !isLoggedIn()) {
+    if (typeof requireLogin === "function") {
+      requireLogin(view === "shop" ? "otworzyć sklep i monety WW"
+        : view === "premium" ? "zobaczyć Premium"
+        : view === "add" ? "dodać ogłoszenie"
+        : view === "mine" ? "zobaczyć swoje ogłoszenia"
+        : view === "inbox" ? "otworzyć wiadomości"
+        : view === "saved" ? "zobaczyć obserwowanych"
+        : "wykonać tę akcję");
+    } else {
+      openAuthModal && openAuthModal("login");
+    }
     return;
   }
-  // Regulamin i polityka prywatności dzielą jeden widok — różnią się treścią.
-  if (view === "terms" || view === "privacy") renderTerms(view);
-  const strona = view === "privacy" ? "terms" : view;
-
-  document.querySelectorAll(".page").forEach(p => p.classList.toggle("on", p.id === "v-" + strona));
-  document.querySelectorAll("#nav button").forEach(b => b.classList.toggle("on", b.dataset.v === strona));
-  document.querySelectorAll("#bottomNav button").forEach(b => b.classList.toggle("on", b.dataset.v === strona));
+  const pageView = (view === "privacy") ? "terms" : view;
+  document.querySelectorAll(".page").forEach(p => p.classList.toggle("on", p.id === "v-" + pageView));
+  document.querySelectorAll("#nav button").forEach(b => b.classList.toggle("on", b.dataset.v === view));
+  document.querySelectorAll("#bottomNav button").forEach(b => b.classList.toggle("on", b.dataset.v === view));
   $("#sidebar").classList.remove("open");
   window.scrollTo({ top: 0, behavior: "instant" in window ? "instant" : "auto" });
   if (view === "mine") renderMine();
   if (view === "saved") renderSaved();
+  if (view === "inbox") renderInbox();
+  if (view === "profile" && currentProfileId) {
+    const pl = allPlayers().find(x => x.id === currentProfileId);
+    if (pl) renderProfilePage(pl);
+  }
   if (view === "premium") renderPremium();
   if (view === "settings") renderSettingsPrem();
   if (view === "shop") renderShop();
+  if (view === "giveaways" && typeof renderGiveaways === "function") renderGiveaways();
   if (view === "live") renderLives();
+  if (view === "terms") renderTerms("terms");
+  if (view === "privacy") renderTerms("privacy");
+  if (view === "add" && isLoggedIn() && $("#aNick") && !$("#aNick").value) {
+    const u = currentUser();
+    if (u) $("#aNick").value = u.nick;
+  }
   updateLookingUI();
-  maybeShowInterstitial(); // monetization.js — co kilka przejsc pokazuje pelnoekranowa reklame
 }
 document.querySelectorAll("#nav button").forEach(b => b.onclick = () => go(b.dataset.v));
 document.querySelectorAll("#bottomNav button").forEach(b => b.onclick = () => go(b.dataset.v));
@@ -39,20 +55,64 @@ document.addEventListener("click", e => {
 });
 $("#burger").onclick = () => $("#sidebar").classList.toggle("open");
 
+function setSidebarCollapsed(collapsed) {
+  const side = $("#sidebar");
+  if (!side) return;
+  // na mobile nie używamy desktop collapse
+  if (window.matchMedia && window.matchMedia("(max-width:820px)").matches) {
+    document.body.classList.remove("sidebar-collapsed");
+    side.classList.remove("collapsed");
+    return;
+  }
+  side.classList.toggle("collapsed", !!collapsed);
+  document.body.classList.toggle("sidebar-collapsed", !!collapsed);
+  if (typeof PREF !== "undefined") {
+    PREF.sidebarCollapsed = !!collapsed;
+    try { save(KEY.pref, PREF); } catch (e) {}
+  }
+  const btn = $("#sideCollapse");
+  if (btn) btn.title = collapsed ? "Pokaż menu" : "Schowaj menu";
+}
+function toggleSidebarCollapse() {
+  const side = $("#sidebar");
+  if (!side) return;
+  setSidebarCollapsed(!side.classList.contains("collapsed"));
+}
+if ($("#sideCollapse")) $("#sideCollapse").onclick = () => setSidebarCollapsed(true);
+if ($("#sideExpand")) $("#sideExpand").onclick = () => setSidebarCollapsed(false);
+// restore after PREF exists — applied in START as well
+document.addEventListener("keydown", e => {
+  if (e.key === "[" && !e.target.matches("input,textarea,select")) {
+    e.preventDefault();
+    toggleSidebarCollapse();
+  }
+});
+
 function setLooking(on) {
   PREF.looking = !!on;
+  PREF.lookingUntil = on ? Date.now() + LOOKING_TTL_MS : 0;
   save(KEY.pref, PREF);
-  // push own ads to online status
   MINE.forEach(m => { m.status = on ? "on" : (m.status || "on"); });
   save(KEY.mine, MINE);
   updateLookingUI();
-  if (on) toast("Status: szukam teraz — jesteś wyżej na liście");
-  else toast("Status wyłączony");
+  if (on) {
+    toast("Szukam teraz — auto-wyłączenie za 2 h");
+    pushNotif("Status włączony", "Twoje ogłoszenia są wyżej przez 2 godziny.", "players");
+    clearTimeout(setLooking._t);
+    setLooking._t = setTimeout(() => {
+      if (PREF.lookingUntil && PREF.lookingUntil <= Date.now()) setLooking(false);
+    }, LOOKING_TTL_MS + 500);
+  } else toast("Status wyłączony");
   renderPlayers(true);
   renderMine();
   renderHome();
 }
 function updateLookingUI() {
+  if (PREF.looking && PREF.lookingUntil && PREF.lookingUntil < Date.now()) {
+    PREF.looking = false;
+    PREF.lookingUntil = 0;
+    save(KEY.pref, PREF);
+  }
   const on = !!PREF.looking;
   ["lookingBarHome", "lookingBarPlayers"].forEach(id => {
     const el = document.getElementById(id);
@@ -60,7 +120,33 @@ function updateLookingUI() {
   });
   const btn = $("#btnLookingOn");
   if (btn) {
-    btn.textContent = on ? "🟢 Szukam teraz (włączone)" : "🟢 Włącz „Szukam teraz”";
+    let lab = on ? "🟢 Szukam teraz (włączone)" : "🟢 Włącz „Szukam teraz”";
+    if (on && PREF.lookingUntil) {
+      const left = Math.max(0, Math.ceil((PREF.lookingUntil - Date.now()) / 60000));
+      lab += " · " + left + " min";
+    }
+    btn.textContent = lab;
     btn.classList.toggle("pri", on);
+  }
+}
+
+
+
+/** Pokazuje/ukrywa monety, Sklep i Premium dla gościa */
+function applyAuthVisibility() {
+  const logged = typeof isLoggedIn === "function" && isLoggedIn();
+  const coin = document.getElementById("coinBal");
+  if (coin) coin.style.display = logged ? "" : "none";
+  document.querySelectorAll("#nav button[data-v=\"shop\"], #nav button[data-v=\"premium\"], #bottomNav button[data-v=\"shop\"]").forEach(b => {
+    b.style.display = logged ? "" : "none";
+  });
+  // jeśli gość siedział na zablokowanym widoku — wróć na start
+  if (!logged) {
+    const on = document.querySelector(".page.on");
+    if (on && AUTH_REQUIRED_VIEWS.has(on.id.replace(/^v-/, ""))) {
+      document.querySelectorAll(".page").forEach(p => p.classList.toggle("on", p.id === "v-home"));
+      document.querySelectorAll("#nav button").forEach(b => b.classList.toggle("on", b.dataset.v === "home"));
+      document.querySelectorAll("#bottomNav button").forEach(b => b.classList.toggle("on", b.dataset.v === "home"));
+    }
   }
 }

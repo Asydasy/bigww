@@ -1,7 +1,5 @@
 "use strict";
 
-/* BigWW - Pomocnicze: $, el, norm, searchScore, ago, toast, fillSelect */
-
 /* =========================================================
    4. POMOCNICZE
 ========================================================= */
@@ -76,69 +74,11 @@ function fillSelect(sel, items, first) {
   items.forEach(i => sel.appendChild(new Option(i.label || i, i.value != null ? i.value : i)));
 }
 
-/** Polski liczebnik: 1 gracz, 2-4 graczy, 5+ graczy. W praktyce forma
- *  dopełniacza „graczy" pasuje do wszystkiego poza jedynką. */
-function graczy(n) {
-  return n === 1 ? "1 gracz" : nf(n) + " graczy";
-}
 
-/* ---------- godziny grania ---------- */
 
-/** 17 -> "17:00" */
-function fmtHour(h) {
-  const n = ((Number(h) % 24) + 24) % 24;
-  return String(n).padStart(2, "0") + ":00";
-}
-
-/** Para godzin jako etykieta na karcie: "17:00–22:00". */
-function timeLabel(from, to) {
-  if (from == null || to == null || from === "" || to === "") return "Elastycznie";
-  return fmtHour(from) + "–" + fmtHour(to);
-}
-
-/**
- * Czy dwa zakresy godzin mają część wspólną.
- * Zakres może przechodzić przez północ (22–4) — wtedy rozbijamy go na dwa
- * kawałki. Początek równy końcowi oznacza całą dobę.
- *
- * Ta sama logika siedzi w bazie jako bigww_hours_overlap() — obie muszą dawać
- * te same wyniki, inaczej filtr pokazywałby co innego z backendem i bez niego.
- */
-function hoursOverlap(adFrom, adTo, filterFrom, filterTo) {
-  if (filterFrom === "" || filterFrom == null || filterTo === "" || filterTo == null) return true;
-  if (adFrom == null || adTo == null) return true;
-
-  const expand = (a, b) => {
-    a = Number(a); b = Number(b);
-    if (a === b) return [[0, 24]];
-    if (a < b) return [[a, b]];
-    return [[a, 24], [0, b]];
-  };
-
-  for (const [a1, a2] of expand(adFrom, adTo)) {
-    for (const [b1, b2] of expand(filterFrom, filterTo)) {
-      if (a1 < b2 && b1 < a2) return true;
-    }
-  }
-  return false;
-}
-
-/** Wypełnia listę wyboru godzinami 00:00–23:00. */
-function fillHourSelect(sel, firstLabel, defaultVal) {
-  if (!sel) return;
-  sel.innerHTML = "";
-  if (firstLabel != null) sel.appendChild(new Option(firstLabel, ""));
-  for (let h = 0; h < 24; h++) sel.appendChild(new Option(fmtHour(h), String(h)));
-  if (defaultVal != null && defaultVal !== "") sel.value = String(defaultVal);
-}
-
-/**
- * Nazwa pliku okładki z nazwy gry: "Counter-Strike 2" -> "counter-strike-2".
- * MUSI dawać ten sam wynik co slug() w server/src/covers.js — inaczej front
- * szuka okładki pod innym adresem, niż zapisał skrypt pobierający.
- */
+/** Slug nazwy gry — musi być identyczny jak slug() w server/src/covers.js */
 function slugGry(nazwa) {
-  return (nazwa || "")
+  return String(nazwa || "")
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")

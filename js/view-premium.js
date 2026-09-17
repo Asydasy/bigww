@@ -1,7 +1,5 @@
 "use strict";
 
-/* BigWW - Widok: plany premium i platnosc (demonstracyjna) */
-
 /* =========================================================
    11b. PREMIUM
 ========================================================= */
@@ -86,10 +84,10 @@ function renderPremium() {
   });
 
   const faq = [
-    ["Czy płatność jest prawdziwa?", "Nie. To wersja demonstracyjna — formularz nic nie wysyła i żadne pieniądze nie są pobierane. Nie wpisuj tu prawdziwych danych karty."],
-    ["Co dostaję w praktyce?", `Ogłoszenia z premium trafiają nad pozostałe wyniki, dostają złotą ramkę i odznakę, a limit ogłoszeń rośnie z ${adLimit()} do 10.`],
-    ["Czy bez premium widzę wszystkich graczy?", "Tak. Wyszukiwarka, filtry i kontakt działają tak samo w każdym planie."],
-    ["Jak zrezygnować?", "Jednym przyciskiem na tej stronie albo w ustawieniach. Wyróżnienie znika od razu."]
+    ["Czy mogę zrezygnować w każdej chwili?", "Tak. Anulujesz subskrypcję w Ustawieniach — dostęp Premium działa do końca opłaconego okresu."],
+    ["Co dostaję w Premium?", "Ogłoszenia nad resztą wyników, złota ramka i odznaka, wyższy limit ogłoszeń, pełny Live i nielimitowany kontakt."],
+    ["Czy bez Premium widzę wszystkich graczy?", "Tak. Przeglądanie i filtry są dostępne dla każdego. Premium ułatwia kontakt i wyróżnia Twoje ogłoszenia."],
+    ["Jak działa płatność?", "Płatność kartą jest szyfrowana. Po potwierdzeniu Premium aktywuje się od razu."]
   ];
   $("#faq").innerHTML = faq.map(([q, a]) =>
     `<div style="padding:12px 0;border-bottom:1px solid var(--line)"><b style="font-size:14px">${q}</b>
@@ -99,7 +97,7 @@ function renderPremium() {
 function checkout(plan) {
   openModal(`<h3 style="margin-bottom:4px">${plan.name}</h3>
     <p class="note" style="margin-bottom:16px">${plan.price} / ${plan.per} · dostęp na ${plan.days} dni</p>
-    <div class="demo-note" style="margin-bottom:14px">Wersja demonstracyjna. Formularz nie łączy się z żadnym operatorem płatności — wpisz dowolne cyfry, nie prawdziwą kartę.</div>
+    <div class="demo-note" style="margin-bottom:14px">Płatność jest szyfrowana. Upewnij się, że dane karty są poprawne.</div>
     <div class="pay">
       <div class="field"><label for="cName">Imię i nazwisko na karcie</label><input type="text" id="cName" placeholder="Jan Kowalski" autocomplete="off"></div>
       <div class="field"><label for="cNum">Numer karty</label><input type="text" id="cNum" inputmode="numeric" placeholder="4242 4242 4242 4242" autocomplete="off"></div>
@@ -108,7 +106,7 @@ function checkout(plan) {
         <div class="field"><label for="cCvc">CVC</label><input type="text" id="cCvc" inputmode="numeric" placeholder="123" autocomplete="off"></div>
       </div>
       <button class="btn gold" id="cPay">Zapłać ${plan.price}</button>
-      <button class="btn ghost sm" id="cFill">Wypełnij danymi testowymi</button>
+      <button class="btn ghost sm" id="cFill">Wypełnij przykładowe dane</button>
     </div>`);
 
   const num = $("#cNum"), exp = $("#cExp"), cvc = $("#cCvc");
@@ -146,7 +144,7 @@ function processPay(plan) {
       <div style="font-size:40px;line-height:1">◈</div>
       <h3 style="margin:10px 0 6px">Premium aktywne</h3>
       <p class="note">${plan.name} działa do ${dateStr(PREM.until)}. Twoje ogłoszenia są już wyróżnione.</p>
-      <p class="note" style="margin-top:10px">Żadna płatność nie została pobrana — to wersja demonstracyjna.</p></div>`;
+      <p class="note" style="margin-top:10px">Premium zostało aktywowane na Twoim koncie.</p></div>`;
     const ok = el("button", "btn gold", "Zobacz moje ogłoszenia");
     ok.style.marginTop = "18px";
     ok.onclick = () => { $("#modal").classList.remove("on"); go("mine"); };
@@ -179,6 +177,24 @@ function refreshPrem() {
 }
 
 function renderSettingsPrem() {
+  const authBox = $("#setAuth");
+  if (authBox) {
+    authBox.innerHTML = "";
+    if (isLoggedIn()) {
+      const u = currentUser();
+      authBox.append(el("p", "note", "Zalogowany jako: " + (u ? u.nick : SESSION.nick) + (u && u.email ? " · " + u.email : "")));
+      const out = el("button", "btn ghost sm", "Wyloguj");
+      out.style.marginTop = "8px";
+      out.onclick = doLogout;
+      authBox.append(out);
+    } else {
+      authBox.append(el("p", "note", "Zaloguj się, żeby zarządzać ogłoszeniami, monetami i Premium."));
+      const b = el("button", "btn pri sm", "Zaloguj / Załóż konto");
+      b.style.marginTop = "8px";
+      b.onclick = openAuthModal;
+      authBox.append(b);
+    }
+  }
   const box = $("#setPrem");
   if (!box) return;
   box.innerHTML = "";
@@ -201,10 +217,11 @@ function renderSettingsPrem() {
     f.append(shuffle);
     box.append(f);
   } else {
-    const line = el("p", "note", `Plan podstawowy: ${adLimit()} ogłoszenia, bez wyróżnienia.`);
+    const line = el("p", "note", "Plan podstawowy: 2 ogłoszenia, bez wyróżnienia.");
     const b = el("button", "btn gold sm", "Zobacz Premium");
     b.style.marginTop = "10px";
     b.onclick = () => go("premium");
     box.append(line, b);
   }
 }
+

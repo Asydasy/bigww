@@ -2,19 +2,53 @@
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>BigWW — znajdź ludzi do grania</title>
+<meta name="description" content="BigWW to platforma do szukania ekipy do gier. Filtruj po grze, regionie i godzinach, dodawaj ogłoszenia i graj z ludźmi, którzy pasują do Twojego stylu.">
+<meta name="keywords" content="szukam ekipy, LFG, gracze, CS2, Valorant, Discord, ranking, co-op, BigWW">
+<meta name="author" content="BigWW">
+<meta name="theme-color" content="#0b0b10" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f4f4f8" media="(prefers-color-scheme: light)">
+<meta name="robots" content="index,follow">
+<meta name="application-name" content="BigWW">
+<link rel="canonical" href="https://bigww.app/">
+<!-- Open Graph -->
+<meta property="og:type" content="website">
+<meta property="og:locale" content="pl_PL">
+<meta property="og:title" content="BigWW — znajdź ludzi do grania">
+<meta property="og:description" content="Nie graj sam. Znajdź ekipę do CS2, Valorant, Rust i setek innych gier.">
+<meta property="og:site_name" content="BigWW">
+<meta property="og:url" content="https://bigww.app/">
+<!-- Twitter -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="BigWW — znajdź ludzi do grania">
+<meta name="twitter:description" content="Platforma LFG: ogłoszenia, filtry, Premium i ekipy.">
+<!-- PWA / icons -->
+<link rel="manifest" href="data:application/manifest+json;charset=utf-8,%7B%22name%22%3A%22BigWW%22%2C%22short_name%22%3A%22BigWW%22%2C%22description%22%3A%22Znajd%C5%BA%20ludzi%20do%20grania%22%2C%22start_url%22%3A%22.%2F%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%230b0b10%22%2C%22theme_color%22%3A%22%230b0b10%22%2C%22lang%22%3A%22pl%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22data%3Aimage%2Fsvg%2Bxml%2C%253Csvg%2520xmlns%253D'http%253A%252F%252Fwww.w3.org%252F2000%252Fsvg'%2520viewBox%253D'0%25200%2520512%2520512'%253E%253Crect%2520width%253D'512'%2520height%253D'512'%2520rx%253D'96'%2520fill%253D'%25230b0b10'%252F%253E%253Ctext%2520x%253D'50%2525'%2520y%253D'54%2525'%2520text-anchor%253D'middle'%2520font-family%253D'system-ui'%2520font-size%253D'200'%2520font-weight%253D'700'%2520fill%253D'%25237c5cff'%253EWW%253C%252Ftext%253E%253C%252Fsvg%253E%22%2C%22sizes%22%3A%22200x200%22%2C%22type%22%3A%22image%2Fsvg%2Bxml%22%7D%5D%7D">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230b0b10'/%3E%3Ctext x='50%25' y='54%25' text-anchor='middle' font-family='system-ui' font-size='22' font-weight='700' fill='%237c5cff'%3EWW%3C/text%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230b0b10'/%3E%3Ctext x='50%25' y='54%25' text-anchor='middle' font-family='system-ui' font-size='22' font-weight='700' fill='%237c5cff'%3EWW%3C/text%3E%3C/svg%3E">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+<div class="splash" id="splash" aria-hidden="false">
+  <div style="text-align:center">
+    <div class="splash-brand">Big<b>WW</b></div>
+    <div class="splash-sub">Ładowanie platformy…</div>
+    <div class="splash-bar"><i></i></div>
+  </div>
+</div>
 
 <div class="shell">
 <aside class="sidebar" id="sidebar">
-  <div class="logo">Big<b>WW</b><small>Znajdź ludzi do grania</small></div>
-  <div id="account"></div>
+  <div class="side-head">
+    <div class="logo">Big<b>WW</b><small>Znajdź ludzi do grania</small></div>
+    <button type="button" class="side-collapse" id="sideCollapse" title="Schowaj menu" aria-label="Schowaj menu">⟨</button>
+  </div>
   <div class="coin-bal" id="coinBal" title="Twoje monety WW">
     <span class="coin-icon">◎</span>
     <span><b id="coinNum">0</b> WW</span>
@@ -25,27 +59,68 @@
     <button data-v="games"><span class="ico">▤</span>Baza gier<span class="badge" id="nb-games"></span></button>
     <button data-v="teams"><span class="ico">⛨</span>Ekipy<span class="badge" id="nb-teams"></span></button>
     <button data-v="live"><span class="ico">●</span>Live<span class="badge" id="nb-live"></span></button>
+    <button data-v="giveaways"><span class="ico">🎁</span>Giveawaye<span class="badge" id="nb-gw"></span></button>
     <div class="nav-sep"></div>
     <button data-v="add"><span class="ico">＋</span>Dodaj ogłoszenie</button>
     <button data-v="mine"><span class="ico">☰</span>Moje ogłoszenia<span class="badge" id="nb-mine"></span></button>
     <button data-v="saved"><span class="ico">★</span>Obserwowani<span class="badge" id="nb-saved"></span></button>
+    <button data-v="inbox"><span class="ico">✉</span>Wiadomości<span class="badge" id="nb-inbox"></span></button>
     <div class="nav-sep"></div>
     <button data-v="premium" class="gold"><span class="ico">◈</span>Premium<span class="badge" id="nb-prem"></span></button>
     <button data-v="shop"><span class="ico">◎</span>Sklep i monety<span class="badge" id="nb-coins"></span></button>
     <button data-v="settings"><span class="ico">⚙</span>Ustawienia</button>
   </nav>
-  <div class="side-foot" id="sideFoot">Baza demonstracyjna. Profile graczy są generowane lokalnie — nic nie wychodzi poza Twoją przeglądarkę.</div>
-  <div class="side-foot-links">
-    <button type="button" class="btn-legal" data-go="terms">Regulamin</button>
-    <button type="button" class="btn-legal" data-go="privacy">Polityka prywatności</button>
+  <div class="side-foot">
+    BigWW — znajdź ekipę do grania. Baw się dobrze i graj fair.
+    <div class="side-foot-links">
+      <button type="button" class="btn-legal" id="footerTerms">Regulamin serwisu</button>
+      <button type="button" class="btn-legal" id="footerPrivacy">Polityka prywatności</button>
+    </div>
   </div>
 </aside>
+<button type="button" class="side-expand" id="sideExpand" title="Pokaż menu" aria-label="Pokaż menu">☰</button>
 
 <main class="main">
   <div class="mobile-top">
     <button class="btn sm" id="burger">☰ Menu</button>
     <div class="logo" style="font-size:19px;padding:0">Big<b>WW</b></div>
   </div>
+  <div class="topbar">
+    <button type="button" class="notif-btn" id="notifBtn" title="Powiadomienia" aria-label="Powiadomienia">
+      🔔<span class="nbadge" id="notifBadge">0</span>
+    </button>
+    <div class="user-box" id="userBox">
+      <!-- guest: login button -->
+      <div class="u-guest" id="userGuest">
+        <button class="btn sm pri" id="btnLoginOpen">Zaloguj / Załóż konto</button>
+      </div>
+      <!-- logged: avatar trigger + dropdown -->
+      <div class="u-logged" id="userLogged" style="display:none">
+        <button type="button" class="u-trigger" id="userMenuBtn" aria-haspopup="true" aria-expanded="false" title="Konto">
+          <span class="u-ava" id="userAva" aria-hidden="true"></span>
+          <span class="u-chev" aria-hidden="true">▾</span>
+        </button>
+        <div class="u-menu" id="userMenu" role="menu" hidden>
+          <div class="u-menu-head">
+            <div class="u-nick" id="userNickLabel">—</div>
+            <div class="u-meta" id="userMetaLabel">—</div>
+          </div>
+          <button type="button" class="u-menu-item" id="userMenuCoins" role="menuitem">
+            <span>◎</span> <span id="userMenuCoinNum">0</span> WW
+          </button>
+          <button type="button" class="u-menu-item" id="userMenuSettings" role="menuitem">Ustawienia</button>
+          <button type="button" class="u-menu-item" id="userMenuVerify" role="menuitem" style="display:none">Potwierdź e-mail</button>
+          <div class="u-menu-sep"></div>
+          <button type="button" class="u-menu-item danger" id="userMenuLogout" role="menuitem">Wyloguj</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="notif-panel" id="notifPanel">
+    <h3>Powiadomienia <button class="btn sm ghost" id="notifClear" style="float:right;margin-top:-4px">Wyczyść</button></h3>
+    <div id="notifList"></div>
+  </div>
+  <div class="main-inner">
 
   <!-- ============ START ============ -->
   <section class="page on" id="v-home">
@@ -58,7 +133,8 @@
       <button class="btn sm" id="lookingOffHome">Wyłącz</button>
     </div>
     <div class="hero">
-      <div class="live"><span class="dot"></span><span id="onlineNow"></span> graczy online teraz</div>
+      <div class="hero-brand">Big<b>WW</b></div>
+      <div class="live"><span class="dot"></span><span id="onlineNow"></span> <span id="onlineNowLab">graczy online teraz</span></div>
       <h1>Nie graj sam, kiedy ktoś obok szuka tego samego.</h1>
       <p>Wybierz grę, ustaw region i porę grania, a znajdziesz ludzi, którzy pasują do Twojego stylu — bez losowego matchmakingu i bez przeglądania trzech Discordów naraz.</p>
       <div class="hero-cta">
@@ -95,8 +171,16 @@
       <div style="flex:1"><b>Jesteś oznaczony jako „szukam teraz”</b><div class="note">Twoje karty rankują wyżej przy sortowaniu online</div></div>
       <button class="btn sm" id="lookingOffPlayers">Wyłącz</button>
     </div>
-    <div style="margin-bottom:14px">
+    <div style="margin-bottom:14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
       <button class="btn sm" id="btnLookingOn">🟢 Włącz „Szukam teraz”</button>
+      <button type="button" class="quick-combo" id="btnQuickCombo" title="Online + mikrofon + PL">⚡ Online · mic · PL</button>
+    </div>
+
+    <div class="preset-bar" id="presetBar">
+      <label class="note" for="fPreset">Preset filtrów</label>
+      <select id="fPreset"><option value="">— wybierz zapisany —</option></select>
+      <button type="button" class="btn sm" id="btnPresetSave">Zapisz obecne</button>
+      <button type="button" class="btn sm ghost" id="btnPresetDel">Usuń preset</button>
     </div>
 
     <div class="filters">
@@ -108,14 +192,24 @@
       <div class="field"><label for="fRegion">Kraj</label><select id="fRegion"></select></div>
       <div class="field"><label for="fPlat">Platforma</label><select id="fPlat"></select></div>
       <div class="field"><label for="fStyle">Styl grania</label><select id="fStyle"></select></div>
-      <div class="field"><label for="fTimeFrom">Gra w godzinach</label>
-        <div class="hour-row">
-          <select id="fTimeFrom" aria-label="Od godziny"></select>
-          <span>–</span>
-          <select id="fTimeTo" aria-label="Do godziny"></select>
+      <div class="field"><label>Godziny grania</label>
+        <div class="time-range">
+          <select id="fTimeFrom" title="Od"></select>
+          <span class="sep">–</span>
+          <select id="fTimeTo" title="Do"></select>
         </div>
       </div>
+      <div class="field"><label for="fRank">Ranga / poziom</label>
+        <select id="fRank">
+          <option value="">Dowolna</option>
+          <option value="beginner">Początkujący</option>
+          <option value="mid">Średni</option>
+          <option value="high">Wysoki</option>
+          <option value="pro">Pro / turnieje</option>
+        </select>
+      </div>
       <div class="field"><label for="fSort">Sortuj</label><select id="fSort">
+        <option value="match">Dopasowanie do Ciebie</option>
         <option value="new">Najnowsze</option>
         <option value="online">Najpierw online</option>
         <option value="hours">Najwięcej godzin</option>
@@ -130,12 +224,11 @@
       <strong id="pCount"></strong>
       <div class="spacer"></div>
       <div class="view-toggle" id="viewToggle" title="Widok">
-        <button data-view="grid" class="on" aria-label="Siatka">▦</button>
-        <button data-view="list" aria-label="Lista">☰</button>
+        <button type="button" data-view="grid" class="on" title="Siatka">▦</button>
+        <button type="button" data-view="list" title="Lista">☰</button>
       </div>
       <button class="btn sm ghost" id="pReset">Wyczyść filtry</button>
     </div>
-
     <div class="chips" id="activeFilters" style="margin:-4px 0 14px"></div>
 
     <div class="ad-banner" id="adPlayers" data-ad="players">
@@ -221,11 +314,24 @@
     <div class="grid lives" id="liveList"></div>
   </section>
 
-  <!-- ============ DODAJ ============ -->
+  
+  <!-- ============ GIVEAWAYE ============ -->
+  <section class="page" id="v-giveaways">
+    <div class="head">
+      <h1 data-i18n="gw.title">Giveawaye</h1>
+      <p data-i18n="gw.sub">Losowania dla społeczności BigWW. Udział wymaga konta. To warstwa demonstracyjna — nagrody nie są wysyłane automatycznie.</p>
+    </div>
+    <div class="bar"><strong id="gwCount"></strong></div>
+    <div class="grid gw-grid" id="giveawayList"></div>
+    <div class="section-title"><h2 data-i18n="gw.history">Historia</h2></div>
+    <div class="panel" id="giveawayHistory"></div>
+  </section>
+
+<!-- ============ DODAJ ============ -->
   <section class="page" id="v-add">
     <div class="head">
       <h1>Dodaj ogłoszenie</h1>
-      <p>Ogłoszenie trafia na górę listy graczy i zostaje zapisane w tej przeglądarce. Możesz dołączyć klip lub screen.</p>
+      <p>Ogłoszenie trafia na listę graczy. Możesz dołączyć klip lub screen z rozgrywki.</p>
     </div>
     <div class="two">
       <div class="panel">
@@ -236,16 +342,33 @@
           <div class="field"><label for="aRegion">Kraj</label><select id="aRegion"></select></div>
           <div class="field"><label for="aPlat">Platforma</label><select id="aPlat"></select></div>
           <div class="field"><label for="aStyle">Styl grania</label><select id="aStyle"></select></div>
-          <div class="field"><label for="aTimeFrom">Kiedy grasz</label>
-            <div class="hour-row">
-              <select id="aTimeFrom" aria-label="Od godziny"></select>
-              <span>–</span>
-              <select id="aTimeTo" aria-label="Do godziny"></select>
+          <div class="field"><label for="aRank">Ranga / poziom</label>
+            <select id="aRank">
+              <option value="beginner">Początkujący</option>
+              <option value="mid" selected>Średni</option>
+              <option value="high">Wysoki</option>
+              <option value="pro">Pro / turnieje</option>
+            </select>
+          </div>
+          <div class="field"><label>Godziny grania</label>
+            <div class="time-range">
+              <select id="aTimeFrom" title="Od"></select>
+              <span class="sep">–</span>
+              <select id="aTimeTo" title="Do"></select>
             </div>
           </div>
           <div class="field"><label for="aMic">Mikrofon</label><select id="aMic">
             <option>Mikrofon: tak</option><option>Mikrofon: czasem</option><option>Mikrofon: nie</option></select></div>
           <div class="field"><label for="aContact">Kontakt</label><input type="text" id="aContact" placeholder="np. discord: nick#0001"></div>
+          <div class="field full">
+            <label>Stałe dni sesji (opcjonalnie)</label>
+            <div class="day-chips" id="aDays"></div>
+            <div class="note" style="margin-top:6px">Zaznacz dni, w które regularnie grasz — widać to na profilu i karcie.</div>
+          </div>
+          <div class="field full">
+            <label>Szablon ogłoszenia</label>
+            <div class="tpl-row" id="adTemplates"></div>
+          </div>
           <div class="field full"><label for="aDesc">Opis</label>
             <textarea id="aDesc" maxlength="320" placeholder="Czego szukasz? Np. Szukam dwóch osób do wieczornych rankedów, gram spokojnie, bez krzyku."></textarea>
             <div class="note" style="margin-top:6px"><span id="aLen">0</span>/320 znaków</div>
@@ -261,7 +384,7 @@
               <input type="file" id="aFile" accept="image/*,video/*">
               <button type="button" class="btn sm ghost" id="aFileClear">Usuń plik</button>
             </div>
-            <div class="note" style="margin-top:4px">Plik zostaje tylko w tej przeglądarce (nie wychodzi w sieć).</div>
+            <div class="note" style="margin-top:4px">Dodaj screen lub krótkie nagranie do ogłoszenia.</div>
             <div id="aFilePrev" style="margin-top:8px"></div>
           </div>
           <div class="field full">
@@ -284,7 +407,7 @@
 
   <!-- ============ MOJE ============ -->
   <section class="page" id="v-mine">
-    <div class="head"><h1>Moje ogłoszenia</h1><p>Widoczne tylko w tej przeglądarce. Możesz je edytować lub usunąć w każdej chwili.</p></div>
+    <div class="head"><h1>Moje ogłoszenia</h1><p>Zarządzaj swoimi ogłoszeniami — edytuj, wypromuj lub usuń w każdej chwili.</p></div>
     <div class="grid players" id="mineList"></div>
   </section>
 
@@ -292,6 +415,23 @@
   <section class="page" id="v-saved">
     <div class="head"><h1>Obserwowani gracze</h1><p>Lista osób, które oznaczyłeś gwiazdką.</p></div>
     <div class="grid players" id="savedList"></div>
+  </section>
+
+  <!-- ============ WIADOMOŚCI ============ -->
+  <section class="page" id="v-inbox">
+    <div class="head">
+      <h1>Wiadomości</h1>
+      <p>Lokalna skrzynka — wiadomości zapisują się w tej przeglądarce.</p>
+    </div>
+    <div class="panel" id="inboxList"></div>
+  </section>
+
+  <!-- ============ PROFIL PUBLICZNY ============ -->
+  <section class="page profile-page" id="v-profile">
+    <div id="profileView"></div>
+    <div style="text-align:center;margin-top:16px">
+      <button class="btn" type="button" data-go="players">← Wróć do graczy</button>
+    </div>
   </section>
 
   <!-- ============ PREMIUM ============ -->
@@ -312,7 +452,7 @@
   <section class="page" id="v-shop">
     <div class="head">
       <h1>Sklep i monety WW</h1>
-      <p>Zarabiaj monety oglądając reklamy, wypromuj ogłoszenie albo zaproś znajomych. Wszystko działa lokalnie — żadne pieniądze nie są pobierane.</p>
+      <p>Zarabiaj monety oglądając reklamy, wypromuj ogłoszenie albo zaproś znajomych.</p>
     </div>
 
     <div class="prem-banner" style="margin-bottom:22px">
@@ -326,7 +466,7 @@
     </div>
 
     <div class="section-title"><h2>Kup monety (pakiety)</h2></div>
-    <p class="note" style="margin-bottom:8px">Jednorazowy zakup monet — dla osób, które nie chcą subskrypcji. Formularz demonstracyjny, nic nie pobiera.</p>
+    <p class="note" style="margin-bottom:8px">Jednorazowy zakup monet — dla osób, które nie chcą subskrypcji.</p>
     <div class="pack-grid" id="packGrid"></div>
     <p class="urgency" id="packUrgency">⚡ Oferta ograniczona: +20% do pakietów średnich do końca sesji</p>
 
@@ -358,7 +498,7 @@
     <div class="section-title"><h2>Program polecający</h2></div>
     <div class="ref-box">
       <h3 style="font-size:16px;margin-bottom:6px">Twój kod polecający</h3>
-      <p class="note">Udostępnij kod znajomym. Gdy ktoś go wpisze (w tej przeglądarce), oboje dostaniecie monety.</p>
+      <p class="note">Udostępnij kod znajomym. Gdy ktoś go wpisze przy rejestracji, oboje dostaniecie monety.</p>
       <div class="ref-code" id="refCode">—</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
         <button class="btn sm" id="refCopy">Kopiuj kod</button>
@@ -372,7 +512,7 @@
         </div>
         <p class="note" style="margin-top:8px" id="refStatus"></p>
       </div>
-      <div class="kv" style="margin-top:16px"><span>Poleconych (lokalnie)</span><b id="refCount">0</b></div>
+      <div class="kv" style="margin-top:16px"><span>Poleconych</span><b id="refCount">0</b></div>
       <div class="kv"><span>Zarobione z poleceń</span><b id="refEarned">0 WW</b></div>
     </div>
 
@@ -381,11 +521,40 @@
   </section>
 
   <!-- ============ USTAWIENIA ============ -->
-  <!-- ============ REGULAMIN I PRYWATNOŚĆ ============ -->
+  <section class="page" id="v-settings">
+    <div class="head"><h1>Ustawienia</h1><p>Wygląd, konto i prywatność.</p></div>
+    <div class="two">
+      <div class="panel">
+        <h3 style="font-size:16px;margin-bottom:14px">Wygląd</h3>
+        <div class="field" style="margin-bottom:16px"><label for="sTheme">Motyw</label>
+          <select id="sTheme"><option value="dark">Ciemny</option><option value="light">Jasny</option><option value="system">Systemowy</option></select></div>
+        <div class="field"><label for="sRegion">Domyślny kraj</label><select id="sRegion"></select></div>
+        <h3 style="font-size:16px;margin:24px 0 12px">Konto</h3>
+        <div id="setAuth" style="margin-bottom:14px"></div>
+        <div id="setPrem"></div>
+        <h3 style="font-size:16px;margin:24px 0 14px">Twoje dane</h3>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn" id="sExport">Eksportuj dane</button>
+          <button class="btn" id="sImport">Importuj dane</button>
+          <button class="btn ghost" id="sWipe">Usuń konto i dane</button>
+        </div>
+      </div>
+      <div class="panel">
+        <h3 style="font-size:16px;margin-bottom:12px">O bazie</h3>
+        <div id="sInfo"></div>
+        <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--line)">
+          <button class="btn sm" id="btnTerms" type="button">Regulamin serwisu</button>
+          <button class="btn sm ghost" id="btnPrivacy" type="button" style="margin-left:6px">Polityka prywatności</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ REGULAMIN ============ -->
   <section class="page" id="v-terms">
     <div class="head">
       <h1 id="termsTitle">Regulamin serwisu BigWW</h1>
-      <p id="termsSub">Warunki korzystania z platformy.</p>
+      <p id="termsSub">Warunki korzystania z platformy zgodnie z prawem polskim.</p>
     </div>
     <div class="panel terms-box" id="termsContent"></div>
     <div style="text-align:center;margin-top:18px">
@@ -393,30 +562,32 @@
     </div>
   </section>
 
-  <section class="page" id="v-settings">
-    <div class="head"><h1>Ustawienia</h1><p>Wygląd i dane lokalne.</p></div>
-    <div class="two">
-      <div class="panel">
-        <h3 style="font-size:16px;margin-bottom:14px">Wygląd</h3>
-        <div class="field" style="margin-bottom:16px"><label for="sTheme">Motyw</label>
-          <select id="sTheme"><option value="dark">Ciemny</option><option value="light">Jasny</option></select></div>
-        <div class="field"><label for="sRegion">Domyślny kraj</label><select id="sRegion"></select></div>
-        <h3 style="font-size:16px;margin:24px 0 12px">Konto</h3>
-        <div id="setPrem"></div>
-        <h3 style="font-size:16px;margin:24px 0 14px">Dane lokalne</h3>
-        <div style="display:flex;gap:10px;flex-wrap:wrap">
-          <button class="btn" id="sExport">Eksportuj dane</button>
-          <button class="btn" id="sImport">Importuj dane</button>
-          <button class="btn ghost" id="sWipe">Usuń wszystkie moje dane</button>
-        </div>
-      </div>
-      <div class="panel">
-        <h3 style="font-size:16px;margin-bottom:12px">O bazie</h3>
-        <div id="sInfo"></div>
-      </div>
+  <footer class="site-footer-bar" id="siteFooter">
+    <p class="footer-tagline" style="margin-bottom:8px"></p>
+    <div>
+      <a id="footTerms2">Regulamin</a> ·
+      <a id="footPrivacy2">Polityka prywatności</a> ·
+      <a id="footCookies">Cookies</a> ·
+      <a id="footContact">Kontakt</a>
     </div>
-  </section>
+    <p class="footer-copy" style="margin-top:10px">© BigWW. Prototyp demonstracyjny.</p>
+  </footer>
+  </div><!-- .main-inner -->
 </main>
+</div>
+
+<div class="cookie-bar" id="cookieBar" role="dialog" aria-label="Zgoda na pliki cookies">
+  <p>Używamy niezbędnych danych lokalnych (localStorage) do działania konta, preferencji i bezpieczeństwa.
+    Analityka marketingowa jest wyłączona. Szczegóły w <a href="#" id="cookiePrivacyLink" style="color:var(--acc)">Polityce prywatności</a>.</p>
+  <div class="cookie-actions">
+    <button type="button" class="btn pri sm" id="cookieAccept">Akceptuję</button>
+    <button type="button" class="btn sm" id="cookieEssential">Tylko niezbędne</button>
+  </div>
+</div>
+
+<div class="lang-toggle" id="langToggle" title="Language / Język">
+  <button type="button" data-lang="pl" class="on" aria-label="Polski"><span class="flag">🇵🇱</span> PL</button>
+  <button type="button" data-lang="en" aria-label="English"><span class="flag">🇬🇧</span> EN</button>
 </div>
 
 <nav class="bottom-nav" id="bottomNav">
@@ -439,6 +610,72 @@
 </div>
 
 <div class="toast" id="toast"></div>
+<div class="modal" id="authModal">
+  <div class="modal-box" style="max-width:420px">
+    <div class="auth-tabs">
+      <button type="button" class="on" data-auth-tab="login" id="tabLogin">Logowanie</button>
+      <button type="button" data-auth-tab="register" id="tabRegister">Rejestracja</button>
+      <button type="button" data-auth-tab="phone" id="tabPhone">Telefon</button>
+    </div>
+    <div id="authSocial" class="auth-social">
+      <button type="button" class="btn-social" id="btnGoogle"><span class="sico">G</span> Kontynuuj z Google</button>
+      <button type="button" class="btn-social" id="btnDiscord"><span class="sico">◈</span> Kontynuuj z Discord</button>
+    </div>
+    <div class="auth-divider" id="authDivider">lub e-mail / nick</div>
+    <div id="authLoginForm" class="auth-form">
+      <div class="field"><label for="loginNick">Nick lub e-mail</label>
+        <input type="text" id="loginNick" autocomplete="username" placeholder="np. zimnyLisek"></div>
+      <div class="field"><label for="loginPass">Hasło</label>
+        <input type="password" id="loginPass" autocomplete="current-password" placeholder="••••••••"></div>
+      <div class="err" id="loginErr"></div>
+      <button class="btn pri" id="btnDoLogin" style="width:100%;margin-top:8px">Zaloguj się</button>
+    </div>
+    <div id="authRegisterForm" class="auth-form" style="display:none">
+      <div class="field"><label for="regNick">Nick</label>
+        <input type="text" id="regNick" autocomplete="username" placeholder="np. zimnyLisek" maxlength="24"></div>
+      <div class="field"><label for="regEmail">E-mail</label>
+        <input type="email" id="regEmail" autocomplete="email" placeholder="np. gracz@mail.com" required></div>
+      <div class="field"><label for="regPass">Hasło (min. 6 znaków)</label>
+        <input type="password" id="regPass" autocomplete="new-password" placeholder="••••••••"></div>
+      <div class="field"><label for="regPass2">Powtórz hasło</label>
+        <input type="password" id="regPass2" autocomplete="new-password" placeholder="••••••••"></div>
+      <div class="err" id="regErr"></div>
+      <button class="btn pri" id="btnDoRegister" style="width:100%;margin-top:8px">Załóż konto</button>
+    </div>
+    <div id="authPhoneForm" class="auth-form" style="display:none">
+      <div class="field"><label for="phoneNum">Numer telefonu</label>
+        <input type="tel" id="phoneNum" autocomplete="tel" placeholder="+48 500 000 000"></div>
+      <div class="field" id="phoneCodeField" style="display:none">
+        <label for="phoneCode">Kod SMS</label>
+        <input type="text" id="phoneCode" inputmode="numeric" maxlength="6" placeholder="6-cyfrowy kod">
+      </div>
+      <div class="err" id="phoneErr"></div>
+      <button class="btn pri" id="btnPhoneSend" style="width:100%;margin-top:8px">Wyślij kod SMS</button>
+      <button class="btn pri" id="btnPhoneVerify" style="width:100%;margin-top:8px;display:none">Zaloguj kodem</button>
+      <p class="auth-hint">Wyślemy jednorazowy kod weryfikacyjny. W wersji demo kod pojawi się na ekranie.</p>
+    </div>
+    <div id="authVerifyForm" class="auth-form" style="display:none">
+      <div class="verify-box">
+        <h3 style="font-size:16px;margin-bottom:6px">Potwierdź e-mail</h3>
+        <p class="note" id="verifyEmailLab">Wysłaliśmy kod na Twój adres e-mail.</p>
+        <div class="code-row" id="verifyCodeRow">
+          <input type="text" maxlength="1" inputmode="numeric" class="vc" aria-label="cyfra 1">
+          <input type="text" maxlength="1" inputmode="numeric" class="vc" aria-label="cyfra 2">
+          <input type="text" maxlength="1" inputmode="numeric" class="vc" aria-label="cyfra 3">
+          <input type="text" maxlength="1" inputmode="numeric" class="vc" aria-label="cyfra 4">
+          <input type="text" maxlength="1" inputmode="numeric" class="vc" aria-label="cyfra 5">
+          <input type="text" maxlength="1" inputmode="numeric" class="vc" aria-label="cyfra 6">
+        </div>
+        <p class="note" id="verifyDemoCode" style="margin-top:4px"></p>
+        <div class="err" id="verifyErr"></div>
+        <button class="btn pri" id="btnVerifyEmail" style="width:100%;margin-top:10px">Potwierdź</button>
+        <button class="btn ghost sm" id="btnResendVerify" style="width:100%;margin-top:8px">Wyślij kod ponownie</button>
+      </div>
+    </div>
+    <p class="auth-hint" id="authHintMain">Zakładając konto akceptujesz Regulamin i Politykę prywatności BigWW. Chroń hasło i nie udostępniaj go nikomu.</p>
+    <button class="btn ghost sm" id="authClose" style="margin-top:14px;width:100%">Zamknij</button>
+  </div>
+</div>
 <div class="modal" id="modal"><div class="modal-box" id="modalBox"></div></div>
 <div class="interstitial" id="interstitial">
   <div class="inter-box">
@@ -446,18 +683,15 @@
     <div style="font-size:11px;color:var(--txt-faint);margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em">Reklama</div>
     <div style="font-size:40px;margin-bottom:10px">🎮</div>
     <h3 style="margin-bottom:8px" id="interTitle">Oferta partnera</h3>
-    <p class="note" id="interSub">W prawdziwym serwisie tutaj byłaby reklama pełnoekranowa.</p>
+    <p class="note" id="interSub">Oferta partnera BigWW — kliknij, aby zobaczyć szczegóły.</p>
     <button class="btn pri" id="interCta" style="margin-top:16px">Zobacz ofertę</button>
   </div>
 </div>
 
-
-<!-- Spis pobranych okładek gier; powstaje przez: cd server && npm run covers.
-     Gdy go nie ma, kafelki gier mają grafikę generowaną i tak ma być. -->
 <script src="img/games/index.js"></script>
 <script src="js/data-games.js"></script>
-<!-- util.js przed data-demo.js: generator graczy woła timeLabel() już przy ładowaniu -->
 <script src="js/util.js"></script>
+<script src="js/i18n.js"></script>
 <script src="js/data-demo.js"></script>
 <script src="js/state.js"></script>
 <script src="js/api.js"></script>
@@ -473,8 +707,12 @@
 <script src="js/view-premium.js"></script>
 <script src="js/view-settings.js"></script>
 <script src="js/view-terms.js"></script>
+<script src="js/view-inbox.js"></script>
+<script src="js/view-giveaways.js"></script>
 <script src="js/monetization.js"></script>
 <script src="js/onboard.js"></script>
 <script src="js/main.js"></script>
+<script src="js/boot.js"></script>
+
 </body>
 </html>

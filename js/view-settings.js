@@ -1,63 +1,34 @@
 "use strict";
 
-/* BigWW - Widok: ustawienia, motyw, kasowanie danych */
-
 /* =========================================================
    12. USTAWIENIA
 ========================================================= */
 function applyTheme() {
-  document.documentElement.setAttribute("data-theme", PREF.theme);
-  $("#sTheme").value = PREF.theme;
+  let theme = PREF.theme || "dark";
+  if (theme === "system") {
+    theme = window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+  }
+  document.documentElement.setAttribute("data-theme", theme);
+  if ($("#sTheme")) $("#sTheme").value = PREF.theme || "dark";
 }
 $("#sTheme").onchange = e => { PREF.theme = e.target.value; save(KEY.pref, PREF); applyTheme(); };
+if (window.matchMedia) {
+  try {
+    window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+      if (PREF.theme === "system") applyTheme();
+    });
+  } catch (e) {}
+}
 $("#sRegion").onchange = e => {
   PREF.region = e.target.value; save(KEY.pref, PREF);
   $("#aRegion").value = PREF.region;
   toast("Domyślny kraj zapisany");
 };
-if ($("#sImport")) $("#sImport").onclick = () => {
-  openModal(`<h3 style="margin-bottom:10px">Import danych</h3>
-    <p class="note" style="margin-bottom:10px">Wklej wcześniej wyeksportowany plik JSON. Obecne ogłoszenia i ustawienia zostaną nadpisane.</p>
-    <textarea id="importArea" style="height:180px" placeholder='{"version":3,...}'></textarea>
-    <button class="btn pri" id="importGo" style="margin-top:12px">Wczytaj</button>`);
-  $("#importGo").onclick = () => {
-    let data;
-    try {
-      data = JSON.parse($("#importArea").value);
-    } catch (e) {
-      toast("To nie wygląda na poprawny plik JSON");
-      return;
-    }
-    if (!data || typeof data !== "object") { toast("Nieprawidłowy format pliku"); return; }
-
-    if (Array.isArray(data.mine)) MINE = data.mine;
-    else if (Array.isArray(data)) MINE = data;
-    if (Array.isArray(data.saved)) SAVED = data.saved;
-    if (data.pref) PREF = Object.assign(PREF, data.pref);
-    if (data.prem) PREM = data.prem;
-    if (data.coins) COINS = data.coins;
-    if (data.ref) REF = data.ref;
-    if (Array.isArray(data.unlocks)) UNLOCKS = data.unlocks;
-
-    save(KEY.mine, MINE); save(KEY.saved, SAVED); save(KEY.pref, PREF);
-    save(KEY.prem, PREM); save(KEY.coins, COINS); save(KEY.ref, REF); save(KEY.unlocks, UNLOCKS);
-    countCache = null;
-
-    $("#modal").classList.remove("on");
-    applyTheme(); updateBadges(); updateCoinUI();
-    renderMine(); renderSaved(); renderPlayers(true); renderHome();
-    if (!DATA.isApi) { renderShop(); renderPremium(); }
-    toast("Dane wczytane");
-  };
-};
-
 $("#sExport").onclick = () => {
-  // Eksportujemy cały pakiet danych z przeglądarki, nie tylko ogłoszenia —
-  // dzięki temu da się przenieść stan na inny komputer albo zrobić kopię
-  // przed czyszczeniem danych.
   const payload = {
     version: 3,
     exportedAt: new Date().toISOString(),
+    user: currentUser() ? { nick: currentUser().nick, email: currentUser().email } : null,
     mine: MINE,
     saved: SAVED,
     pref: PREF,
@@ -68,11 +39,39 @@ $("#sExport").onclick = () => {
   };
   const text = JSON.stringify(payload, null, 2);
   openModal(`<h3 style="margin-bottom:10px">Eksport danych</h3>
-    <p class="note" style="margin-bottom:10px">Skopiuj poniższy tekst i zachowaj. Wczytasz go przyciskiem „Importuj dane".</p>
+    <p class="note" style="margin-bottom:10px">Skopiuj poniższy plik i przechowaj w bezpiecznym miejscu. Możesz później wczytać go przez Importuj dane.</p>
     <textarea id="exportArea" readonly style="height:200px">${text.replace(/</g, "&lt;")}</textarea>
     <button class="btn pri sm" id="exportCopy" style="margin-top:12px">Kopiuj do schowka</button>`);
   $("#exportCopy").onclick = () => {
     navigator.clipboard?.writeText(text).then(() => toast("Skopiowano")).catch(() => toast("Zaznacz i skopiuj ręcznie"));
+  };
+};
+if ($("#sImport")) $("#sImport").onclick = () => {
+  openModal(`<h3 style="margin-bottom:10px">Import danych</h3>
+    <p class="note" style="margin-bottom:10px">Wklej wcześniej wyeksportowany plik JSON. Obecne ogłoszenia i ustawienia zostaną nadpisane.</p>
+    <textarea id="importArea" style="height:180px" placeholder='{"version":3,...}'></textarea>
+    <button class="btn pri" id="importGo" style="margin-top:12px">Wczytaj</button>`);
+  $("#importGo").onclick = () => {
+    try {
+      const data = JSON.parse($("#importArea").value);
+      if (!data || typeof data !== "object") throw new Error("bad");
+      if (Array.isArray(data.mine)) MINE = data.mine;
+      else if (Array.isArray(data)) MINE = data;
+      if (Array.isArray(data.saved)) SAVED = data.saved;
+      if (data.pref) PREF = Object.assign(PREF, data.pref);
+      if (data.prem) PREM = data.prem;
+      if (data.coins) COINS = data.coins;
+      if (data.ref) REF = data.ref;
+      if (Array.isArray(data.unlocks)) UNLOCKS = data.unlocks;
+      save(KEY.mine, MINE); save(KEY.saved, SAVED); save(KEY.pref, PREF);
+      save(KEY.prem, PREM); save(KEY.coins, COINS); save(KEY.ref, REF); save(KEY.unlocks, UNLOCKS);
+      countCache = null;
+      $("#modal").classList.remove("on");
+      applyTheme(); updateBadges(); updateCoinUI(); renderMine(); renderSaved(); renderPlayers(true); renderHome(); renderShop(); renderPremium();
+      toast("Dane wczytane");
+    } catch (e) {
+      toast("Nieprawidłowy format pliku");
+    }
   };
 };
 $("#sWipe").onclick = () => {
@@ -118,3 +117,4 @@ function renderInfo() {
     <div class="kv"><span>Ekipy</span><b>${TEAMS.length}</b></div>
     <div style="height:14px"></div>${rows}`;
 }
+

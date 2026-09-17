@@ -1,20 +1,20 @@
 "use strict";
 
-/* BigWW - Regulamin i polityka prywatności.
- *
- * Treść przeniesiona z równoległej wersji frontu. To są dokumenty wzorcowe,
- * napisane pod prawo polskie, ale NIE są poradą prawną — przed wpuszczeniem
- * prawdziwych użytkowników powinien je przejrzeć prawnik. Szczególnie § 3
- * (wiek od 13 lat) i rozdział o danych osobowych.
- *
- * Oba dokumenty żyją w jednym widoku „terms"; go("privacy") przełącza treść.
- */
+/* =========================================================
+   12a. REGULAMIN I POLITYKA PRYWATNOŚCI (prawo polskie)
+========================================================= */
+const TERMS_PL = {
+  terms: { title: "Regulamin serwisu BigWW", sub: "Warunki korzystania z platformy zgodne z prawem Rzeczypospolitej Polskiej.", html: "" },
+  privacy: { title: "Polityka prywatności BigWW", sub: "Informacja o przetwarzaniu danych osobowych (RODO).", html: "" }
+};
+const TERMS_EN = {
+  terms: { title: "BigWW Terms of Service", sub: "Rules for using the platform under Polish law.", html: "" },
+  privacy: { title: "BigWW Privacy Policy", sub: "Information on personal data processing (GDPR).", html: "" }
+};
 
-const TERMS = {
-  terms: {
-    tytul: "Regulamin serwisu BigWW",
-    podtytul: "Warunki korzystania z platformy zgodne z prawem Rzeczypospolitej Polskiej.",
-    html: `<div class="terms-meta">Wersja z dnia 17 września 2026 r. · Obowiązuje od publikacji w serwisie</div>
+function buildTermsHtml() {
+  TERMS_PL.terms.html = `
+<div class="terms-meta">Wersja z dnia 17 września 2026 r. · Obowiązuje od publikacji w serwisie</div>
 <h3>§ 1. Postanowienia ogólne</h3>
 <p>1. Niniejszy Regulamin określa zasady korzystania z serwisu internetowego BigWW (dalej: „Serwis”).</p>
 <p>2. Serwis umożliwia Użytkownikom publikowanie ogłoszeń o poszukiwaniu osób do wspólnej gry komputerowej oraz przeglądanie takich ogłoszeń (usługa społecznościowa o charakterze informacyjnym).</p>
@@ -70,12 +70,10 @@ const TERMS = {
 <h3>§ 12. Prawo właściwe</h3>
 <p>1. Stosuje się prawo polskie.</p>
 <p>2. Spory rozstrzygają sądy według KPC, z uprawnieniami konsumenta do sądu miejsca zamieszkania.</p>
-<p>3. W sprawach nieuregulowanych: Kodeks cywilny, ustawa o świadczeniu usług drogą elektroniczną, ustawa o prawach konsumenta, RODO.</p>`
-  },
-  privacy: {
-    tytul: "Polityka prywatności BigWW",
-    podtytul: "Informacja o przetwarzaniu danych osobowych (RODO).",
-    html: `<div class="terms-meta">Wersja z dnia 17 września 2026 r.</div>
+<p>3. W sprawach nieuregulowanych: Kodeks cywilny, ustawa o świadczeniu usług drogą elektroniczną, ustawa o prawach konsumenta, RODO.</p>`;
+
+  TERMS_PL.privacy.html = `
+<div class="terms-meta">Wersja z dnia 17 września 2026 r.</div>
 <h3>1. Administrator danych</h3>
 <p>Administratorem danych osobowych jest podmiot prowadzący Serwis BigWW. Kontakt w sprawach RODO — kanał wskazany w Serwisie.</p>
 <h3>2. Jakie dane przetwarzamy</h3>
@@ -104,19 +102,40 @@ const TERMS = {
 <h3>8. Bezpieczeństwo</h3>
 <p>Hasła są hashowane. Nie prosimy o hasło poza formularzem logowania.</p>
 <h3>9. Zmiany</h3>
-<p>Aktualna wersja publikowana w Serwisie z datą wersji.</p>`
-  }
-};
+<p>Aktualna wersja publikowana w Serwisie z datą wersji.</p>`;
 
-/** @param rodzaj "terms" albo "privacy" */
-function renderTerms(rodzaj = "terms") {
-  const dok = TERMS[rodzaj] || TERMS.terms;
-  const tytul = $("#termsTitle");
-  const podtytul = $("#termsSub");
-  const tresc = $("#termsContent");
-  if (!tresc) return;
-  if (tytul) tytul.textContent = dok.tytul;
-  if (podtytul) podtytul.textContent = dok.podtytul;
-  tresc.innerHTML = dok.html;
-  tresc.scrollTop = 0;
+  TERMS_EN.terms.html = `
+<div class="terms-meta">Version of 17 September 2026</div>
+<h3>§ 1. General</h3>
+<p>These Terms govern BigWW under the Polish Act on Providing Services by Electronic Means. Using the Service means acceptance.</p>
+<h3>§ 2–5. Account and content</h3>
+<p>For users aged 13+. Listings must be lawful. Illegal content, child sexual material (including fictional), hate, harassment, fraud and impersonation are prohibited. User-to-user contact is outside the Service.</p>
+<h3>§ 6. Paid features</h3>
+<p>Premium and WW coins are priced in the UI. Coins are not legal tender. Polish consumer withdrawal rules (14 days) apply where required.</p>
+<h3>§ 7–9. Liability and complaints</h3>
+<p>BigWW is a listing platform. Complaints: describe the issue and nick; response within 14 days. ODR: https://ec.europa.eu/consumers/odr</p>
+<h3>§ 10–12. Privacy and law</h3>
+<p>See the Privacy Policy (GDPR). Polish law applies.</p>`;
+
+  TERMS_EN.privacy.html = `
+<div class="terms-meta">Version of 17 September 2026</div>
+<h3>Controller and data</h3>
+<p>Operator of BigWW. Account data, listings and local technical preferences. The demo mainly stores data in localStorage.</p>
+<h3>Legal bases</h3>
+<p>GDPR Art. 6(1)(b), (f), (c), (a) as applicable.</p>
+<h3>Rights</h3>
+<p>Access, rectification, erasure, restriction, portability, objection; complaint to the Polish DPA (UODO). Export and wipe tools are in Settings.</p>`;
 }
+buildTermsHtml();
+
+function renderTerms(kind) {
+  const k = kind === "privacy" ? "privacy" : "terms";
+  const pack = (LANG === "en" ? TERMS_EN : TERMS_PL)[k];
+  const title = document.getElementById("termsTitle");
+  const sub = document.getElementById("termsSub");
+  const box = document.getElementById("termsContent");
+  if (title) title.textContent = pack.title;
+  if (sub) sub.textContent = pack.sub;
+  if (box) box.innerHTML = pack.html;
+}
+

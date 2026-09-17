@@ -1,7 +1,5 @@
 "use strict";
 
-/* BigWW - Karty gracza/gry/ekipy, profil, kontakt, modale, media */
-
 /* =========================================================
    6. KARTY
 ========================================================= */
@@ -9,7 +7,7 @@ function playerCard(p) {
   const c = el("article", "card");
 
   const isPremCard = p.mine ? isPrem() : !!p.prem;
-  const boosted = p.boosted || isBoosted(p.id);
+  const boosted = isBoosted(p.id);
   if (isPremCard) c.classList.add("prem");
   if (boosted) c.classList.add("boosted");
 
@@ -27,7 +25,12 @@ function playerCard(p) {
   if (isPremCard) nick.append(el("span", "badge-prem", "PREMIUM"));
   if (p.mine) nick.append(el("span", "tag acc", "Twoje"));
   if (p.mine && PREF.looking) nick.append(el("span", "tag acc", "szukam teraz"));
-  const meta = el("div", "p-meta", `${p.age} lat · ${p.region} · ${p.lang}`);
+  if (!p.mine) {
+    const ms = matchScore(p);
+    if (ms >= 40) nick.append(el("span", "match-pill", ms + "% match"));
+  }
+  const rankLab = RANK_LABEL[p.rank] || "";
+  const meta = el("div", "p-meta", `${p.age} lat · ${p.region} · ${p.lang}${rankLab ? " · " + rankLab : ""}`);
   info.append(nick, meta);
   top.append(av, info);
   av.style.cursor = "pointer";
@@ -42,26 +45,35 @@ function playerCard(p) {
 
   const tags = el("div", "tags");
   [p.style, p.time, p.mic].forEach(t => tags.append(el("span", "tag acc", t)));
+  if (p.rank) tags.append(el("span", "tag", RANK_LABEL[p.rank] || p.rank));
+  (p.days || []).forEach(d => {
+    const lab = WEEK_DAYS.find(x => x.id === d)?.label || d;
+    tags.append(el("span", "tag session-tag", lab));
+  });
   (p.tags || []).forEach(t => tags.append(el("span", "tag", t)));
   if (p.clipUrl || p.fileData) tags.append(el("span", "tag", p.fileType && p.fileType.startsWith("video") ? "🎬 klip" : p.clipUrl ? "▶ wideo" : "🖼 screen"));
 
   const foot = el("div", "p-foot");
   const msg = el("button", "btn sm pri", canSeeContact(p) ? "Napisz" : "🔒 Kontakt");
   msg.onclick = () => showContact(p);
-  const star = el("button", "btn sm", DATA.isSaved(p.id) ? "★ Obserwujesz" : "☆ Obserwuj");
-  star.onclick = async () => {
-    star.disabled = true;
-    try {
-      const on = await toggleSave(p.id);
-      star.textContent = on ? "★ Obserwujesz" : "☆ Obserwuj";
-    } catch (e) {
-      if (e.status === 401) requireLogin("obserwować graczy");
-      else toast(e.message || "Nie udało się zapisać");
-    }
-    star.disabled = false;
-  };
+  const star = el("button", "btn sm", SAVED.includes(p.id) ? "★ Obserwujesz" : "☆ Obserwuj");
+  star.onclick = () => { toggleSave(p.id); star.textContent = SAVED.includes(p.id) ? "★ Obserwujesz" : "☆ Obserwuj"; };
   const when = el("span", "note", ago(p.added));
   foot.append(msg, star, el("span", "spacer"), when);
+  if (!p.mine) {
+    const more = el("div");
+    more.style.cssText = "display:flex;gap:6px;flex-wrap:wrap;width:100%;margin-top:8px";
+    const share = el("button", "btn sm ghost", "Udostępnij");
+    share.onclick = e => { e.stopPropagation(); shareListing(p); };
+    const rate = el("button", "btn sm ghost", "Oceń");
+    rate.onclick = e => { e.stopPropagation(); ratePlayer(p); };
+    const blk = el("button", "btn sm ghost", "Blokuj");
+    blk.onclick = e => { e.stopPropagation(); blockPlayer(p.id, p.nick); };
+    const rep = el("button", "btn sm ghost", "Zgłoś");
+    rep.onclick = e => { e.stopPropagation(); reportPlayer(p); };
+    more.append(share, rate, blk, rep);
+    foot.append(more);
+  }
   if (!p.mine && !isPrem()) {
     const left = msgsLeft();
     if (left < FREE_MSG_LIMIT) {
@@ -91,35 +103,47 @@ function playerCard(p) {
       go("shop");
       setTimeout(() => document.getElementById("boostPanel")?.scrollIntoView({ behavior: "smooth" }), 100);
     };
+    const share = el("button", "btn sm", "Udostępnij");
+    share.onclick = () => shareListing(p);
     const del = el("button", "btn sm ghost", "Usuń");
-    del.onclick = async () => {
-      del.disabled = true;
-      try {
-        await DATA.deleteAd(p.id);
-      } catch (e) {
-        del.disabled = false;
-        toast(e.message || "Nie udało się usunąć");
-        return;
-      }
+    del.onclick = () => {
+      MINE = MINE.filter(m => m.id !== p.id);
+      save(KEY.mine, MINE);
+      countCache = null;
       toast("Ogłoszenie usunięte");
       renderMine(); renderPlayers(true); updateBadges();
     };
-    row.append(edit, prom, del);
+    row.append(edit, prom, share, del);
     c.append(row);
   }
   return c;
 }
 
 function gameCard(g) {
-  const count = DATA.adsForGame(g.name);
+  const count = countFor(g.name);
   const b = el("button", "gcard");
   const cover = el("div", "cover");
-  ustawOkladke(cover, g);
-  cover.append(el("span", null, g.name.replace(/[^A-Za-z0-9]/g, "").slice(0, 2).toUpperCase()));
+  // warstwa 1: grafika generowana (zawsze jest)
+  const generated = coverArt(g);
+  // warstwa 2: prawdziwa okładka ze Steama, jeśli pobrana (img/games + OKLADKI)
+  const slug = typeof slugGry === "function" ? slugGry(g.name) : "";
+  // OKLADKI (obiekt) albo OKLADKI_Z_DYSKU (tablica ze skryptu covers)
+  let hasReal = false;
+  if (slug) {
+    if (typeof OKLADKI !== "undefined" && OKLADKI[slug]) hasReal = true;
+    else if (typeof OKLADKI_Z_DYSKU !== "undefined" && Array.isArray(OKLADKI_Z_DYSKU) && OKLADKI_Z_DYSKU.indexOf(slug) >= 0) hasReal = true;
+  }
+  if (hasReal) {
+    cover.style.backgroundImage = 'url("img/games/' + slug + '.jpg"), ' + generated;
+    cover.classList.add("has-art");
+  } else {
+    cover.style.backgroundImage = generated;
+    cover.append(el("span", null, g.name.replace(/[^A-Za-z0-9]/g, "").slice(0, 2).toUpperCase()));
+  }
   const body = el("div", "body");
   body.append(el("div", "gname", g.name));
   const meta = el("div", "gmeta");
-  meta.append(el("span", null, `${g.genre} · ${g.mode}`), el("span", "cnt", graczy(count)));
+  meta.append(el("span", null, `${g.genre} · ${g.mode}`), el("span", "cnt", count + " graczy"));
   body.append(meta);
   b.append(cover, body);
   b.onclick = () => {
@@ -159,7 +183,7 @@ function teamCard(t) {
     <div class="kv"><span>Skład</span><b>${t.filled}/${t.size}</b></div>
     <div class="kv"><span>Region</span><b>${t.region}</b></div>
     <div class="kv"><span>Styl</span><b>${t.style}</b></div>
-    <p class="note" style="margin-top:14px">To baza demonstracyjna, więc zgłoszenie nigdzie nie wychodzi. W prawdziwej wersji tutaj poszłaby wiadomość do lidera ekipy.</p>`);
+    <p class="note" style="margin-top:14px">Wysłaliśmy prośbę o dołączenie. Lider ekipy zobaczy Twoje zgłoszenie w wiadomościach.</p>`);
   foot.append(join, el("span", "spacer"), el("span", "note", ago(t.added)));
 
   c.append(top, slots, line, desc, tags, foot);
@@ -167,32 +191,6 @@ function teamCard(t) {
 }
 
 let countCache = null;
-/**
- * Slugi gier, dla których leży prawdziwa okładka w img/games/.
- *
- * Listę dostarcza plik img/games/index.js zapisany przez skrypt pobierający
- * (cd server && npm run covers) — wczytuje go <script src> w index.html.
- * Gdy skrypt nie był uruchomiony, pliku nie ma, zbiór zostaje pusty i wszystkie
- * karty mają grafikę generowaną, tak jak dotąd.
- */
-const OKLADKI = new Set(typeof OKLADKI_Z_DYSKU !== "undefined" ? OKLADKI_Z_DYSKU : []);
-
-/**
- * Ustawia tło kafelka gry: prawdziwa okładka, jeśli została pobrana, a pod nią
- * grafika generowana z nazwy. Gdyby plik zniknął, przeglądarka pokaże tę drugą
- * warstwę, bo obrazek, którego nie da się wczytać, po prostu się nie rysuje.
- */
-function ustawOkladke(node, game) {
-  const zapas = coverArt(game);
-  const slug = slugGry(game.name);
-  if (!OKLADKI.has(slug)) {
-    node.style.backgroundImage = zapas;
-    return;
-  }
-  node.style.backgroundImage = `url("img/games/${slug}.jpg"), ` + zapas;
-  node.classList.add("ma-okladke");
-}
-
 function countFor(gameName) {
   if (!countCache) {
     countCache = {};
@@ -266,84 +264,88 @@ function openMediaPlayer(p) {
   openModal(body);
 }
 
+function profileShareUrl(p) {
+  const base = location.href.split("#")[0];
+  return base + "#u/" + encodeURIComponent(p.nick);
+}
 function openProfile(p) {
+  currentProfileId = p.id;
+  go("profile");
+  renderProfilePage(p);
+}
+function renderProfilePage(p) {
+  if (!p) {
+    p = allPlayers().find(x => x.id === currentProfileId);
+  }
+  const box = $("#profileView");
+  if (!box || !p) return;
   const unlocked = canSeeContact(p);
   const contact = contactStr(p);
   const statusLab = p.status === "on" ? "online" : p.status === "idle" ? "zaraz wraca" : "offline";
-  openModal(`
-    <div class="profile-ava" id="profAva"></div>
-    <h3 style="text-align:center;margin-bottom:4px">${p.nick}</h3>
-    <p class="note" style="text-align:center;margin-bottom:14px">${statusLab} · ${p.age} lat · ${p.lang}</p>
-    <div class="kv"><span>Gra</span><b>${p.game}</b></div>
-    <div class="kv"><span>Platforma</span><b>${PLAT_LABEL[p.plat] || p.plat}</b></div>
-    <div class="kv"><span>Region</span><b>${p.region}</b></div>
-    <div class="kv"><span>Styl</span><b>${p.style}</b></div>
-    <div class="kv"><span>Pora</span><b>${p.time}</b></div>
-    <div class="kv"><span>Mikrofon</span><b>${(p.mic || "").replace("Mikrofon: ", "")}</b></div>
-    <div class="kv"><span>Godziny</span><b>${p.hours ? nf(p.hours) + " h" : "nowy"}</b></div>
-    <div class="kv"><span>Ocena</span><b>${p.rating} / 5</b></div>
-    <div class="kv"><span>Kontakt</span><b class="${unlocked ? "" : "blur-contact"}">${contact}</b></div>
-    <p class="p-desc" style="margin-top:12px">${p.desc || ""}</p>
-    <div class="tags" style="margin-top:10px" id="profTags"></div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:16px">
-      <button class="btn pri sm" id="profMsg">${unlocked ? "Napisz" : "🔒 Odblokuj kontakt"}</button>
-      <button class="btn sm" id="profStar">${SAVED.includes(p.id) ? "★ Obserwujesz" : "☆ Obserwuj"}</button>
-      ${p.game ? `<button class="btn sm ghost" id="profGame">Filtruj: ${p.game.length > 18 ? p.game.slice(0, 16) + "…" : p.game}</button>` : ""}
-    </div>`);
-  const avEl = $("#profAva");
-  if (avEl) avEl.style.backgroundImage = avatarArt(p.nick, p.mine ? PREF.avaShift : "");
-  const tagBox = $("#profTags");
+  const days = (p.days || []).map(d => WEEK_LABEL[d] || d).join(", ");
+  const ms = matchScore(p);
+  box.innerHTML = `
+    <div class="profile-hero">
+      <div class="profile-ava-lg" id="profAvaLg"></div>
+      <h1 style="font-size:26px;margin-bottom:6px">${p.nick}</h1>
+      <p class="note">${statusLab} · ${p.age} lat · ${p.lang}${p.rank ? " · " + (RANK_LABEL[p.rank] || "") : ""}</p>
+      ${!p.mine ? `<div style="margin-top:10px"><span class="match-pill">${ms}% match</span></div>` : ""}
+      <p class="note" style="margin-top:12px;word-break:break-all">Link publiczny: <b id="profLinkText">${profileShareUrl(p)}</b></p>
+    </div>
+    <div class="panel" style="margin-bottom:14px">
+      <div class="kv"><span>Gra</span><b>${p.game}</b></div>
+      <div class="kv"><span>Platforma</span><b>${PLAT_LABEL[p.plat] || p.plat}</b></div>
+      <div class="kv"><span>Region</span><b>${p.region}</b></div>
+      <div class="kv"><span>Styl</span><b>${p.style}</b></div>
+      <div class="kv"><span>Pora / godziny</span><b>${p.time}</b></div>
+      <div class="kv"><span>Stałe dni</span><b>${days || "Elastycznie"}</b></div>
+      <div class="kv"><span>Mikrofon</span><b>${(p.mic || "").replace("Mikrofon: ", "")}</b></div>
+      <div class="kv"><span>Godziny w grze</span><b>${p.hours ? nf(p.hours) + " h" : "nowy"}</b></div>
+      <div class="kv"><span>Ocena</span><b>${p.rating} / 5</b></div>
+      <div class="kv"><span>Kontakt</span><b class="${unlocked ? "" : "blur-contact"}">${contact}</b></div>
+      <p class="p-desc" style="margin-top:14px">${p.desc || ""}</p>
+      <div class="tags" style="margin-top:12px" id="profTagsPage"></div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">
+      <button class="btn pri" id="profMsg2">${unlocked ? "Napisz" : "🔒 Odblokuj kontakt"}</button>
+      <button class="btn" id="profStar2">${SAVED.includes(p.id) ? "★ Obserwujesz" : "☆ Obserwuj"}</button>
+      <button class="btn" id="profShare2">Kopiuj link profilu</button>
+      ${p.game ? `<button class="btn ghost" id="profGame2">Filtruj: ${p.game.length > 20 ? p.game.slice(0, 18) + "…" : p.game}</button>` : ""}
+      ${!p.mine ? `<button class="btn ghost" id="profRate2">Oceń</button>` : ""}
+    </div>`;
+  const av = $("#profAvaLg");
+  if (av) av.style.backgroundImage = avatarArt(p.nick, p.mine ? PREF.avaShift : "");
+  const tagBox = $("#profTagsPage");
   if (tagBox) {
     [p.style, p.time, p.mic].filter(Boolean).forEach(t => tagBox.append(el("span", "tag acc", t)));
+    (p.days || []).forEach(d => tagBox.append(el("span", "tag session-tag", WEEK_DAYS.find(x => x.id === d)?.label || d)));
     (p.tags || []).forEach(t => tagBox.append(el("span", "tag", t)));
   }
-  if (p.clipUrl || p.fileData) {
-    const mb = el("button", "btn sm", "▶ Obejrzyj media");
-    mb.style.marginTop = "10px";
-    mb.onclick = () => { $("#modal").classList.remove("on"); openMediaPlayer(p); };
-    $("#modalBox").insertBefore(mb, $("#profMsg")?.parentElement || null);
-  }
-  $("#profMsg").onclick = () => { $("#modal").classList.remove("on"); showContact(p); };
-  $("#profStar").onclick = () => {
+  $("#profMsg2").onclick = () => showContact(p);
+  $("#profStar2").onclick = () => {
     toggleSave(p.id);
-    $("#profStar").textContent = SAVED.includes(p.id) ? "★ Obserwujesz" : "☆ Obserwuj";
+    $("#profStar2").textContent = SAVED.includes(p.id) ? "★ Obserwujesz" : "☆ Obserwuj";
   };
-  const pg = $("#profGame");
+  $("#profShare2").onclick = () => {
+    const url = profileShareUrl(p);
+    if (navigator.clipboard) navigator.clipboard.writeText(url).then(() => toast("Link skopiowany")).catch(() => toast(url));
+    else toast(url);
+  };
+  const pg = $("#profGame2");
   if (pg) pg.onclick = () => {
-    $("#modal").classList.remove("on");
     $("#fGame").value = p.game;
     go("players");
     renderPlayers(true);
     toast("Filtr: " + p.game);
   };
+  const pr = $("#profRate2");
+  if (pr) pr.onclick = () => ratePlayer(p);
 }
 
 function showContact(p) {
   const unlocked = canSeeContact(p);
   const contact = contactStr(p);
   const left = msgsLeft();
-
-  // Tryb serwerowy: kontakt nie jest towarem za monety, tylko powodem, żeby
-  // mieć konto. Limity wiadomości i odblokowań zostają w trybie demo.
-  if (DATA.isApi) {
-    if (!unlocked) {
-      openModal(`<h3 style="margin-bottom:6px">${p.nick}</h3>
-        <p class="note" style="margin-bottom:14px">${p.game} · ${p.region}</p>
-        <div class="kv"><span>Kontakt</span><b class="blur-contact">${contact}</b></div>
-        <div class="kv"><span>Kiedy gra</span><b>${p.time}</b></div>
-        <p class="note" style="margin-top:14px">Kontakty widzą zalogowani gracze. Załóż konto — zajmuje chwilę i jest za darmo.</p>
-        <button class="btn pri" id="contactLogin" style="margin-top:14px;width:100%">Zaloguj się lub załóż konto</button>`);
-      $("#contactLogin").onclick = () => { $("#modal").classList.remove("on"); openAuth("login"); };
-      return;
-    }
-    openModal(`<h3 style="margin-bottom:6px">${p.nick}</h3>
-      <p class="note" style="margin-bottom:14px">${p.game} · ${p.region}</p>
-      <div class="kv"><span>Kontakt</span><b>${contact}</b></div>
-      <div class="kv"><span>Kiedy gra</span><b>${p.time}</b></div>
-      <div class="kv"><span>Mikrofon</span><b>${p.mic.replace("Mikrofon: ", "")}</b></div>
-      <p class="note" style="margin-top:14px">Skopiuj kontakt i napisz na Discordzie albo tam, gdzie gracz podał.</p>`);
-    return;
-  }
 
   if (unlocked) {
     // still consume free message quota for non-prem if they "write"
@@ -381,28 +383,47 @@ function showContact(p) {
       <div class="kv"><span>Kiedy gra</span><b>${p.time}</b></div>
       <div class="kv"><span>Mikrofon</span><b>${p.mic.replace("Mikrofon: ", "")}</b></div>
       <div class="kv"><span>Ocena ekip</span><b>${p.rating} / 5</b></div>
-      <p class="note" style="margin-top:14px">Profile w tej wersji są generowane lokalnie — wiadomość nie zostanie nigdzie wysłana.</p>
+      <p class="note" style="margin-top:14px">Skopiuj kontakt (Discord itd.) albo napisz w BigWW — wiadomość trafi do lokalnej skrzynki.</p>
+      <div class="field" style="margin-top:10px"><textarea id="quickMsg" maxlength="300" placeholder="Wiadomość w BigWW…"></textarea></div>
+      <button class="btn pri sm" id="sendQuickMsg" style="margin-top:8px">Wyślij w BigWW</button>
       ${!isPrem() ? `<p class="msg-limit" style="margin-top:8px">Pozostało darmowych wiadomości: ${msgsLeft()}/${FREE_MSG_LIMIT}</p>` : ""}`);
+    $("#sendQuickMsg").onclick = () => {
+      const text = ($("#quickMsg").value || "").trim();
+      if (text.length < 2) return toast("Wpisz wiadomość");
+      if (sendInboxMessage(p, text)) {
+        $("#modal").classList.remove("on");
+        toast("Wiadomość w skrzynce");
+      }
+    };
     return;
   }
 
   // locked contact
+  const freeU = freeUnlocksLeft();
+  const unlockBtnLabel = freeU > 0
+    ? `Odblokuj za darmo (${freeU} dziś)`
+    : `Odblokuj za ${UNLOCK_CONTACT_COST} WW`;
   openModal(`<h3 style="margin-bottom:6px">${p.nick}</h3>
     <p class="note" style="margin-bottom:14px">${p.game} · ${p.region}</p>
     <div class="kv"><span>Kontakt</span><b class="blur-contact">${contact}</b></div>
     <div class="kv"><span>Kiedy gra</span><b>${p.time}</b></div>
     <div class="kv"><span>Mikrofon</span><b>${p.mic.replace("Mikrofon: ", "")}</b></div>
-    <p class="note" style="margin-top:14px">Kontakt jest zablokowany. Odblokuj jednorazowo za monety albo weź Premium i pisz bez limitu.</p>
+    <p class="note" style="margin-top:14px">Odblokuj kontakt, żeby napisać. Masz ${FREE_UNLOCK_DAILY} darmowe odblokowania dziennie — potem monety lub Premium.</p>
     <div class="lock-row">
-      <button class="btn gold" id="unlockOne">Odblokuj za ${UNLOCK_CONTACT_COST} WW</button>
-      <button class="btn pri" id="unlockPrem">Premium = nielimitowane</button>
+      <button class="btn ${freeU > 0 ? "pri" : "gold"}" id="unlockOne">${unlockBtnLabel}</button>
+      <button class="btn ${freeU > 0 ? "gold" : "pri"}" id="unlockPrem">Premium bez limitu</button>
     </div>
-    <p class="lock-hint">Darmowe wiadomości dziś: ${left}/${FREE_MSG_LIMIT} (po odblokowaniu)</p>`);
+    <p class="lock-hint">Wiadomości dziś: ${left}/${FREE_MSG_LIMIT} · darmowe kontakty: ${freeU}/${FREE_UNLOCK_DAILY}</p>`);
   $("#unlockOne").onclick = () => {
     const cred = Number(localStorage.getItem("bigww_unlock_cred") || 0);
     if (cred > 0) {
       localStorage.setItem("bigww_unlock_cred", String(cred - 1));
-      toast("Użyto kredytu odblokowania (" + (cred - 1) + " zostało)");
+      toast("Użyto kredytu odblokowania");
+    } else if (freeUnlocksLeft() > 0) {
+      resetMsgDay();
+      MSG.freeUnlocks = (MSG.freeUnlocks || 0) + 1;
+      save(KEY.msg, MSG);
+      toast("Kontakt odblokowany");
     } else {
       if (COINS.bal < UNLOCK_CONTACT_COST) { toast("Za mało monet — kup pakiet lub obejrzyj reklamę"); go("shop"); return; }
       addCoins(-UNLOCK_CONTACT_COST, "Kontakt odblokowany");
@@ -425,11 +446,17 @@ function openModal(html) {
   $("#modal").classList.add("on");
 }
 $("#modal").onclick = e => { if (e.target.id === "modal") $("#modal").classList.remove("on"); };
-document.addEventListener("keydown", e => { if (e.key === "Escape") $("#modal").classList.remove("on"); });
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") {
+    $("#modal")?.classList.remove("on");
+    $("#authModal")?.classList.remove("on");
+  }
+});
 
-async function toggleSave(id) {
-  const on = await DATA.toggleSave(id);
-  toast(on ? "Dodano do obserwowanych" : "Usunięto z obserwowanych");
+function toggleSave(id) {
+  if (SAVED.includes(id)) { SAVED = SAVED.filter(s => s !== id); toast("Usunięto z obserwowanych"); }
+  else { SAVED.push(id); toast("Dodano do obserwowanych"); }
+  save(KEY.saved, SAVED);
   updateBadges();
-  return on;
 }
+

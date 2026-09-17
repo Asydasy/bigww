@@ -1,7 +1,5 @@
 "use strict";
 
-/* BigWW - Onboarding przy pierwszym wejsciu */
-
 /* =========================================================
    13b. ONBOARDING
 ========================================================= */
@@ -45,3 +43,4 @@ function startOnboard() {
   };
   $("#obSkip").onclick = finishOnboard;
 }
+

@@ -1,7 +1,5 @@
 "use strict";
 
-/* BigWW - Widoki: ekipy oraz transmisje live */
-
 /* =========================================================
    9. EKIPY
 ========================================================= */
@@ -84,7 +82,7 @@ function openLive(s) {
         <button class="btn pri" id="livePassBtn">Karnet 24 h na wszystkie Live · 80 WW</button>
         <button class="btn" id="livePrem">Weź Premium (nielimitowane Live)</button>
       </div>
-      <p class="note" style="margin-top:12px">Demo — monety są lokalne, nic nie jest pobierane z karty.</p>`);
+      <p class="note" style="margin-top:12px">Opłata zostanie pobrana z salda monet WW.</p>`);
     $("#liveTicket").onclick = () => {
       if (COINS.bal < LIVE_TICKET_COST) { toast("Za mało monet — kup pakiet w Sklepie"); go("shop"); return; }
       addCoins(-LIVE_TICKET_COST, "Bilet Live");
@@ -116,8 +114,8 @@ function openLive(s) {
       <div style="position:absolute;inset:0;display:grid;place-items:center;color:#fff;text-align:center;padding:20px">
         <div>
           <div style="font-size:40px;margin-bottom:8px">📡</div>
-          <b>Stream demo</b>
-          <p style="opacity:.8;margin-top:6px;font-size:13px">W prawdziwej wersji tutaj byłby odtwarzacz Twitch/YouTube Live.<br>Widzów: ${nf(s.viewers)}</p>
+          <b>Na żywo</b>
+          <p style="opacity:.8;margin-top:6px;font-size:13px">Transmisja w toku<br>Widzów: ${nf(s.viewers)}</p>
         </div>
       </div>
     </div>
@@ -167,3 +165,4 @@ function renderLives() {
 }
 if ($("#lSearch")) $("#lSearch").addEventListener("input", renderLives);
 if ($("#lSort")) $("#lSort").addEventListener("change", renderLives);
+

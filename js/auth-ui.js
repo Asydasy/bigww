@@ -1,192 +1,475 @@
 "use strict";
 
-/* BigWW — panel konta w sidebarze oraz okno logowania i rejestracji.
- *
- * W trybie demo (bez backendu) panel mówi wprost, że konta nie działają,
- * zamiast udawać, że da się zalogować.
- */
+/* =========================================================
+   12c. REJESTRACJA / LOGOWANIE
+========================================================= */
+function updateAuthUI() {
+  if (typeof applyAuthVisibility === "function") applyAuthVisibility();
+  const guest = document.getElementById("userGuest");
+  const logged = document.getElementById("userLogged");
+  const nickEl = document.getElementById("userNickLabel");
+  const metaEl = document.getElementById("userMetaLabel");
+  const ava = document.getElementById("userAva");
+  const menu = document.getElementById("userMenu");
+  const btn = document.getElementById("userMenuBtn");
+  const coinNum = document.getElementById("userMenuCoinNum");
+  const verifyBtn = document.getElementById("userMenuVerify");
+  const settingsBtn = document.getElementById("userMenuSettings");
+  const logoutBtn = document.getElementById("userMenuLogout");
+  const coinsBtn = document.getElementById("userMenuCoins");
+  const loginOpen = document.getElementById("btnLoginOpen");
 
-/**
- * Widoki dostępne dopiero po zalogowaniu. Gość ich nie widzi w menu, a próba
- * wejścia (np. przyciskiem na stronie startowej) otwiera okno logowania.
- */
-const GUEST_HIDDEN = ["add", "mine", "saved", "premium", "shop"];
-
-/** Czy patrzy na to niezalogowany gość. W trybie demo kont nie ma, więc nie. */
-function isGuest() {
-  return DATA.isApi && !DATA.user;
-}
-
-/** Pokazuje albo chowa to, co należy się dopiero zalogowanym. */
-function applyAuthVisibility() {
-  const guest = isGuest();
-
-  document.querySelectorAll("#nav button[data-v], #bottomNav button[data-v]").forEach(b => {
-    if (GUEST_HIDDEN.includes(b.dataset.v)) b.style.display = guest ? "none" : "";
-  });
-
-  // Druga przerwa w menu rozdziela grupy, które gościowi znikają w całości.
-  const seps = document.querySelectorAll("#nav .nav-sep");
-  if (seps[1]) seps[1].style.display = guest ? "none" : "";
-
-  // Saldo monet WW to część konta — gość nie ma czego oglądać.
-  const coin = $("#coinBal");
-  if (coin) coin.style.display = guest ? "none" : "";
-
-  // Gdyby gość został na ukrytym widoku (np. po wylogowaniu), wracamy na start.
-  if (guest) {
-    const current = document.querySelector(".page.on");
-    if (current && GUEST_HIDDEN.includes(current.id.replace("v-", ""))) go("home");
+  if (loginOpen) {
+    loginOpen.textContent = typeof t === "function" ? t("user.loginBtn") : "Zaloguj / Załóż konto";
+    loginOpen.onclick = openAuthModal;
   }
-}
+  if (settingsBtn) settingsBtn.textContent = typeof t === "function" ? t("user.settings") : "Ustawienia";
+  if (logoutBtn) logoutBtn.textContent = typeof t === "function" ? t("user.logout") : "Wyloguj";
+  if (verifyBtn) verifyBtn.textContent = typeof t === "function" ? t("user.verifyEmail") : "Potwierdź e-mail";
 
-/** Rysuje kafelek konta nad monetami. */
-function renderAccount() {
-  const box = $("#account");
-  if (!box) return;
-  box.innerHTML = "";
-  box.className = "account";
+  if (isLoggedIn()) {
+    if (guest) guest.style.display = "none";
+    if (logged) logged.style.display = "";
+    const u = currentUser();
+    const nick = (u && u.nick) ? u.nick : (SESSION && SESSION.nick) || "User";
+    const email = u && u.email ? u.email : "";
+    const phone = u && u.phone ? u.phone : "";
+    const sub = email || phone || (typeof t === "function" ? t("user.logged") : "");
 
-  if (!DATA.isApi) {
-    const d = el("div", "acc-demo");
-    d.innerHTML = `<b>Tryb demo</b><span>Bez serwera — dane tylko w tej przeglądarce</span>`;
-    d.title = "Uruchom backend (docker compose up), żeby działały konta i wspólna baza ogłoszeń";
-    box.append(d);
-    return;
-  }
-
-  if (!DATA.user) {
-    const b = el("button", "btn sm pri acc-btn", "Zaloguj się");
-    // Uwaga: bez strzałki przeglądarka przekazałaby tu obiekt zdarzenia
-    // jako nazwę zakładki i okno otwierałoby się na rejestracji.
-    b.onclick = () => openAuth("login");
-    box.append(b);
-    return;
-  }
-
-  const row = el("div", "acc-row");
-  const av = el("div", "ava sm");
-  av.style.backgroundImage = avatarArt(DATA.user.avatarSeed || DATA.user.displayName, "");
-  const info = el("div", "acc-info");
-  info.append(
-    el("b", null, DATA.user.displayName),
-    el("span", "note", DATA.user.discordTag ? "Discord: " + DATA.user.discordTag : DATA.user.email || "")
-  );
-  const out = el("button", "btn sm ghost", "Wyloguj");
-  out.onclick = async () => {
-    await DATA.logout();
-    renderAccount();
-    applyAuthVisibility();
-    toast("Wylogowano");
-    await renderPlayers(true);
-    updateBadges();
-  };
-  row.append(av, info, out);
-  box.append(row);
-}
-
-/** Okno z dwiema zakładkami: logowanie i zakładanie konta. */
-function openAuth(startTab = "login") {
-  let tab = startTab;
-
-  function draw() {
-    const isLogin = tab === "login";
-    openModal(`
-      <h3 style="margin-bottom:4px">${isLogin ? "Zaloguj się" : "Załóż konto"}</h3>
-      <p class="note" style="margin-bottom:14px">
-        ${isLogin ? "Konto jest potrzebne, żeby dodać ogłoszenie i obserwować graczy." : "Wystarczy e-mail i hasło. Nick ustawisz w ogłoszeniu."}
-      </p>
-
-      <button class="btn pri" id="authDiscord" style="width:100%;margin-bottom:12px">Kontynuuj przez Discorda</button>
-      <div class="auth-sep"><span>albo e-mailem</span></div>
-
-      <div class="form-grid" style="margin-top:12px">
-        ${isLogin ? "" : `<div class="field full"><label for="authName">Nazwa</label>
-          <input type="text" id="authName" placeholder="np. Seba" autocomplete="nickname"></div>`}
-        <div class="field full"><label for="authEmail">E-mail</label>
-          <input type="email" id="authEmail" placeholder="ty@example.com" autocomplete="email"></div>
-        <div class="field full"><label for="authPass">Hasło</label>
-          <input type="password" id="authPass" placeholder="${isLogin ? "twoje hasło" : "minimum 8 znaków"}"
-                 autocomplete="${isLogin ? "current-password" : "new-password"}"></div>
-      </div>
-
-      <div id="authError" class="auth-error" hidden></div>
-
-      <button class="btn pri" id="authGo" style="width:100%;margin-top:14px">
-        ${isLogin ? "Zaloguj" : "Załóż konto"}
-      </button>
-      <p class="note" style="margin-top:12px;text-align:center">
-        ${isLogin ? "Nie masz konta?" : "Masz już konto?"}
-        <a id="authSwitch" style="color:var(--acc);cursor:pointer">${isLogin ? "Załóż je" : "Zaloguj się"}</a>
-      </p>
-    `);
-
-    const err = (msg) => {
-      const box = $("#authError");
-      box.textContent = msg;
-      box.hidden = false;
-    };
-
-    $("#authDiscord").onclick = () => {
-      location.href = API.discordLoginUrl();
-    };
-
-    $("#authSwitch").onclick = () => {
-      tab = isLogin ? "register" : "login";
-      draw();
-    };
-
-    const submit = async () => {
-      const email = ($("#authEmail").value || "").trim();
-      const pass = $("#authPass").value || "";
-      const name = isLogin ? "" : ($("#authName").value || "").trim();
-
-      if (!email.includes("@")) return err("Wpisz poprawny adres e-mail.");
-      if (!isLogin && name.length < 2) return err("Nazwa musi mieć co najmniej 2 znaki.");
-      if (pass.length < 8) return err(isLogin ? "Hasło ma co najmniej 8 znaków." : "Hasło musi mieć co najmniej 8 znaków.");
-
-      $("#authGo").disabled = true;
-      try {
-        if (isLogin) await DATA.login({ email, password: pass });
-        else await DATA.register({ email, password: pass, displayName: name });
-
-        $("#modal").classList.remove("on");
-        renderAccount();
-        applyAuthVisibility();
-        toast(isLogin ? "Zalogowano" : "Konto założone");
-        await renderPlayers(true);
-        renderMine();
-        renderSaved();
-        updateBadges();
-      } catch (e) {
-        $("#authGo").disabled = false;
-        err(e.message || "Nie udało się. Spróbuj jeszcze raz.");
+    if (nickEl) {
+      if (u && u.email && !u.emailVerified) {
+        nickEl.innerHTML = '<span class="u-nick-text"></span><span class="badge-unverified">' +
+          (typeof t === "function" ? t("user.unverified") : "!") + "</span>";
+        nickEl.querySelector(".u-nick-text").textContent = nick;
+      } else if (u && (u.emailVerified || u.provider)) {
+        nickEl.innerHTML = '<span class="u-nick-text"></span><span class="badge-verified" title="' +
+          (typeof t === "function" ? t("user.verified") : "OK") + '">✓</span>';
+        nickEl.querySelector(".u-nick-text").textContent = nick;
+      } else {
+        nickEl.textContent = nick;
       }
-    };
+    }
+    if (metaEl) metaEl.textContent = sub;
 
-    $("#authGo").onclick = submit;
-    ["#authEmail", "#authPass", "#authName"].forEach(s => {
-      const inp = $(s);
-      if (inp) inp.addEventListener("keydown", e => { if (e.key === "Enter") submit(); });
-    });
-    setTimeout(() => $(isLogin ? "#authEmail" : "#authName")?.focus(), 50);
+    if (ava) {
+      try {
+        if (typeof avatarArt === "function") {
+          ava.style.backgroundImage = avatarArt(nick, (PREF && PREF.avaShift) || "");
+        }
+      } catch (e) {}
+    }
+    if (coinNum && typeof COINS !== "undefined") {
+      coinNum.textContent = typeof nf === "function" ? nf(COINS.bal) : String(COINS.bal);
+    }
+    if (verifyBtn) {
+      const need = !!(u && u.email && !u.emailVerified);
+      verifyBtn.style.display = need ? "" : "none";
+      verifyBtn.onclick = () => {
+        closeUserMenu();
+        openAuthModal("verify");
+        startEmailVerifyUI(u);
+      };
+    }
+    if (settingsBtn) settingsBtn.onclick = () => { closeUserMenu(); go("settings"); };
+    if (coinsBtn) coinsBtn.onclick = () => { closeUserMenu(); go("shop"); };
+    if (logoutBtn) logoutBtn.onclick = () => { closeUserMenu(); doLogout(); };
+    if (btn) {
+      btn.onclick = (e) => {
+        e.stopPropagation();
+        toggleUserMenu();
+      };
+    }
+  } else {
+    if (guest) guest.style.display = "";
+    if (logged) logged.style.display = "none";
+    closeUserMenu();
+    if (nickEl) nickEl.textContent = typeof t === "function" ? t("user.guest") : "Gość";
+    if (metaEl) metaEl.textContent = typeof t === "function" ? t("user.notLogged") : "";
   }
-
-  draw();
 }
 
-/**
- * Wywoływane, gdy akcja wymaga konta. W trybie demo tłumaczy, czego brakuje,
- * zamiast otwierać okno logowania, którego i tak nie ma jak obsłużyć.
- */
-function requireLogin(coZrobic = "zrobić to") {
-  if (!DATA.isApi) {
-    openModal(`<h3 style="margin-bottom:8px">To działa tylko z serwerem</h3>
-      <p class="note">Strona chodzi teraz w trybie demo — bez backendu. Żeby ${coZrobic} na prawdziwym koncie,
-      uruchom serwer poleceniem <code>docker compose up -d</code> i odśwież stronę.</p>
-      <p class="note" style="margin-top:10px">W trybie demo ogłoszenia zapisują się tylko w tej przeglądarce.</p>`);
-    return false;
+function closeUserMenu() {
+  const menu = document.getElementById("userMenu");
+  const btn = document.getElementById("userMenuBtn");
+  if (menu) { menu.hidden = true; menu.classList.remove("on"); }
+  if (btn) btn.setAttribute("aria-expanded", "false");
+}
+function openUserMenu() {
+  const menu = document.getElementById("userMenu");
+  const btn = document.getElementById("userMenuBtn");
+  if (menu) { menu.hidden = false; menu.classList.add("on"); }
+  if (btn) btn.setAttribute("aria-expanded", "true");
+}
+function toggleUserMenu() {
+  const menu = document.getElementById("userMenu");
+  if (!menu) return;
+  if (menu.hidden || !menu.classList.contains("on")) openUserMenu();
+  else closeUserMenu();
+}
+
+// close on outside click / Esc
+document.addEventListener("click", e => {
+  if (!e.target.closest("#userBox")) closeUserMenu();
+});
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") closeUserMenu();
+});
+
+function openAuthModal(tab) {
+  const modal = $("#authModal");
+  if (!modal) return;
+  const t0 = tab === "register" ? "register" : tab === "phone" ? "phone" : tab === "verify" ? "verify" : "login";
+  setAuthTab(t0);
+  $("#loginErr")?.classList.remove("on");
+  $("#regErr")?.classList.remove("on");
+  $("#phoneErr")?.classList.remove("on");
+  $("#verifyErr")?.classList.remove("on");
+  if ($("#loginNick")) $("#loginNick").value = "";
+  if ($("#loginPass")) $("#loginPass").value = "";
+  if ($("#regNick")) $("#regNick").value = "";
+  if ($("#regEmail")) $("#regEmail").value = "";
+  if ($("#regPass")) $("#regPass").value = "";
+  if ($("#regPass2")) $("#regPass2").value = "";
+  if ($("#phoneNum")) $("#phoneNum").value = "";
+  if ($("#phoneCode")) $("#phoneCode").value = "";
+  if ($("#phoneCodeField")) $("#phoneCodeField").style.display = "none";
+  if ($("#btnPhoneSend")) $("#btnPhoneSend").style.display = "";
+  if ($("#btnPhoneVerify")) $("#btnPhoneVerify").style.display = "none";
+  modal.classList.add("on");
+}
+function closeAuthModal() {
+  $("#authModal")?.classList.remove("on");
+}
+function setAuthTab(which) {
+  const loginF = $("#authLoginForm");
+  const regF = $("#authRegisterForm");
+  const phoneF = $("#authPhoneForm");
+  const verifyF = $("#authVerifyForm");
+  const social = $("#authSocial");
+  const div = $("#authDivider");
+  const hint = $("#authHintMain");
+  const tabL = $("#tabLogin");
+  const tabR = $("#tabRegister");
+  const tabP = $("#tabPhone");
+  if (!loginF || !regF) return;
+  const mode = which === "register" ? "register" : which === "phone" ? "phone" : which === "verify" ? "verify" : "login";
+  loginF.style.display = mode === "login" ? "" : "none";
+  regF.style.display = mode === "register" ? "" : "none";
+  if (phoneF) phoneF.style.display = mode === "phone" ? "" : "none";
+  if (verifyF) verifyF.style.display = mode === "verify" ? "" : "none";
+  if (social) social.style.display = (mode === "login" || mode === "register") ? "" : "none";
+  if (div) {
+    div.style.display = (mode === "login" || mode === "register") ? "" : "none";
+    div.textContent = mode === "register" ? "lub e-mail" : "lub e-mail / nick";
   }
-  openAuth("login");
+  if (hint) hint.style.display = mode === "verify" ? "none" : "";
+  tabL?.classList.toggle("on", mode === "login");
+  tabR?.classList.toggle("on", mode === "register");
+  tabP?.classList.toggle("on", mode === "phone");
+  document.querySelectorAll(".auth-tabs button").forEach(b => {
+    b.style.display = mode === "verify" ? "none" : "";
+  });
+}
+
+function showAuthErr(id, msg) {
+  const e = $(id);
+  if (!e) return;
+  e.textContent = msg;
+  e.classList.add("on");
+}
+
+function genVerifyCode() {
+  return String(100000 + Math.floor(Math.random() * 900000));
+}
+
+function saveUsers() { rawSave(KEY.users, USERS); }
+
+function loginAsUser(user, msg) {
+  SESSION = { userId: user.id, nick: user.nick, loggedAt: Date.now() };
+  rawSave(KEY.session, SESSION);
+  loadUserData();
+  if ($("#aNick") && !$("#aNick").value) $("#aNick").value = user.nick;
+  refreshAfterAuth();
+  closeAuthModal();
+  toast(msg || ("Zalogowano jako " + user.nick));
+  if (user.email && !user.emailVerified && !user.provider) {
+    setTimeout(() => {
+      openAuthModal("verify");
+      startEmailVerifyUI(user);
+    }, 400);
+  }
+}
+
+function startEmailVerifyUI(user) {
+  pendingVerifyUserId = user.id;
+  const code = genVerifyCode();
+  user.verifyCode = code;
+  user.verifySentAt = Date.now();
+  saveUsers();
+  if ($("#verifyEmailLab")) $("#verifyEmailLab").textContent = "Wysłaliśmy 6-cyfrowy kod na " + user.email + ".";
+  if ($("#verifyDemoCode")) $("#verifyDemoCode").textContent = "Demo — Twój kod: " + code;
+  document.querySelectorAll("#verifyCodeRow .vc").forEach(inp => { inp.value = ""; });
+  const first = document.querySelector("#verifyCodeRow .vc");
+  if (first) setTimeout(() => first.focus(), 100);
+}
+
+let pendingVerifyUserId = null;
+let pendingPhone = { num: "", code: "", at: 0 };
+
+function setupVerifyInputs() {
+  const inputs = document.querySelectorAll("#verifyCodeRow .vc");
+  inputs.forEach((inp, i) => {
+    inp.addEventListener("input", () => {
+      inp.value = inp.value.replace(/\D/g, "").slice(0, 1);
+      if (inp.value && i < inputs.length - 1) inputs[i + 1].focus();
+    });
+    inp.addEventListener("keydown", e => {
+      if (e.key === "Backspace" && !inp.value && i > 0) inputs[i - 1].focus();
+    });
+    inp.addEventListener("paste", e => {
+      e.preventDefault();
+      const t = (e.clipboardData.getData("text") || "").replace(/\D/g, "").slice(0, 6);
+      t.split("").forEach((ch, j) => { if (inputs[j]) inputs[j].value = ch; });
+      if (inputs[Math.min(t.length, 5)]) inputs[Math.min(t.length, 5)].focus();
+    });
+  });
+}
+
+function getVerifyCodeInput() {
+  return Array.from(document.querySelectorAll("#verifyCodeRow .vc")).map(i => i.value).join("");
+}
+
+function doVerifyEmail() {
+  $("#verifyErr")?.classList.remove("on");
+  const u = USERS.find(x => x.id === pendingVerifyUserId) || currentUser();
+  if (!u) return showAuthErr("#verifyErr", "Brak sesji weryfikacji.");
+  const code = getVerifyCodeInput();
+  if (code.length !== 6) return showAuthErr("#verifyErr", "Wpisz pełny 6-cyfrowy kod.");
+  if (code !== u.verifyCode) return showAuthErr("#verifyErr", "Nieprawidłowy kod.");
+  u.emailVerified = true;
+  delete u.verifyCode;
+  saveUsers();
+  refreshAfterAuth();
+  closeAuthModal();
+  toast("E-mail potwierdzony");
+}
+
+function resendVerifyEmail() {
+  const u = USERS.find(x => x.id === pendingVerifyUserId) || currentUser();
+  if (!u) return;
+  startEmailVerifyUI(u);
+  toast("Wysłano nowy kod");
+}
+
+async function doRegister() {
+  const nick = ($("#regNick")?.value || "").trim();
+  const email = ($("#regEmail")?.value || "").trim().toLowerCase();
+  const pass = $("#regPass")?.value || "";
+  const pass2 = $("#regPass2")?.value || "";
+  $("#regErr")?.classList.remove("on");
+
+  if (nick.length < 3) return showAuthErr("#regErr", "Nick musi mieć co najmniej 3 znaki.");
+  if (nick.length > 24) return showAuthErr("#regErr", "Nick max 24 znaki.");
+  if (!/^[a-zA-Z0-9_\-ąćęłńóśźżĄĆĘŁŃÓŚŹŻ.]+$/.test(nick)) return showAuthErr("#regErr", "Nick: litery, cyfry, _ - .");
+  if (!email) return showAuthErr("#regErr", "Podaj adres e-mail.");
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return showAuthErr("#regErr", "Podaj poprawny adres e-mail.");
+  if (pass.length < 6) return showAuthErr("#regErr", "Hasło musi mieć min. 6 znaków.");
+  if (pass !== pass2) return showAuthErr("#regErr", "Hasła nie są takie same.");
+  if (USERS.some(u => u.nick.toLowerCase() === nick.toLowerCase())) return showAuthErr("#regErr", "Ten nick jest już zajęty.");
+  if (USERS.some(u => u.email && u.email === email)) return showAuthErr("#regErr", "Ten e-mail jest już używany.");
+
+  const salt = genSalt();
+  const passHash = await hashPass(pass, salt);
+  const user = {
+    id: "u" + Date.now() + Math.floor(Math.random() * 999),
+    nick,
+    email,
+    emailVerified: false,
+    salt,
+    passHash,
+    created: Date.now()
+  };
+  USERS.push(user);
+  rawSave(KEY.users, USERS);
+
+  SESSION = { userId: user.id, nick: user.nick, loggedAt: Date.now() };
+  rawSave(KEY.session, SESSION);
+  loadUserData();
+  if ($("#aNick") && !$("#aNick").value) $("#aNick").value = nick;
+  refreshAfterAuth();
+  setAuthTab("verify");
+  startEmailVerifyUI(user);
+  toast("Konto utworzone — potwierdź e-mail");
+}
+
+async function doLogin() {
+  const ident = ($("#loginNick")?.value || "").trim();
+  const pass = $("#loginPass")?.value || "";
+  $("#loginErr")?.classList.remove("on");
+  if (!ident || !pass) return showAuthErr("#loginErr", "Wpisz nick/e-mail i hasło.");
+
+  const user = USERS.find(u =>
+    u.nick.toLowerCase() === ident.toLowerCase() ||
+    (u.email && u.email === ident.toLowerCase())
+  );
+  if (!user) return showAuthErr("#loginErr", "Nie znaleziono konta o takim nicku lub e-mailu.");
+  if (!user.passHash || !user.salt) return showAuthErr("#loginErr", "To konto loguje się przez Google/Discord/telefon.");
+
+  const hash = await hashPass(pass, user.salt);
+  if (hash !== user.passHash) return showAuthErr("#loginErr", "Nieprawidłowe hasło.");
+
+  loginAsUser(user);
+}
+
+function socialLogin(provider) {
+  openModal(`<h3 style="margin-bottom:8px">${provider === "google" ? "Google" : "Discord"}</h3>
+    <p class="note" style="margin-bottom:12px">Połącz konto ${provider === "google" ? "Google" : "Discord"} z BigWW. W wersji produkcyjnej otworzy się oficjalne okno OAuth.</p>
+    <div class="field"><label>Nick w BigWW</label>
+      <input type="text" id="socNick" maxlength="24" placeholder="np. zimnyLisek" value=""></div>
+    <div class="field"><label>E-mail z konta</label>
+      <input type="email" id="socEmail" placeholder="gracz@gmail.com"></div>
+    <p class="err" id="socErr" style="display:none"></p>
+    <button class="btn pri" id="socGo" style="width:100%;margin-top:10px">Połącz i zaloguj</button>
+    <p class="note" style="margin-top:10px">E-mail z ${provider === "google" ? "Google" : "Discord"} uznajemy za potwierdzony.</p>`);
+  $("#socGo").onclick = () => {
+    const nick = ($("#socNick")?.value || "").trim();
+    const email = ($("#socEmail")?.value || "").trim().toLowerCase();
+    const err = $("#socErr");
+    if (nick.length < 3) { err.style.display = "block"; err.textContent = "Nick min. 3 znaki"; return; }
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { err.style.display = "block"; err.textContent = "Podaj e-mail"; return; }
+    let user = USERS.find(u => u.email === email || (u.provider === provider && u.providerId === email));
+    if (!user) {
+      if (USERS.some(u => u.nick.toLowerCase() === nick.toLowerCase())) {
+        err.style.display = "block"; err.textContent = "Nick zajęty — wybierz inny"; return;
+      }
+      user = {
+        id: "u" + Date.now() + Math.floor(Math.random() * 999),
+        nick,
+        email,
+        emailVerified: true,
+        provider,
+        providerId: email,
+        created: Date.now()
+      };
+      USERS.push(user);
+      saveUsers();
+    } else {
+      user.provider = provider;
+      user.emailVerified = true;
+      saveUsers();
+    }
+    $("#modal").classList.remove("on");
+    loginAsUser(user, "Zalogowano przez " + (provider === "google" ? "Google" : "Discord"));
+  };
+}
+
+function phoneSendCode() {
+  $("#phoneErr")?.classList.remove("on");
+  let num = ($("#phoneNum")?.value || "").trim().replace(/[\s\-()]/g, "");
+  if (!/^\+?[0-9]{9,15}$/.test(num)) return showAuthErr("#phoneErr", "Podaj poprawny numer (np. +48500000000).");
+  if (!num.startsWith("+")) num = "+48" + num.replace(/^0/, "");
+  const code = genVerifyCode();
+  pendingPhone = { num, code, at: Date.now() };
+  if ($("#phoneCodeField")) $("#phoneCodeField").style.display = "";
+  if ($("#btnPhoneSend")) $("#btnPhoneSend").style.display = "none";
+  if ($("#btnPhoneVerify")) $("#btnPhoneVerify").style.display = "";
+  showAuthErr("#phoneErr", "");
+  const e = $("#phoneErr");
+  if (e) { e.classList.remove("on"); e.style.color = "var(--on)"; e.textContent = "Demo — kod SMS: " + code; e.classList.add("on"); }
+  toast("Kod wysłany");
+}
+
+function phoneVerifyLogin() {
+  $("#phoneErr")?.classList.remove("on");
+  const code = ($("#phoneCode")?.value || "").trim();
+  if (!pendingPhone.code || Date.now() - pendingPhone.at > 10 * 60 * 1000) return showAuthErr("#phoneErr", "Kod wygasł — wyślij ponownie.");
+  if (code !== pendingPhone.code) return showAuthErr("#phoneErr", "Nieprawidłowy kod SMS.");
+  let user = USERS.find(u => u.phone === pendingPhone.num);
+  if (!user) {
+    const nick = "tel" + pendingPhone.num.slice(-4) + Math.floor(Math.random() * 90 + 10);
+    user = {
+      id: "u" + Date.now() + Math.floor(Math.random() * 999),
+      nick,
+      phone: pendingPhone.num,
+      email: "",
+      emailVerified: false,
+      provider: "phone",
+      created: Date.now()
+    };
+    USERS.push(user);
+    saveUsers();
+  }
+  loginAsUser(user, "Zalogowano numerem telefonu");
+}
+
+function doLogout() {
+  SESSION = null;
+  rawSave(KEY.session, null);
+  loadUserData();
+  refreshAfterAuth();
+  toast("Wylogowano");
+  go("home");
+}
+
+function refreshAfterAuth() {
+  countCache = null;
+  applyTheme();
+  updateAuthUI();
+  updateBadges();
+  updateCoinUI();
+  updateLookingUI();
+  renderHome();
+  renderPlayers(true);
+  renderMine();
+  renderSaved();
+  renderPremium();
+  renderSettingsPrem();
+  renderShop();
+  renderLives();
+  // restore filters UI if needed
+  if ($("#sTheme")) $("#sTheme").value = PREF.theme;
+  if ($("#sRegion")) $("#sRegion").value = PREF.region;
+}
+
+function requireLogin(actionLabel) {
+  if (isLoggedIn()) return true;
+  openModal(`<h3 style="margin-bottom:8px">Wymagane logowanie</h3>
+    <p class="note">Aby ${actionLabel || "wykonać tę akcję"}, musisz mieć konto BigWW.</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:16px">
+      <button class="btn pri" id="needLogin">Zaloguj się</button>
+      <button class="btn" id="needReg">Załóż konto</button>
+    </div>`);
+  $("#needLogin").onclick = () => { $("#modal").classList.remove("on"); openAuthModal("login"); };
+  $("#needReg").onclick = () => { $("#modal").classList.remove("on"); openAuthModal("register"); };
   return false;
 }
+
+// bind auth UI
+if ($("#tabLogin")) $("#tabLogin").onclick = () => setAuthTab("login");
+if ($("#tabRegister")) $("#tabRegister").onclick = () => setAuthTab("register");
+if ($("#tabPhone")) $("#tabPhone").onclick = () => setAuthTab("phone");
+if ($("#btnDoLogin")) $("#btnDoLogin").onclick = () => doLogin();
+if ($("#btnDoRegister")) $("#btnDoRegister").onclick = () => doRegister();
+if ($("#authClose")) $("#authClose").onclick = closeAuthModal;
+if ($("#authModal")) $("#authModal").onclick = e => { if (e.target.id === "authModal") closeAuthModal(); };
+if ($("#btnLoginOpen")) $("#btnLoginOpen").onclick = openAuthModal;
+if ($("#btnGoogle")) $("#btnGoogle").onclick = () => socialLogin("google");
+if ($("#btnDiscord")) $("#btnDiscord").onclick = () => socialLogin("discord");
+if ($("#btnPhoneSend")) $("#btnPhoneSend").onclick = phoneSendCode;
+if ($("#btnPhoneVerify")) $("#btnPhoneVerify").onclick = phoneVerifyLogin;
+if ($("#btnVerifyEmail")) $("#btnVerifyEmail").onclick = doVerifyEmail;
+if ($("#btnResendVerify")) $("#btnResendVerify").onclick = resendVerifyEmail;
+setupVerifyInputs();
+["#loginPass", "#loginNick"].forEach(s => {
+  const n = $(s);
+  if (n) n.addEventListener("keydown", e => { if (e.key === "Enter") doLogin(); });
+});
+["#regPass2", "#regPass", "#regNick", "#regEmail"].forEach(s => {
+  const n = $(s);
+  if (n) n.addEventListener("keydown", e => { if (e.key === "Enter") doRegister(); });
+});
+["#phoneCode"].forEach(s => {
+  const n = $(s);
+  if (n) n.addEventListener("keydown", e => { if (e.key === "Enter") phoneVerifyLogin(); });
+});
+

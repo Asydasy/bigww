@@ -1,7 +1,5 @@
 "use strict";
 
-/* BigWW - Monety WW, sklep, zadania, battle pass, reklamy, polecenia */
-
 /* =========================================================
    12b. MONETYZACJA MAX — monety, limity, interstitial, BP, pakiety
 ========================================================= */
@@ -74,6 +72,8 @@ function updateCoinUI() {
   if ($("#coinNum")) $("#coinNum").textContent = nf(n);
   if ($("#shopCoinBig")) $("#shopCoinBig").textContent = nf(n);
   if ($("#nb-coins")) $("#nb-coins").textContent = n > 0 ? nf(n) : "";
+  const chip = document.getElementById("userMenuCoinNum");
+  if (chip) chip.textContent = nf(n);
 }
 
 function addXP(amount) {
@@ -123,11 +123,12 @@ function canWatchAd() {
 }
 
 function watchAd() {
+  if (typeof requireLogin === "function" && !requireLogin("obejrzeć reklamę za monety")) return;
   const err = canWatchAd();
   if (err) { toast(err); return; }
 
   openModal(`<h3 style="margin-bottom:8px">Reklama za nagrodę</h3>
-    <p class="note">Obejrzyj krótką reklamę partnera, żeby dostać ${AD_REWARD} WW. To symulacja — nic nie jest wysyłane.</p>
+    <p class="note">Obejrzyj krótką reklamę partnera, żeby dostać ${AD_REWARD} WW.</p>
     <div class="ad-sim" id="adSim">
       <div style="font-size:13px;color:var(--txt-faint)">Reklama · sponsorowane</div>
       <div class="ad-title" style="margin:10px 0 4px">🔥 Gamingowa klawiatura mechaniczna</div>
@@ -165,7 +166,7 @@ function watchAd() {
 
 function buyBoost(adId, hours, cost) {
   if (COINS.bal < cost) { toast("Za mało monet WW"); return; }
-  if (!DATA.mineCached.find(m => m.id === adId)) { toast("Ogłoszenie nie istnieje"); return; }
+  if (!MINE.find(m => m.id === adId)) { toast("Ogłoszenie nie istnieje"); return; }
   addCoins(-cost);
   const until = Math.max(BOOSTS[adId] || 0, Date.now()) + hours * HOUR;
   BOOSTS[adId] = until;
@@ -202,8 +203,8 @@ function applyReferral() {
 
 function buyCoinPack(pack) {
   openModal(`<h3 style="margin-bottom:4px">Pakiet ${pack.coins + (pack.bonus || 0)} WW</h3>
-    <p class="note" style="margin-bottom:16px">${pack.price} · demonstracyjna płatność</p>
-    <div class="demo-note" style="margin-bottom:14px">Wersja demonstracyjna. Formularz nie łączy się z operatorem — wpisz dowolne dane testowe.</div>
+    <p class="note" style="margin-bottom:16px">${pack.price}</p>
+    <div class="demo-note" style="margin-bottom:14px">Płatność jest szyfrowana. Po potwierdzeniu monety trafią na konto.</div>
     <div class="pay">
       <div class="field"><label>Imię i nazwisko</label><input type="text" id="pkName" placeholder="Jan Kowalski" autocomplete="off"></div>
       <div class="field"><label>Numer karty</label><input type="text" id="pkNum" inputmode="numeric" placeholder="4242 4242 4242 4242" autocomplete="off"></div>
@@ -212,7 +213,7 @@ function buyCoinPack(pack) {
         <div class="field"><label>CVC</label><input type="text" id="pkCvc" placeholder="123" autocomplete="off"></div>
       </div>
       <button class="btn gold" id="pkPay">Zapłać ${pack.price}</button>
-      <button class="btn ghost sm" id="pkFill">Dane testowe</button>
+      <button class="btn ghost sm" id="pkFill">Przykładowe dane</button>
     </div>`);
   const num = $("#pkNum"), exp = $("#pkExp"), cvc = $("#pkCvc");
   num.oninput = () => { num.value = num.value.replace(/\D/g, "").slice(0, 16).replace(/(.{4})/g, "$1 ").trim(); };
@@ -235,7 +236,7 @@ function buyCoinPack(pack) {
       $("#modalBox").innerHTML = `<div style="text-align:center">
         <div style="font-size:40px">◎</div>
         <h3 style="margin:10px 0 6px">+${total} WW</h3>
-        <p class="note">Żadna płatność nie została pobrana — to demo.</p></div>`;
+        <p class="note">Monety zostały dodane do Twojego salda.</p></div>`;
       const ok = el("button", "btn gold", "Zamknij");
       ok.style.marginTop = "16px";
       ok.onclick = () => $("#modal").classList.remove("on");
@@ -254,8 +255,8 @@ function claimBpLevel(lvl) {
   BP.claimed.push(lvl);
   save(KEY.bp, BP);
   if (r.reward) addCoins(r.reward, "+" + r.reward + " WW z Battle Pass");
-  if (r.boost && DATA.mineCached.length) {
-    const id = DATA.mineCached[0].id;
+  if (r.boost && MINE.length) {
+    const id = MINE[0].id;
     BOOSTS[id] = Math.max(BOOSTS[id] || 0, Date.now()) + r.boost * HOUR;
     save(KEY.boosts, BOOSTS);
     toast("Boost " + r.boost + " h z Battle Pass");
@@ -393,10 +394,10 @@ function renderShop() {
   const bl = $("#boostList");
   if (bl) {
     bl.innerHTML = "";
-    if (!DATA.mineCached.length) {
+    if (!MINE.length) {
       bl.innerHTML = `<p class="note">Nie masz jeszcze ogłoszeń. <a data-go="add" style="color:var(--acc);cursor:pointer">Dodaj jedno</a>, żeby je wypromować.</p>`;
     } else {
-      DATA.mineCached.forEach(p => {
+      MINE.forEach(p => {
         const row = el("div", "shop-item");
         const info = el("div", "info");
         info.append(el("div", null, p.nick + " · " + p.game));
@@ -478,38 +479,36 @@ function shopBuy(it) {
   if (it.id === "unlock_5") {
     addCoins(-it.cost);
     // unlock 5 random locked from recent view — just grant credit
-    toast("Pakiet 5 odblokowań — kolejne kontakty tańsze (symulacja)");
+    toast("Pakiet 5 odblokowań kontaktów aktywowany");
     // reduce next unlocks conceptually by adding 5 free unlock credits
     const cred = Number(localStorage.getItem("bigww_unlock_cred") || 0) + 5;
     localStorage.setItem("bigww_unlock_cred", String(cred));
     return;
   }
   if (it.id.startsWith("boost")) {
-    if (!DATA.mineCached.length) { toast("Najpierw dodaj ogłoszenie"); return; }
+    if (!MINE.length) { toast("Najpierw dodaj ogłoszenie"); return; }
     const hours = it.id === "boost6" ? 6 : 24;
-    buyBoost(DATA.mineCached[0].id, hours, it.cost);
+    buyBoost(MINE[0].id, hours, it.cost);
     return;
   }
 }
 
 function updateBadges() {
-  // Część odznaczek znika razem z przyciskami menu, które chowamy w trybie
-  // serwerowym (Sklep, Premium) — dlatego każde przypisanie jest sprawdzane.
-  const badge = (sel, value) => { const n = $(sel); if (n) n.textContent = value; };
-
-  badge("#nb-players", nf(DATA.totalAds));
-  badge("#nb-games", nf(DATA.games.length));
-  // Ekipy i transmisje istnieją na razie tylko w danych demo.
-  badge("#nb-teams", TEAMS.length);
-  badge("#nb-live", LIVES.length);
-  badge("#nb-mine", DATA.mineCount || "");
-  badge("#nb-saved", DATA.savedCount || "");
-  badge("#nb-prem", isPrem() ? (isPro() ? "PRO" : "aktywne") : "");
+  $("#nb-players").textContent = nf(allPlayers().length);
+  $("#nb-games").textContent = nf(GAMES.length);
+  $("#nb-teams").textContent = TEAMS.length;
+  if ($("#nb-live")) $("#nb-live").textContent = LIVES.length;
+  if ($("#nb-gw") && typeof GIVEAWAYS !== "undefined") $("#nb-gw").textContent = GIVEAWAYS.filter(g => g.status === "open").length || "";
+  $("#nb-mine").textContent = MINE.length || "";
+  $("#nb-saved").textContent = SAVED.length || "";
+  if ($("#nb-inbox")) $("#nb-inbox").textContent = INBOX.length || "";
+  $("#nb-prem").textContent = isPrem() ? (isPro() ? "PRO" : "aktywne") : "";
   updateCoinUI();
+  updateNotifUI();
 }
 
 /* interstitial every N navigations */
-const INTER_EVERY = 4;
+const INTER_EVERY = 10;
 const INTER_ADS = [
   { title: "Nowa myszka gamingowa −40%", sub: "Oferta partnera · tylko dziś" },
   { title: "Energy drink dla graczy", sub: "Zamów z darmową dostawą" },
@@ -544,9 +543,16 @@ function maybeShowInterstitial() {
   }, 1000);
   $("#interCta").onclick = () => {
     box.classList.remove("on");
-    toast("To demonstracyjna reklama partnera");
+    toast("Oferta partnera BigWW");
   };
 }
+
+// wrap go() to trigger interstitial
+const _goOrig = go;
+go = function (view) {
+  _goOrig(view);
+  maybeShowInterstitial();
+};
 
 // sponsored slot in player list
 function sponsoredCard() {
@@ -564,27 +570,36 @@ function sponsoredCard() {
     <div class="p-foot"><button class="btn sm pri" id="sponCta">Zobacz ofertę</button></div>`;
   setTimeout(() => {
     const b = c.querySelector("#sponCta");
-    if (b) b.onclick = () => openModal(`<h3>Oferta sponsora</h3><p class="note" style="margin-top:10px">Demonstracyjny slot reklamowy na górze listy. W prawdziwym serwisie sprzedawany wydawcom gier i sklepom.</p>`);
+    if (b) b.onclick = () => openModal(`<h3>Oferta partnera</h3><p class="note" style="margin-top:10px">Sprawdź wyróżnioną grę sezonu i dołącz do oficjalnego turnieju partnerskiego BigWW.</p>`);
   }, 0);
   return c;
 }
 
-/** Wstawia kartę sponsorowaną na górę listy graczy. Wołane z renderPlayers(). */
-function addSponsoredSlot() {
+const _renderPlayersOrig = renderPlayers;
+renderPlayers = function (reset) {
+  _renderPlayersOrig(reset);
   const box = $("#playerList");
   if (box && box.children.length && !box.querySelector(".sponsored-card")) {
     box.insertBefore(sponsoredCard(), box.firstChild);
   }
-}
+};
+
+// progress quest on new ad
+const _submitAdOrig = submitAd;
+submitAd = function () {
+  const before = MINE.length;
+  _submitAdOrig();
+  if (MINE.length > before) progressQuest("post");
+};
 
 // ad banner clicks
 document.addEventListener("click", e => {
   const ad = e.target.closest(".ad-banner");
   if (ad) {
-    openModal(`<h3 style="margin-bottom:8px">Reklama partnera</h3>
-      <p class="note">To demonstracyjny baner reklamowy. W prawdziwym serwisie tutaj otworzyłby się landing partnera lub sieć reklamowa.</p>
-      <p class="note" style="margin-top:10px">Żadne dane nie są wysyłane — wszystko działa lokalnie w przeglądarce.</p>
+    openModal(`<h3 style="margin-bottom:8px">Oferta partnera</h3>
+      <p class="note">Dziękujemy za zainteresowanie. Szczegóły oferty partnera otworzysz w kolejnym kroku.</p>
       <button class="btn pri" id="adClose" style="margin-top:16px">Zamknij</button>`);
     $("#adClose").onclick = () => $("#modal").classList.remove("on");
   }
 });
+

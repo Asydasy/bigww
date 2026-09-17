@@ -1,13 +1,9 @@
 "use strict";
 
-/* BigWW - Widok: dodawanie ogloszenia + moje ogloszenia + obserwowani */
-
 /* =========================================================
    10. DODAWANIE OGŁOSZENIA
 ========================================================= */
 let pickedTags = [];
-/** Id ogłoszenia, które właśnie edytujemy; null = dodajemy nowe. */
-let editingAdId = null;
 function buildAdd() {
   const box = $("#aTags");
   TAGS.forEach(t => {
@@ -21,8 +17,37 @@ function buildAdd() {
     };
     box.append(b);
   });
-  ["#aNick", "#aAge", "#aGame", "#aRegion", "#aPlat", "#aStyle", "#aTimeFrom", "#aTimeTo", "#aMic", "#aDesc", "#aContact", "#aClip"]
-    .forEach(s => $(s).addEventListener("input", preview));
+  const tplBox = $("#adTemplates");
+  if (tplBox) {
+    AD_TEMPLATES.forEach(tpl => {
+      const b = el("button", "chip", tpl.label);
+      b.onclick = () => {
+        $("#aDesc").value = tpl.text;
+        $("#aLen").textContent = tpl.text.length;
+        document.querySelectorAll("#adTemplates .chip").forEach(c => c.classList.remove("on"));
+        b.classList.add("on");
+        preview();
+        toast("Szablon: " + tpl.label);
+      };
+      tplBox.append(b);
+    });
+  }
+  const dayBox = $("#aDays");
+  if (dayBox) {
+    dayBox.innerHTML = "";
+    WEEK_DAYS.forEach(d => {
+      const b = el("button", "chip", d.label);
+      b.onclick = () => {
+        if (pickedDays.includes(d.id)) pickedDays = pickedDays.filter(x => x !== d.id);
+        else pickedDays.push(d.id);
+        b.classList.toggle("on");
+        preview();
+      };
+      dayBox.append(b);
+    });
+  }
+  ["#aNick", "#aAge", "#aGame", "#aRegion", "#aPlat", "#aStyle", "#aRank", "#aTimeFrom", "#aTimeTo", "#aMic", "#aDesc", "#aContact", "#aClip"]
+    .forEach(s => { const n = $(s); if (n) n.addEventListener("input", preview); });
   $("#aDesc").addEventListener("input", () => $("#aLen").textContent = $("#aDesc").value.length);
   $("#aSubmit").onclick = submitAd;
   $("#aFile").onchange = () => {
@@ -60,9 +85,12 @@ function buildAdd() {
     pendingMedia = { clipUrl: "", fileData: null, fileType: "" };
     $("#aFilePrev").innerHTML = "";
     pickedTags = [];
+    pickedDays = [];
     document.querySelectorAll("#aTags .chip").forEach(c => c.classList.remove("on"));
+    document.querySelectorAll("#aDays .chip").forEach(c => c.classList.remove("on"));
     $("#aLen").textContent = "0";
-    cancelEdit();
+    editingAdId = null;
+    if ($("#aSubmit")) $("#aSubmit").textContent = "Opublikuj ogłoszenie";
     preview();
   };
   preview();
@@ -71,17 +99,18 @@ function buildAdd() {
 function draft() {
   const nick = $("#aNick").value.trim() || "twój_nick";
   const game = $("#aGame").value;
-  const hourFrom = Number($("#aTimeFrom").value);
-  const hourTo = Number($("#aTimeTo").value);
+  const hourFrom = $("#aTimeFrom") ? Number($("#aTimeFrom").value) : 17;
+  const hourTo = $("#aTimeTo") ? Number($("#aTimeTo").value) : 22;
   return {
-    id: editingAdId || "my" + Date.now() + Math.floor(Math.random() * 999),
+    id: "my" + Date.now() + Math.floor(Math.random() * 999),
     nick,
     age: Number($("#aAge").value) || 20,
     region: $("#aRegion").value,
     game,
-    gameId: DATA.gameIdByName(game),
+    gameId: (GAMES.find(g => g.name === game) || {}).id,
     plat: $("#aPlat").value,
     style: $("#aStyle").value,
+    rank: ($("#aRank") && $("#aRank").value) || "mid",
     time: timeLabel(hourFrom, hourTo),
     hourFrom,
     hourTo,
@@ -91,6 +120,7 @@ function draft() {
     rating: "—",
     status: "on",
     tags: pickedTags.slice(),
+    days: pickedDays.slice(),
     contact: $("#aContact").value.trim(),
     desc: $("#aDesc").value.trim() || "Szukam ludzi do wspólnego grania w " + game + ".",
     clipUrl: ($("#aClip").value || "").trim(),
@@ -105,8 +135,10 @@ function preview() {
   box.innerHTML = "";
   box.append(playerCard(draft()));
 }
-/** Wczytuje ogłoszenie do formularza i przełącza go w tryb edycji. */
+let editingAdId = null;
+
 function startEditAd(p) {
+  if (!requireLogin("edytować ogłoszenie")) return;
   editingAdId = p.id;
   $("#aNick").value = p.nick || "";
   $("#aAge").value = p.age || "";
@@ -114,128 +146,99 @@ function startEditAd(p) {
   if (p.region) $("#aRegion").value = p.region;
   if (p.plat) $("#aPlat").value = p.plat;
   if (p.style) $("#aStyle").value = p.style;
-  if (p.hourFrom != null) $("#aTimeFrom").value = String(p.hourFrom);
-  if (p.hourTo != null) $("#aTimeTo").value = String(p.hourTo);
+  if (p.rank && $("#aRank")) $("#aRank").value = p.rank;
+  pickedDays = (p.days || []).slice();
+  document.querySelectorAll("#aDays .chip").forEach((c, i) => {
+    if (WEEK_DAYS[i]) c.classList.toggle("on", pickedDays.includes(WEEK_DAYS[i].id));
+  });
+  if (p.hourFrom != null && $("#aTimeFrom")) $("#aTimeFrom").value = String(p.hourFrom);
+  if (p.hourTo != null && $("#aTimeTo")) $("#aTimeTo").value = String(p.hourTo);
   if (p.mic) $("#aMic").value = p.mic;
   $("#aContact").value = p.contact || "";
   $("#aDesc").value = p.desc || "";
-  $("#aLen").textContent = String(($("#aDesc").value || "").length);
+  $("#aLen").textContent = ($("#aDesc").value || "").length;
   $("#aClip").value = p.clipUrl || "";
-
+  pendingMedia.fileData = p.fileData || null;
+  pendingMedia.fileType = p.fileType || "";
   pickedTags = (p.tags || []).slice(0, 4);
   document.querySelectorAll("#aTags .chip").forEach(c => {
     c.classList.toggle("on", pickedTags.includes(c.textContent));
   });
-
-  $("#aSubmit").textContent = "Zapisz zmiany";
+  const prev = $("#aFilePrev");
+  if (prev) {
+    prev.innerHTML = "";
+    if (p.fileData && p.fileType && p.fileType.startsWith("image")) {
+      const img = el("img");
+      img.src = p.fileData;
+      img.style.cssText = "max-width:100%;max-height:120px;border-radius:10px";
+      prev.append(img);
+    }
+  }
+  if ($("#aSubmit")) $("#aSubmit").textContent = "Zapisz zmiany";
   go("add");
   preview();
-  toast("Edytujesz ogłoszenie — zapisz zmiany albo wyczyść formularz");
+  toast("Edytujesz ogłoszenie");
 }
 
-function cancelEdit() {
-  editingAdId = null;
-  $("#aSubmit").textContent = "Opublikuj ogłoszenie";
-}
-
-async function submitAd() {
+function submitAd() {
+  if (!requireLogin("dodać ogłoszenie")) return;
   const nick = $("#aNick").value.trim();
   if (nick.length < 2) { toast("Wpisz nick"); $("#aNick").focus(); return; }
   if ($("#aDesc").value.trim().length < 10) { toast("Opisz krótko, czego szukasz"); $("#aDesc").focus(); return; }
-
-  // Na serwerze ogłoszenie musi mieć właściciela.
-  if (DATA.isApi && !DATA.user) return requireLogin(editingAdId ? "edytować ogłoszenie" : "dodać ogłoszenie");
-
-  const edycja = Boolean(editingAdId);
-  $("#aSubmit").disabled = true;
-  try {
-    if (edycja) await DATA.updateAd(editingAdId, draft());
-    else await DATA.createAd(draft());
-  } catch (e) {
-    $("#aSubmit").disabled = false;
-    if (e.status === 401) return requireLogin(edycja ? "edytować ogłoszenie" : "dodać ogłoszenie");
-    if (e.status === 403) return limitModal();
-    toast(e.message || "Nie udało się zapisać ogłoszenia");
+  if (editingAdId) {
+    const ad = draft();
+    ad.id = editingAdId;
+    ad.ownerId = SESSION && SESSION.userId;
+    ad.added = (MINE.find(m => m.id === editingAdId) || {}).added || Date.now();
+    MINE = MINE.map(m => m.id === editingAdId ? ad : m);
+    save(KEY.mine, MINE);
+    editingAdId = null;
+    if ($("#aSubmit")) $("#aSubmit").textContent = "Opublikuj ogłoszenie";
+    countCache = null;
+    toast("Ogłoszenie zaktualizowane");
+    updateBadges();
+    renderPlayers(true);
+    go("mine");
     return;
   }
-  $("#aSubmit").disabled = false;
-  cancelEdit();
-
-  toast(edycja ? "Ogłoszenie zaktualizowane" : "Ogłoszenie opublikowane");
+  if (MINE.length >= adLimit()) {
+    openModal(`<h3 style="margin-bottom:8px">Limit ogłoszeń wyczerpany</h3>
+      <p class="note">Plan podstawowy pozwala mieć ${adLimit()} aktywne ogłoszenia. Usuń jedno ze starych albo przejdź na Premium, gdzie zmieścisz 10 i trafisz na górę wyników.</p>
+      <button class="btn gold" id="limGo" style="margin-top:16px">Zobacz Premium</button>`);
+    $("#limGo").onclick = () => { $("#modal").classList.remove("on"); go("premium"); };
+    return;
+  }
+  const ad = draft();
+  ad.ownerId = SESSION.userId;
+  MINE.unshift(ad);
+  save(KEY.mine, MINE);
+  countCache = null;
+  toast("Ogłoszenie opublikowane");
   updateBadges();
   renderPlayers(true);
   go("mine");
-  progressQuest("post"); // monetization.js — zadanie dnia „dodaj ogłoszenie”
 }
 
-function limitModal() {
-  const limit = DATA.isApi ? DATA.limits.limit : adLimit();
-  openModal(`<h3 style="margin-bottom:8px">Limit ogłoszeń wyczerpany</h3>
-    <p class="note">Plan podstawowy pozwala mieć ${limit} aktywne ogłoszenia. Usuń jedno ze starych albo przejdź na Premium, gdzie zmieścisz 10 i trafisz na górę wyników.</p>
-    <button class="btn gold" id="limGo" style="margin-top:16px">Zobacz Premium</button>`);
-  $("#limGo").onclick = () => { $("#modal").classList.remove("on"); go("premium"); };
-}
-
-async function renderMine() {
+function renderMine() {
   const box = $("#mineList");
   box.innerHTML = "";
-
-  if (DATA.isApi && !DATA.user) {
-    box.innerHTML = `<div class="empty" style="grid-column:1/-1"><h3>Zaloguj się</h3>
-      <p>Twoje ogłoszenia są przypisane do konta, więc najpierw trzeba się zalogować.</p></div>`;
-    const b = el("button", "btn pri", "Zaloguj się");
-    b.onclick = () => openAuth("login");
-    box.firstChild.append(b);
-    return;
-  }
-
-  let res;
-  try {
-    res = await DATA.myAds();
-  } catch (e) {
-    box.innerHTML = `<div class="empty" style="grid-column:1/-1"><h3>Nie udało się pobrać ogłoszeń</h3><p>${e.message || ""}</p></div>`;
-    return;
-  }
-
-  if (!res.ads.length) {
+  if (!MINE.length) {
     box.innerHTML = `<div class="empty" style="grid-column:1/-1"><h3>Nie masz jeszcze ogłoszeń</h3><p>Dodaj pierwsze, żeby inni gracze mogli Cię znaleźć.</p></div>`;
     const b = el("button", "btn pri", "Dodaj ogłoszenie");
     b.onclick = () => go("add");
     box.firstChild.append(b);
     return;
   }
-
-  const info = el("div", "note");
-  info.style.cssText = "grid-column:1/-1;margin-bottom:4px";
-  info.textContent = `Zajęte ${res.used} z ${res.limit} miejsc na ogłoszenia.`;
-  box.append(info);
-  res.ads.forEach(p => box.append(playerCard(p)));
+  MINE.forEach(p => box.append(playerCard(p)));
 }
-
-async function renderSaved() {
+function renderSaved() {
   const box = $("#savedList");
   box.innerHTML = "";
-
-  if (DATA.isApi && !DATA.user) {
-    box.innerHTML = `<div class="empty" style="grid-column:1/-1"><h3>Zaloguj się</h3>
-      <p>Obserwowani są zapisani przy koncie, żeby byli widoczni także na innym urządzeniu.</p></div>`;
-    const b = el("button", "btn pri", "Zaloguj się");
-    b.onclick = () => openAuth("login");
-    box.firstChild.append(b);
-    return;
-  }
-
-  let res;
-  try {
-    res = await DATA.savedAds();
-  } catch (e) {
-    box.innerHTML = `<div class="empty" style="grid-column:1/-1"><h3>Nie udało się pobrać listy</h3><p>${e.message || ""}</p></div>`;
-    return;
-  }
-
-  if (!res.ads.length) {
+  const list = allPlayers().filter(p => SAVED.includes(p.id));
+  if (!list.length) {
     box.innerHTML = `<div class="empty" style="grid-column:1/-1"><h3>Pusto</h3><p>Gwiazdka na karcie gracza zapisze go tutaj.</p></div>`;
     return;
   }
-  res.ads.forEach(p => box.append(playerCard(p)));
+  list.forEach(p => box.append(playerCard(p)));
 }
+

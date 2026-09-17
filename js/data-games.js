@@ -1,7 +1,5 @@
 "use strict";
 
-/* BigWW - Baza gier (204 tytuly) -> GAMES */
-
 /* =========================================================
    1. BAZA GIER
    format: nazwa | gatunek | tryb | platformy | popularność(1-5)
@@ -225,3 +223,4 @@ const GAMES = GAME_DATA.split("\n").map((line, i) => {
     pop: Number(pop)
   };
 });
+

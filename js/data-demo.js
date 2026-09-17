@@ -1,7 +1,5 @@
 "use strict";
 
-/* BigWW - Generator danych demo: PLAYERS, TEAMS, LIVES, awatary SVG */
-
 /* =========================================================
    2. GENERATOR GRACZY (deterministyczny)
 ========================================================= */
@@ -38,11 +36,50 @@ const PLATS = ["PC","PS","XBOX","SWITCH","MOBILE"];
 const PLAT_LABEL = { PC: "PC", PS: "PlayStation", XBOX: "Xbox", SWITCH: "Switch", MOBILE: "Mobile" };
 const STYLES = ["Na luzie","Półkompetytywnie","Rankedy","Turnieje / esport","Tylko fabuła i co-op","Roleplay","Granie z modami","Farmienie i grind"];
 const TIMES = ["Rano","Popołudniami","Wieczorami","Po północy","Weekendy","Nieregularnie"];
-/** Przelicznik dawnych pór dnia na godziny — używany przy generowaniu demo. */
 const TIME_BANDS = {
-  "Rano": [6, 12], "Popołudniami": [12, 17], "Wieczorami": [17, 23],
-  "Po północy": [22, 4], "Weekendy": [10, 22], "Nieregularnie": [0, 23]
+  "Rano": [6, 12],
+  "Popołudniami": [12, 17],
+  "Wieczorami": [17, 23],
+  "Po północy": [22, 4],
+  "Weekendy": [10, 22],
+  "Nieregularnie": [0, 23]
 };
+function fmtHour(h) {
+  const n = ((Number(h) % 24) + 24) % 24;
+  return String(n).padStart(2, "0") + ":00";
+}
+function timeLabel(from, to) {
+  if (from == null || to == null || from === "" || to === "") return "Elastycznie";
+  return fmtHour(from) + "–" + fmtHour(to);
+}
+/** Czy przedział gracza [pFrom,pTo) nachodzi na filtr [fFrom,fTo). Obsługa przejścia przez północ. */
+function hoursOverlap(pFrom, pTo, fFrom, fTo) {
+  if (fFrom === "" || fFrom == null || fTo === "" || fTo == null) return true;
+  if (pFrom == null || pTo == null) return true;
+  const pf = Number(pFrom), pt = Number(pTo), ff = Number(fFrom), ft = Number(fTo);
+  function expand(a, b) {
+    const ranges = [];
+    if (a === b) ranges.push([0, 24]);
+    else if (a < b) ranges.push([a, b]);
+    else { ranges.push([a, 24]); ranges.push([0, b]); }
+    return ranges;
+  }
+  const pr = expand(pf, pt);
+  const fr = expand(ff, ft);
+  for (const [a1, a2] of pr) {
+    for (const [b1, b2] of fr) {
+      if (a1 < b2 && b1 < a2) return true;
+    }
+  }
+  return false;
+}
+function fillHourSelect(sel, firstLabel, defaultVal) {
+  if (!sel) return;
+  sel.innerHTML = "";
+  if (firstLabel != null) sel.appendChild(new Option(firstLabel, ""));
+  for (let h = 0; h < 24; h++) sel.appendChild(new Option(fmtHour(h), String(h)));
+  if (defaultVal != null && defaultVal !== "") sel.value = String(defaultVal);
+}
 const MICS = ["Mikrofon: tak","Mikrofon: czasem","Mikrofon: nie"];
 const LANGS = ["PL","PL / EN","PL / EN / DE","PL / EN / UA"];
 const TAGS = ["bez toksyczności","cierpliwy","uczę nowych","szukam stałej ekipy","gram codziennie","discord","tryb rankingowy","chill","dobry aim","gram taktycznie","lubię mody","wolne granie","gram z mamą xd","nocny marek","świeżak","weteran","gram na padzie","streamuję","bez mikrofonu też ok","lubię hardcore"];
@@ -177,12 +214,13 @@ for (let i = 0; i < 720; i++) {
   const style = pick(STYLES);
   const time = pick(TIMES);
   const band = TIME_BANDS[time] || [17, 23];
-  let hourFrom = band[0];
-  let hourTo = band[1];
+  let hourFrom = band[0], hourTo = band[1];
+  // lekkie losowe przesunięcie w obrębie pasma
   if (hourFrom < hourTo && hourTo - hourFrom >= 3) {
-    hourFrom += int(0, Math.min(2, hourTo - hourFrom - 1));
-    hourTo -= int(0, Math.min(2, hourTo - hourFrom - 1));
+    hourFrom = hourFrom + int(0, Math.min(2, hourTo - hourFrom - 1));
+    hourTo = hourTo - int(0, Math.min(2, hourTo - hourFrom - 1));
   }
+  const tLab = timeLabel(hourFrom, hourTo);
   PLAYERS.push({
     id: "gen" + i,
     nick,
@@ -192,7 +230,7 @@ for (let i = 0; i < 720; i++) {
     gameId: game.id,
     plat,
     style,
-    time: timeLabel(hourFrom, hourTo),
+    time: tLab,
     hourFrom,
     hourTo,
     mic: R() < 0.72 ? MICS[0] : pick(MICS),
@@ -201,8 +239,10 @@ for (let i = 0; i < 720; i++) {
     rating: (3.4 + R() * 1.6).toFixed(1),
     status: pick(STATUSES),
     prem: R() < 0.09,
+    rank: pick(["beginner", "mid", "mid", "mid", "high", "high", "pro"]),
+    days: R() < 0.45 ? pickN(["mon","tue","wed","thu","fri","sat","sun"], int(1, 4)) : [],
     tags: pickN(TAGS, int(2, 4)),
-    desc: pick(DESC).replace("{g}", game.name).replace("{t}", time.toLowerCase()),
+    desc: pick(DESC).replace("{g}", game.name).replace("{t}", tLab),
     added: Date.now() - Math.floor(R() * 340 * HOUR),
     mine: false
   });
@@ -268,3 +308,4 @@ for (let i = 0; i < 36; i++) {
 }
 
 const LIVE_TICKET_COST = 35;
+
