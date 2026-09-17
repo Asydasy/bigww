@@ -100,17 +100,32 @@ $("#sWipe").onclick = () => {
     PREM = { active: false, plan: null, until: 0, since: 0 };
     LIVEPASS = { until: 0 };
     LIVETICKETS = [];
+    // Rzeczy, które doszły razem ze skrzynką i moderacją — bez tego „usuń
+    // wszystko" zostawiało wiadomości, blokady i oceny.
+    INBOX = [];
+    NOTIFS = [];
+    BLOCKED = [];
+    REPORTS = [];
+    RATINGS = {};
+    PRESETS = [];
     pendingMedia = { clipUrl: "", fileData: null, fileType: "" };
     if (!naSerwerze) { save(KEY.mine, MINE); save(KEY.saved, SAVED); }
     save(KEY.coins, COINS); save(KEY.ref, REF); save(KEY.boosts, BOOSTS); save(KEY.adlog, ADLOG);
     save(KEY.msg, MSG); save(KEY.bp, BP); save(KEY.quests, QUESTS); save(KEY.unlocks, UNLOCKS);
     save(KEY.navcount, NAVCOUNT); save(KEY.prem, PREM);
     save(KEY.livePass, LIVEPASS); save(KEY.liveTickets, LIVETICKETS);
+    save(KEY.inbox, INBOX); save(KEY.notifs, NOTIFS); save(KEY.blocked, BLOCKED);
+    save(KEY.reports, REPORTS); save(KEY.ratings, RATINGS); save(KEY.presets, PRESETS);
+    // Klucze poza obiektem KEY — nie mają przyrostka konta, więc lecą wprost.
     localStorage.removeItem("bigww_extra_slot");
     localStorage.removeItem("bigww_unlock_cred");
+    localStorage.removeItem("bigww_gw_entries");
+    localStorage.removeItem("bigww_gw_day");
     countCache = null;
     $("#modal").classList.remove("on");
-    updateBadges(); renderMine(); renderSaved(); renderPlayers(true); renderHome(); renderShop(); renderPremium(); renderLives();
+    updateBadges(); updateNotifUI(); renderInbox();
+    renderMine(); renderSaved(); renderPlayers(true); renderHome(); renderShop(); renderPremium(); renderLives();
+    if (typeof renderGiveaways === "function") renderGiveaways();
     toast("Dane usunięte");
   };
 };
