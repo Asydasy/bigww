@@ -1,0 +1,10 @@
+# Wszyscy pracują na Windowsie, a repo trzyma końce linii w formacie LF.
+# Bez tego git potrafi pokazać cały plik jako zmieniony tylko dlatego, że
+# drugi komputer zapisał go z innymi znakami końca linii.
+* text=auto eol=lf
+
+# Pliki binarne zostawiamy w spokoju.
+*.png binary
+*.jpg binary
+*.ico binary
+*.bundle binary

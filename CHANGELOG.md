@@ -3,6 +3,16 @@
 Format: najnowsze na górze. Każdy wpis mówi, co zmieniło się w **zachowaniu**,
 a nie tylko w plikach.
 
+## [0.4.2] — 2026-09-17
+
+### Dodane
+- **`WSPOLPRACA.md`** — zasady pracy we dwójkę: osobne gałęzie zamiast commitów
+  na `main`, tabela podziału plików na „bezpieczne" i „wspólne", rozwiązywanie
+  konfliktów, numerowanie migracji i reguły dla dwóch równoległych sesji z
+  Claude'em.
+- **`.gitattributes`** — końce linii trzymane w repo jako LF, żeby drugi
+  komputer nie pokazywał całych plików jako zmienionych.
+
 ## [0.4.1] — 2026-09-17
 
 ### Naprawione

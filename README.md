@@ -19,7 +19,7 @@ Google Fonts; bez internetu strona działa, tylko na fontach systemowych.
 ```
 index.html            markup — 11 widoków i modale
 css/style.css         style
-js/                   17 plików: dane, stan, widoki, monetyzacja, api, start
+js/                   19 plików: dane, stan, warstwa DATA, widoki, konto, start
 server/               backend — Fastify + PostgreSQL + Kysely
 docker-compose.yml    baza i serwer jednym poleceniem
 docs/STAN.md          co jest zrobione, co nie działa, znane ograniczenia
@@ -27,6 +27,7 @@ docs/ARCHITEKTURA.md  układ plików frontu, kolejność ładowania, model danyc
 docs/DECYZJE.md       podjęte decyzje projektowe i dlaczego
 docs/TODO.md          kolejne kroki, uporządkowane
 CHANGELOG.md          co zmieniło się w której wersji
+WSPOLPRACA.md         praca we dwójkę: gałęzie, podział plików, konflikty
 CLAUDE.md             instrukcja dla Claude'a w kolejnych sesjach
 ```
 
@@ -48,18 +49,24 @@ Najwygodniej ustawić w `server/.env` **`SERVE_STATIC=1`** — wtedy backend odd
 też pliki frontu i całość siedzi pod jednym adresem http://localhost:3000,
 bez kłopotów z CORS-em.
 
-**Widoki jeszcze z niego nie korzystają** — strona działa na danych demo.
-`js/api.js` jest gotową warstwą do przepięcia i da się go wywołać z konsoli
-przeglądarki: `await API.games({ q: "elden" })`.
+Strona sama sprawdza przy starcie, czy backend odpowiada. Jeśli tak — chodzi na
+prawdziwych kontach i ogłoszeniach z bazy. Jeśli nie — wraca do danych demo,
+więc `index.html` otwarty z dysku dalej pokazuje pełną aplikację. Aktywny tryb
+widać w stopce menu bocznego.
 
 ## Podział ról
 
-- Użytkownik: admin serwisu, testuje (tester manualny z zawodu).
+- Admin serwisu i testowanie.
+- Druga osoba pisząca kod — zasady w `WSPOLPRACA.md`.
 - Claude: kod — backend i frontend.
 
 ## Ważne
 
-To jest **prototyp demonstracyjny**. Płatności są udawane (nie ma bramki),
-gracze są generowani proceduralnie, „live” to statyczne kafelki. Nic nie wychodzi
-poza przeglądarkę. Przed jakimkolwiek pokazaniem tego na zewnątrz trzeba to
-powiedzieć wprost — w kilku miejscach interfejsu jest to już napisane.
+Konta i ogłoszenia są prawdziwe, ale **płatności są udawane** — Sklep i Premium
+pokazują „Zapłać 19,99 zł" i fałszywy sukces, bo nie ma bramki płatniczej.
+**Ekipy i transmisje live to nadal dane z generatora**, nawet gdy reszta strony
+chodzi na serwerze.
+
+Zanim ktokolwiek obcy to zobaczy, obie te rzeczy muszą zniknąć albo zostać
+wyraźnie oznaczone — razem z regulaminem, polityką prywatności i możliwością
+usunięcia konta. Lista blokerów jest w `docs/TODO.md`.

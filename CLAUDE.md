@@ -16,6 +16,8 @@ Front i backend są spięte przez warstwę `DATA` (`js/data-source.js`), która
 przy starcie sprawdza, czy serwer odpowiada, i działa w trybie `api` albo
 `demo`. Widoki pytają `DATA`, nigdy bezpośrednio `API` ani `PLAYERS`.
 
+Pracę we dwójkę opisuje `WSPOLPRACA.md` (gałęzie, podział plików, konflikty).
+
 Pełny obraz: `docs/STAN.md` (co działa, czego nie ma),
 `docs/ARCHITEKTURA.md` (front), `server/README.md` (backend i endpointy),
 `docs/DECYZJE.md` (dlaczego tak), `docs/TODO.md` (co dalej),
@@ -25,6 +27,11 @@ Pełny obraz: `docs/STAN.md` (co działa, czego nie ma),
 
 Użytkownik jest adminem serwisu i testuje (na co dzień tester manualny).
 Ty piszesz kod — frontend i backend. Nie odsyłaj go do pisania kodu samemu.
+
+**Nad projektem pracują dwie osoby piszące kod.** Zanim ruszysz plik z listy
+„wspólnych" w `WSPOLPRACA.md`, zapytaj, czy nie siedzi w nim druga osoba.
+Trzymaj się obszaru, o który prosi użytkownik — dwie równoległe sesje potrafią
+przepisać ten sam plik w dwie różne strony.
 
 ## Jak pisać do użytkownika
 
