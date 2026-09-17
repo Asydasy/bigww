@@ -498,11 +498,48 @@ function updateBadges() {
   $("#nb-games").textContent = nf(GAMES.length);
   $("#nb-teams").textContent = TEAMS.length;
   if ($("#nb-live")) $("#nb-live").textContent = LIVES.length;
-  if ($("#nb-gw") && typeof GIVEAWAYS !== "undefined") $("#nb-gw").textContent = GIVEAWAYS.filter(g => g.status === "open").length || "";
+  if (typeof GIVEAWAYS !== "undefined") {
+    const gwOpen = GIVEAWAYS.filter(g => g.status === "open").length;
+    const gwBtn = document.querySelector('#nav button[data-v="giveaways"]');
+    const gwBadge = $("#nb-gw");
+    if (gwBadge) {
+      gwBadge.textContent = gwOpen || "";
+      gwBadge.classList.toggle("gw-alert", gwOpen > 0);
+    }
+    if (gwBtn) gwBtn.classList.toggle("gw-live", gwOpen > 0);
+  }
   $("#nb-mine").textContent = MINE.length || "";
   $("#nb-saved").textContent = SAVED.length || "";
-  if ($("#nb-inbox")) $("#nb-inbox").textContent = INBOX.length || "";
-  $("#nb-prem").textContent = isPrem() ? (isPro() ? "PRO" : "aktywne") : "";
+  if ($("#nb-inbox")) {
+    const unread = typeof inboxUnreadCount === "function" ? inboxUnreadCount() : 0;
+    const el = $("#nb-inbox");
+    if (unread > 0) {
+      el.textContent = unread > 9 ? "9+" : String(unread);
+      el.classList.add("alert");
+    } else {
+      el.textContent = INBOX.length || "";
+      el.classList.remove("alert");
+    }
+  }
+  const premBadge = $("#nb-prem");
+  const premItem = document.getElementById("userMenuPremium");
+  if (premBadge) {
+    premBadge.classList.remove("prem-on", "prem-pro", "prem-off");
+    if (isPrem()) {
+      if (isPro()) {
+        premBadge.textContent = "PRO";
+        premBadge.classList.add("prem-pro");
+      } else {
+        premBadge.textContent = "aktywne";
+        premBadge.classList.add("prem-on");
+      }
+      if (premItem) premItem.classList.add("prem-active");
+    } else {
+      premBadge.textContent = "nieaktywne";
+      premBadge.classList.add("prem-off");
+      if (premItem) premItem.classList.remove("prem-active");
+    }
+  }
   updateCoinUI();
   updateNotifUI();
 }

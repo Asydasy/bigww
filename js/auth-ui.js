@@ -106,20 +106,43 @@ function updateAuthUI() {
 function closeUserMenu() {
   const menu = document.getElementById("userMenu");
   const btn = document.getElementById("userMenuBtn");
-  if (menu) { menu.hidden = true; menu.classList.remove("on"); }
   if (btn) btn.setAttribute("aria-expanded", "false");
+  if (!menu) return;
+  window.clearTimeout(closeUserMenu._t);
+  if (!menu.classList.contains("on") && !menu.classList.contains("out")) {
+    menu.hidden = true;
+    menu.classList.remove("on", "out");
+    return;
+  }
+  menu.classList.remove("on");
+  menu.classList.add("out");
+  const done = () => {
+    menu.classList.remove("out");
+    menu.hidden = true;
+    menu.removeEventListener("animationend", done);
+  };
+  menu.addEventListener("animationend", done);
+  // fallback gdy animationend nie przyjdzie
+  closeUserMenu._t = window.setTimeout(done, 250);
 }
 function openUserMenu() {
   const menu = document.getElementById("userMenu");
   const btn = document.getElementById("userMenuBtn");
-  if (menu) { menu.hidden = false; menu.classList.add("on"); }
+  if (!menu) return;
+  window.clearTimeout(closeUserMenu._t);
+  menu.classList.remove("out");
+  menu.hidden = false;
+  // restart animacji wejścia
+  menu.classList.remove("on");
+  void menu.offsetWidth;
+  menu.classList.add("on");
   if (btn) btn.setAttribute("aria-expanded", "true");
 }
 function toggleUserMenu() {
   const menu = document.getElementById("userMenu");
   if (!menu) return;
-  if (menu.hidden || !menu.classList.contains("on")) openUserMenu();
-  else closeUserMenu();
+  if (menu.classList.contains("on")) closeUserMenu();
+  else openUserMenu();
 }
 
 // close on outside click / Esc

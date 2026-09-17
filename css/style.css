@@ -858,21 +858,34 @@ select{cursor:pointer}
 .u-trigger[aria-expanded="true"] .u-chev{transform:rotate(180deg)}
 
 .u-menu{
-  position:absolute;top:calc(100% + 8px);right:0;
-  min-width:220px;width:max-content;max-width:min(280px, calc(100vw - 24px));
+  position:absolute;top:calc(100% + 10px);right:0;
+  min-width:240px;width:max-content;max-width:min(300px, calc(100vw - 24px));
   background:var(--panel);border:1px solid var(--line-solid);border-radius:14px;
-  box-shadow:0 18px 40px -12px #000a;
+  box-shadow:0 20px 48px -12px #000c;
   padding:8px;z-index:80;
-  opacity:0;transform:translateY(-6px) scale(.98);
-  pointer-events:none;transition:opacity .16s ease, transform .16s ease;
+  transform-origin:top right;
+  display:none;
 }
 .u-menu.on{
-  opacity:1;transform:translateY(0) scale(1);
-  pointer-events:auto;
+  display:block;
+  animation:uMenuIn .28s cubic-bezier(.22,1,.36,1) both;
 }
-.u-menu[hidden]{display:none}
-.u-menu.on[hidden]{display:block} /* safety */
-.u-menu:not([hidden]){display:block}
+.u-menu.out{
+  display:block;
+  animation:uMenuOut .2s ease both;
+  pointer-events:none;
+}
+@keyframes uMenuIn{
+  from{opacity:0;transform:translateY(-14px) scale(.94)}
+  to{opacity:1;transform:translateY(0) scale(1)}
+}
+@keyframes uMenuOut{
+  from{opacity:1;transform:translateY(0) scale(1)}
+  to{opacity:0;transform:translateY(-10px) scale(.96)}
+}
+@media (prefers-reduced-motion:reduce){
+  .u-menu.on,.u-menu.out{animation-duration:.01ms !important}
+}
 
 .u-menu-head{
   padding:10px 12px 12px;border-bottom:1px solid var(--line);
@@ -911,6 +924,43 @@ select{cursor:pointer}
 .u-menu-item .u-badge.alert{
   background:#e11;color:#fff;font-weight:700;
 }
+
+/* Premium badge w menu użytkownika */
+.u-menu-item .u-badge.prem-off{
+  background:var(--panel2);
+  color:var(--txt-faint);
+  font-weight:500;
+  box-shadow:none;
+  animation:none;
+}
+.u-menu-item .u-badge.prem-on{
+  background:linear-gradient(135deg,#f0b93b33,#f0b93b18);
+  color:var(--gold);
+  border:1px solid #f0b93b66;
+  font-weight:700;
+}
+.u-menu-item .u-badge.prem-pro{
+  background:linear-gradient(135deg,#ffd977,#f0b93b);
+  color:#2a1d00;
+  font-weight:800;
+  border:1px solid #ffd977;
+  box-shadow:0 0 12px #f0b93b88, 0 0 2px #ffd977;
+  animation:premGlow 1.8s ease-in-out infinite;
+}
+@keyframes premGlow{
+  0%,100%{box-shadow:0 0 8px #f0b93b66, 0 0 1px #ffd977}
+  50%{box-shadow:0 0 16px #f0b93bcc, 0 0 4px #ffd977}
+}
+.u-menu-item.prem-active{
+  color:var(--gold);
+}
+.u-menu-item.prem-active span:first-child{
+  filter:drop-shadow(0 0 6px #f0b93baa);
+}
+.u-menu-item:not(.prem-active).gold{
+  color:var(--txt-dim);
+}
+
 .u-menu-item.gold{color:var(--gold)}
 .u-menu a.u-menu-item{
   text-decoration:none;color:inherit;box-sizing:border-box;
