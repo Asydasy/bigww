@@ -75,3 +75,9 @@ function fillSelect(sel, items, first) {
   if (first) sel.appendChild(new Option(first, ""));
   items.forEach(i => sel.appendChild(new Option(i.label || i, i.value != null ? i.value : i)));
 }
+
+/** Polski liczebnik: 1 gracz, 2-4 graczy, 5+ graczy. W praktyce forma
+ *  dopełniacza „graczy" pasuje do wszystkiego poza jedynką. */
+function graczy(n) {
+  return n === 1 ? "1 gracz" : nf(n) + " graczy";
+}

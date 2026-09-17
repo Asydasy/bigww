@@ -165,7 +165,7 @@ function watchAd() {
 
 function buyBoost(adId, hours, cost) {
   if (COINS.bal < cost) { toast("Za mało monet WW"); return; }
-  if (!MINE.find(m => m.id === adId)) { toast("Ogłoszenie nie istnieje"); return; }
+  if (!DATA.mineCached.find(m => m.id === adId)) { toast("Ogłoszenie nie istnieje"); return; }
   addCoins(-cost);
   const until = Math.max(BOOSTS[adId] || 0, Date.now()) + hours * HOUR;
   BOOSTS[adId] = until;
@@ -254,8 +254,8 @@ function claimBpLevel(lvl) {
   BP.claimed.push(lvl);
   save(KEY.bp, BP);
   if (r.reward) addCoins(r.reward, "+" + r.reward + " WW z Battle Pass");
-  if (r.boost && MINE.length) {
-    const id = MINE[0].id;
+  if (r.boost && DATA.mineCached.length) {
+    const id = DATA.mineCached[0].id;
     BOOSTS[id] = Math.max(BOOSTS[id] || 0, Date.now()) + r.boost * HOUR;
     save(KEY.boosts, BOOSTS);
     toast("Boost " + r.boost + " h z Battle Pass");
@@ -393,10 +393,10 @@ function renderShop() {
   const bl = $("#boostList");
   if (bl) {
     bl.innerHTML = "";
-    if (!MINE.length) {
+    if (!DATA.mineCached.length) {
       bl.innerHTML = `<p class="note">Nie masz jeszcze ogłoszeń. <a data-go="add" style="color:var(--acc);cursor:pointer">Dodaj jedno</a>, żeby je wypromować.</p>`;
     } else {
-      MINE.forEach(p => {
+      DATA.mineCached.forEach(p => {
         const row = el("div", "shop-item");
         const info = el("div", "info");
         info.append(el("div", null, p.nick + " · " + p.game));
@@ -485,20 +485,21 @@ function shopBuy(it) {
     return;
   }
   if (it.id.startsWith("boost")) {
-    if (!MINE.length) { toast("Najpierw dodaj ogłoszenie"); return; }
+    if (!DATA.mineCached.length) { toast("Najpierw dodaj ogłoszenie"); return; }
     const hours = it.id === "boost6" ? 6 : 24;
-    buyBoost(MINE[0].id, hours, it.cost);
+    buyBoost(DATA.mineCached[0].id, hours, it.cost);
     return;
   }
 }
 
 function updateBadges() {
-  $("#nb-players").textContent = nf(allPlayers().length);
-  $("#nb-games").textContent = nf(GAMES.length);
+  $("#nb-players").textContent = nf(DATA.totalAds);
+  $("#nb-games").textContent = nf(DATA.games.length);
+  // Ekipy i transmisje istnieją na razie tylko w danych demo.
   $("#nb-teams").textContent = TEAMS.length;
   if ($("#nb-live")) $("#nb-live").textContent = LIVES.length;
-  $("#nb-mine").textContent = MINE.length || "";
-  $("#nb-saved").textContent = SAVED.length || "";
+  $("#nb-mine").textContent = DATA.mineCount || "";
+  $("#nb-saved").textContent = DATA.savedCount || "";
   $("#nb-prem").textContent = isPrem() ? (isPro() ? "PRO" : "aktywne") : "";
   updateCoinUI();
 }

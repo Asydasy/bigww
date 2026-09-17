@@ -75,6 +75,9 @@ function cleanBoosts() {
   if (ch) save(KEY.boosts, BOOSTS);
 }
 function canSeeContact(p) {
+  // W trybie serwerowym o dostępie do kontaktu decyduje backend — front
+  // dostaje albo kontakt, albo informację, że jest zamknięty.
+  if (p.contactLocked !== undefined) return !p.contactLocked;
   if (p.mine) return true;
   if (isPrem()) return true;
   if (UNLOCKS.includes(p.id)) return true;

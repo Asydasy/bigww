@@ -9,7 +9,7 @@ function playerCard(p) {
   const c = el("article", "card");
 
   const isPremCard = p.mine ? isPrem() : !!p.prem;
-  const boosted = isBoosted(p.id);
+  const boosted = p.boosted || isBoosted(p.id);
   if (isPremCard) c.classList.add("prem");
   if (boosted) c.classList.add("boosted");
 
@@ -48,8 +48,18 @@ function playerCard(p) {
   const foot = el("div", "p-foot");
   const msg = el("button", "btn sm pri", canSeeContact(p) ? "Napisz" : "🔒 Kontakt");
   msg.onclick = () => showContact(p);
-  const star = el("button", "btn sm", SAVED.includes(p.id) ? "★ Obserwujesz" : "☆ Obserwuj");
-  star.onclick = () => { toggleSave(p.id); star.textContent = SAVED.includes(p.id) ? "★ Obserwujesz" : "☆ Obserwuj"; };
+  const star = el("button", "btn sm", DATA.isSaved(p.id) ? "★ Obserwujesz" : "☆ Obserwuj");
+  star.onclick = async () => {
+    star.disabled = true;
+    try {
+      const on = await toggleSave(p.id);
+      star.textContent = on ? "★ Obserwujesz" : "☆ Obserwuj";
+    } catch (e) {
+      if (e.status === 401) requireLogin("obserwować graczy");
+      else toast(e.message || "Nie udało się zapisać");
+    }
+    star.disabled = false;
+  };
   const when = el("span", "note", ago(p.added));
   foot.append(msg, star, el("span", "spacer"), when);
   if (!p.mine && !isPrem()) {
@@ -80,10 +90,15 @@ function playerCard(p) {
       setTimeout(() => document.getElementById("boostPanel")?.scrollIntoView({ behavior: "smooth" }), 100);
     };
     const del = el("button", "btn sm ghost", "Usuń");
-    del.onclick = () => {
-      MINE = MINE.filter(m => m.id !== p.id);
-      save(KEY.mine, MINE);
-      countCache = null;
+    del.onclick = async () => {
+      del.disabled = true;
+      try {
+        await DATA.deleteAd(p.id);
+      } catch (e) {
+        del.disabled = false;
+        toast(e.message || "Nie udało się usunąć");
+        return;
+      }
       toast("Ogłoszenie usunięte");
       renderMine(); renderPlayers(true); updateBadges();
     };
@@ -94,7 +109,7 @@ function playerCard(p) {
 }
 
 function gameCard(g) {
-  const count = countFor(g.name);
+  const count = DATA.adsForGame(g.name);
   const b = el("button", "gcard");
   const cover = el("div", "cover");
   cover.style.backgroundImage = coverArt(g);
@@ -102,7 +117,7 @@ function gameCard(g) {
   const body = el("div", "body");
   body.append(el("div", "gname", g.name));
   const meta = el("div", "gmeta");
-  meta.append(el("span", null, `${g.genre} · ${g.mode}`), el("span", "cnt", count + " graczy"));
+  meta.append(el("span", null, `${g.genre} · ${g.mode}`), el("span", "cnt", graczy(count)));
   body.append(meta);
   b.append(cover, body);
   b.onclick = () => {
@@ -362,9 +377,9 @@ function openModal(html) {
 $("#modal").onclick = e => { if (e.target.id === "modal") $("#modal").classList.remove("on"); };
 document.addEventListener("keydown", e => { if (e.key === "Escape") $("#modal").classList.remove("on"); });
 
-function toggleSave(id) {
-  if (SAVED.includes(id)) { SAVED = SAVED.filter(s => s !== id); toast("Usunięto z obserwowanych"); }
-  else { SAVED.push(id); toast("Dodano do obserwowanych"); }
-  save(KEY.saved, SAVED);
+async function toggleSave(id) {
+  const on = await DATA.toggleSave(id);
+  toast(on ? "Dodano do obserwowanych" : "Usunięto z obserwowanych");
   updateBadges();
+  return on;
 }

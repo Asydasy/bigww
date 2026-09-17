@@ -14,8 +14,10 @@ js/data-demo.js         generator demo: PLAYERS (720), TEAMS (80), LIVES (36),
 js/state.js             localStorage: obiekt KEY, load/save, premium, monety,
                         limity, canSeeContact(), adLimit()
 js/util.js              $, el, norm, nf, tokens, searchScore, ago, toast, fillSelect
-js/api.js               jedyne wejście do serwera (API.login, API.ads, ...);
-                        widoki jeszcze z niego nie korzystają
+js/api.js               surowe wywołania HTTP do serwera (API.login, API.ads, ...)
+js/data-source.js       DATA — jedyne wejście do danych dla widoków; wybiera
+                        między serwerem a danymi demo i tłumaczy filtry
+js/auth-ui.js           panel konta w menu i okno logowania/rejestracji
 js/nav.js               go(view), podpięcie sidebara i bottom-nav, setLooking()
 js/cards.js             playerCard, gameCard, teamCard, openProfile, showContact,
                         openModal, toggleSave, podgląd mediów
@@ -43,6 +45,26 @@ kliknięcie, bez serwera.
 
 Przy dokładaniu nowego pliku: dopisz `<script src>` w odpowiednim miejscu listy,
 nie na końcu.
+
+## Dwa tryby działania
+
+`DATA.init()` przy starcie pyta `/api/health`. Jeśli serwer odpowie, tryb to
+`api`; jeśli nie — `demo`. Widoki wołają zawsze to samo:
+
+```js
+await DATA.listAds(filtry, strona, naStronie)   // lista ogłoszeń
+await DATA.createAd(draft())                    // dodanie
+await DATA.myAds()                              // moje + limit konta
+await DATA.savedAds() / DATA.toggleSave(id)     // obserwowani
+DATA.games / DATA.adsForGame(nazwa)             // katalog gier
+DATA.user / DATA.login() / DATA.logout()        // konto (tylko tryb api)
+```
+
+W trybie `demo` te same funkcje filtrują dane z generatora i zapisują do
+localStorage. **Nowy widok podpinamy do `DATA`, nie do `API` ani do `PLAYERS`.**
+
+Co zostaje demonstracyjne niezależnie od trybu: ekipy, transmisje live, monety
+WW, premium, sklep, zadania i battle pass. Tego backend jeszcze nie obsługuje.
 
 ## Model danych
 

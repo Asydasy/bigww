@@ -3,6 +3,49 @@
 Format: najnowsze na górze. Każdy wpis mówi, co zmieniło się w **zachowaniu**,
 a nie tylko w plikach.
 
+## [0.4.0] — 2026-09-17
+
+### Dodane
+- **Front rozmawia z backendem.** Nowa warstwa `js/data-source.js` (`DATA`) jest
+  jedynym miejscem, z którego widoki biorą dane. Rozpoznaje przy starcie, czy
+  serwer odpowiada, i działa w dwóch trybach:
+  - **serwer** — ogłoszenia z bazy, konta, filtry i wyszukiwanie po stronie
+    PostgreSQL, stronicowanie;
+  - **demo** — backendu nie ma, więc dane z generatora i localStorage, tak jak
+    wcześniej. Dzięki temu `index.html` otwarty z dysku dalej pokazuje pełną
+    aplikację.
+  W stopce menu widać, który tryb jest aktywny.
+- **Ekran logowania i rejestracji** (`js/auth-ui.js`): okno z e-mailem i hasłem
+  oraz przyciskiem „Kontynuuj przez Discorda", panel konta w menu bocznym z
+  nazwą, adresem i wylogowaniem.
+- **Filtry `lang`, `tag` i `newHours` w API** — dzięki nim szybkie filtry
+  („Po polsku", „Uczą nowych", „Świeże 24 h") działają też na serwerze.
+- Widoki **Moje ogłoszenia** i **Obserwowani** pokazują dane z konta i proszą o
+  zalogowanie, gdy go brakuje. „Moje ogłoszenia" pokazują zajęte miejsca z limitu.
+
+### Zmienione
+- **„Pokaż więcej" dociąga kolejną stronę** zamiast przerysowywać całą listę.
+- **Wyszukiwarka czeka 250 ms po ostatnim znaku**, zanim odpyta serwer —
+  wcześniej każde naciśnięcie klawisza oznaczałoby osobne zapytanie.
+- Sortowanie po godzinach w grze i ocenie znika w trybie serwerowym, bo tych
+  danych nie ma w prawdziwych ogłoszeniach (to pola generatora demo).
+- Liczniki w menu, statystyki na stronie startowej i liczba ogłoszeń przy grach
+  liczone są przez `DATA`, więc na serwerze pokazują prawdziwe liczby.
+
+### Naprawione
+- **Przycisk „Zaloguj się" otwierał formularz zakładania konta** — do funkcji
+  trafiał obiekt zdarzenia kliknięcia zamiast nazwy zakładki. Znalezione przez
+  test przeklikujący rejestrację.
+- **Karta sponsorowana pokazywała się nad komunikatem „Brak wyników"** —
+  teraz wchodzi tylko wtedy, gdy na liście są prawdziwe ogłoszenia.
+- **„1 graczy" zamiast „1 gracz"** przy kafelkach gier i liczbie wyników.
+
+### Sprawdzone
+- Test przeklikujący pełny przepływ na serwerze: rejestracja przez okno
+  logowania, dodanie ogłoszenia formularzem, znalezienie go wyszukiwarką,
+  filtr po grze, obserwowanie i odobserwowanie, wylogowanie.
+- Test trybu demo bez backendu: wszystkie 11 widoków renderuje się bez błędów.
+
 ## [0.3.0] — 2026-09-17
 
 ### Dodane

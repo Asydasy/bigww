@@ -5,22 +5,52 @@
 /* =========================================================
    13. START
 ========================================================= */
-applyTheme();
-buildFilters();
-buildGames();
-buildAdd();
-updateBadges();
-renderHome();
-renderPlayers(true);
-renderGames();
-renderTeams();
-renderLives();
-renderInfo();
-renderPremium();
-renderSettingsPrem();
-renderShop();
-updateCoinUI();
-updateLookingUI();
+
+/** Pokazuje w stopce menu, czy strona chodzi na serwerze, czy na danych demo. */
+function renderModeTag() {
+  const foot = $("#sideFoot");
+  if (!foot) return;
+  if (DATA.isApi) {
+    foot.innerHTML = `<span class="mode-tag api">● serwer</span>
+      Ogłoszenia są zapisywane w bazie i widoczne dla wszystkich.
+      Ekipy i transmisje to na razie dane demonstracyjne.`;
+  } else {
+    foot.innerHTML = `<span class="mode-tag demo">● demo</span>
+      Backend nie odpowiada, więc profile graczy są generowane lokalnie —
+      nic nie wychodzi poza Twoją przeglądarkę.`;
+  }
+}
+
+async function start() {
+  applyTheme();
+
+  // Zanim cokolwiek narysujemy, ustalamy skąd biorą się dane.
+  await DATA.init();
+
+  renderAccount();
+  renderModeTag();
+
+  buildFilters();
+  buildGames();
+  buildAdd();
+  updateBadges();
+  renderHome();
+  renderPlayers(true);
+  renderGames();
+  renderTeams();
+  renderLives();
+  renderInfo();
+  renderPremium();
+  renderSettingsPrem();
+
+  // Sklep potrzebuje wiedzieć, jakie mam ogłoszenia (do promowania).
+  await DATA.myAds();
+  renderShop();
+
+  updateCoinUI();
+  updateLookingUI();
+  startOnboard();
+}
 
 // looking now
 if ($("#btnLookingOn")) $("#btnLookingOn").onclick = () => setLooking(!PREF.looking);
@@ -49,4 +79,4 @@ document.addEventListener("keydown", e => {
   }
 });
 
-startOnboard();
+start();

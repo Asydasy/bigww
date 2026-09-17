@@ -229,6 +229,24 @@ describe("ogłoszenia", () => {
     assert.equal(byRegion.json().total, 0);
   });
 
+  test("szybkie filtry: tag, język i świeżość", async () => {
+    const byTag = await call({ method: "GET", url: "/api/ads?tag=Na%20luzie" });
+    assert.equal(byTag.json().total, 1);
+
+    const byMissingTag = await call({ method: "GET", url: "/api/ads?tag=nie%20ma%20takiego" });
+    assert.equal(byMissingTag.json().total, 0);
+
+    const byLang = await call({ method: "GET", url: "/api/ads?lang=PL" });
+    assert.equal(byLang.json().total, 1);
+
+    const fresh = await call({ method: "GET", url: "/api/ads?newHours=24" });
+    assert.equal(fresh.json().total, 1);
+
+    // Ogłoszenie dodane przed chwilą nie mieści się w oknie "sprzed godziny".
+    const stale = await call({ method: "GET", url: "/api/ads?newHours=8760&lookingNow=true" });
+    assert.equal(stale.json().total, 0, "ogłoszenie nie ma ustawionego „szukam teraz”");
+  });
+
   test("edycja zmienia tylko przysłane pola", async () => {
     const res = await call({
       method: "PATCH",

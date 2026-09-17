@@ -6,15 +6,15 @@ Przeczytaj to na początku sesji, zanim cokolwiek zmienisz w kodzie.
 
 BigWW — serwis do szukania ludzi do wspólnego grania. Dwie części:
 
-**Front** (katalog główny): `index.html` + `css/style.css` + 17 plików w `js/`,
-waniliowy JS, zero zależności, stan w localStorage, dane z generatora demo.
+**Front** (katalog główny): `index.html` + `css/style.css` + 19 plików w `js/`,
+waniliowy JS, zero zależności.
 
 **Backend** (`server/`): Node + Fastify + PostgreSQL, zapytania przez Kysely,
 logowanie e-mailem z hasłem i przez Discorda. `docker compose up`, `npm test`.
 
-**Najważniejsze: te dwie części jeszcze ze sobą nie rozmawiają.** `js/api.js`
-jest gotową warstwą, ale żaden widok z niej nie korzysta. Przepięcie widoków
-to pierwszy punkt w `docs/TODO.md`.
+Front i backend są spięte przez warstwę `DATA` (`js/data-source.js`), która
+przy starcie sprawdza, czy serwer odpowiada, i działa w trybie `api` albo
+`demo`. Widoki pytają `DATA`, nigdy bezpośrednio `API` ani `PLAYERS`.
 
 Pełny obraz: `docs/STAN.md` (co działa, czego nie ma),
 `docs/ARCHITEKTURA.md` (front), `server/README.md` (backend i endpointy),
@@ -74,6 +74,16 @@ Ty piszesz kod — frontend i backend. Nie odsyłaj go do pisania kodu samemu.
     ten sam wpisany tekst daje inne wyniki w obu miejscach.
 13. **Nie przenoś pieniędzy ani limitów do przeglądarki.** Monety, premium i
     limit ogłoszeń liczy serwer; front je tylko wyświetla.
+
+## Zasady dla warstwy DATA
+
+14. **Nowy widok podpinaj do `DATA`, nie do `API` ani do `PLAYERS`/`MINE`.**
+    Inaczej zadziała tylko w jednym z dwóch trybów.
+15. **Każda nowa metoda w `DATA` musi mieć obie ścieżki** — serwerową i demo.
+    Jeśli czegoś nie da się zrobić bez backendu, niech ścieżka demo rzuci błąd
+    ze `status: 401` albo `403`, a widok to obsłuży.
+16. **Po zmianach we froncie przeklikaj oba tryby**, nie tylko ten, w którym
+    akurat pracujesz. Najczęstszy błąd to kod działający wyłącznie z serwerem.
 
 ## Uwaga o środowisku
 

@@ -13,16 +13,20 @@ const QUICK = [
   { id: "pl", label: "Po polsku" }
 ];
 let quickOn = new Set();
-let shown = 24;
+/** Numer ostatnio wczytanej strony wyników. */
+let page = 1;
+const PER_PAGE = 24;
+let lastTotal = 0;
 
 function buildFilters() {
-  fillSelect($("#fGame"), GAMES.map(g => g.name).sort((a, b) => a.localeCompare(b, "pl")), "Wszystkie gry");
+  const gameNames = DATA.games.map(g => g.name).sort((a, b) => a.localeCompare(b, "pl"));
+  fillSelect($("#fGame"), gameNames, "Wszystkie gry");
   fillSelect($("#fRegion"), REGIONS, "Wszystkie kraje");
   fillSelect($("#fPlat"), PLATS.map(p => ({ value: p, label: PLAT_LABEL[p] })), "Każda platforma");
   fillSelect($("#fStyle"), STYLES, "Każdy styl");
   fillSelect($("#fTime"), TIMES, "Dowolna pora");
 
-  fillSelect($("#aGame"), GAMES.map(g => g.name).sort((a, b) => a.localeCompare(b, "pl")));
+  fillSelect($("#aGame"), gameNames);
   fillSelect($("#aRegion"), REGIONS);
   fillSelect($("#aPlat"), PLATS.map(p => ({ value: p, label: PLAT_LABEL[p] })));
   fillSelect($("#aStyle"), STYLES);
@@ -30,6 +34,14 @@ function buildFilters() {
   fillSelect($("#sRegion"), REGIONS);
   $("#sRegion").value = PREF.region;
   $("#aRegion").value = PREF.region;
+
+  // Godziny w grze i ocena istnieją tylko w danych demo — przy prawdziwych
+  // ogłoszeniach nie ma czego po nich sortować.
+  if (DATA.isApi) {
+    Array.from($("#fSort").options).forEach(o => {
+      if (o.value === "hours" || o.value === "rating") o.remove();
+    });
+  }
 
   function persistFilters() {
     PREF.filters = {
@@ -66,7 +78,7 @@ function buildFilters() {
     if (f.plat) $("#fPlat").value = f.plat;
     if (f.style) $("#fStyle").value = f.style;
     if (f.time) $("#fTime").value = f.time;
-    if (f.sort) $("#fSort").value = f.sort;
+    if (f.sort && Array.from($("#fSort").options).some(o => o.value === f.sort)) $("#fSort").value = f.sort;
     if (f.quick && f.quick.length) {
       f.quick.forEach(id => quickOn.add(id));
       document.querySelectorAll("#quickChips .chip").forEach((c, i) => {
@@ -75,9 +87,19 @@ function buildFilters() {
     }
   }
 
-  ["#pSearch", "#fGame", "#fRegion", "#fPlat", "#fStyle", "#fTime", "#fSort"].forEach(s => {
-    $(s).addEventListener("input", () => { persistFilters(); renderPlayers(true); });
+  // Wpisywanie w wyszukiwarkę odpytuje serwer, więc czekamy, aż użytkownik
+  // skończy pisać — inaczej każde naciśnięcie klawisza to osobne zapytanie.
+  let typing = null;
+  const rerun = (delay) => {
+    persistFilters();
+    clearTimeout(typing);
+    typing = setTimeout(() => renderPlayers(true), delay);
+  };
+  $("#pSearch").addEventListener("input", () => rerun(250));
+  ["#fGame", "#fRegion", "#fPlat", "#fStyle", "#fTime", "#fSort"].forEach(s => {
+    $(s).addEventListener("input", () => rerun(0));
   });
+
   $("#pReset").onclick = () => {
     ["#fGame", "#fRegion", "#fPlat", "#fStyle", "#fTime"].forEach(s => $(s).value = "");
     $("#pSearch").value = ""; $("#fSort").value = "new";
@@ -87,58 +109,65 @@ function buildFilters() {
     save(KEY.pref, PREF);
     renderPlayers(true);
   };
-  $("#pMore").onclick = () => { shown += 24; renderPlayers(false); };
+  $("#pMore").onclick = () => renderPlayers(false);
 }
 
-function filterPlayers() {
-  const rawQ = ($("#pSearch").value || "").trim();
-  const toks = tokens(rawQ);
-  const g = $("#fGame").value, r = $("#fRegion").value, pl = $("#fPlat").value,
-        st = $("#fStyle").value, tm = $("#fTime").value;
-
-  const scored = [];
-  allPlayers().forEach(p => {
-    if (g && p.game !== g) return;
-    if (!regionMatches(r, p.region)) return;
-    if (pl && p.plat !== pl) return;
-    if (st && p.style !== st) return;
-    if (tm && p.time !== tm) return;
-    if (quickOn.has("on") && p.status !== "on") return;
-    if (quickOn.has("mic") && p.mic !== "Mikrofon: tak") return;
-    if (quickOn.has("new") && Date.now() - p.added > 24 * HOUR) return;
-    if (quickOn.has("learn") && !(p.tags || []).includes("uczę nowych")) return;
-    if (quickOn.has("pl") && !(p.lang || "").startsWith("PL")) return;
-
-    const score = searchScore(playerSearchFields(p), toks);
-    if (toks.length && score === 0) return;
-    scored.push({ p, score });
-  });
-
-  const sort = $("#fSort").value;
-  const boostPri = x => isBoosted(x.p.id) ? 0 : 1;
-  const lookPri = x => (x.p.mine && PREF.looking) ? 0 : 1;
-  const pr = x => (x.p.mine ? isPrem() : !!x.p.prem) ? 0 : 1;
-  const byScore = (a, b) => (toks.length ? b.score - a.score : 0);
-
-  if (sort === "new") scored.sort((a, b) => boostPri(a) - boostPri(b) || lookPri(a) - lookPri(b) || pr(a) - pr(b) || byScore(a, b) || b.p.added - a.p.added);
-  else if (sort === "online") scored.sort((a, b) => boostPri(a) - boostPri(b) || lookPri(a) - lookPri(b) || (a.p.status === "on" ? 0 : 1) - (b.p.status === "on" ? 0 : 1) || byScore(a, b) || b.p.added - a.p.added);
-  else if (sort === "hours") scored.sort((a, b) => boostPri(a) - boostPri(b) || lookPri(a) - lookPri(b) || byScore(a, b) || (b.p.hours || 0) - (a.p.hours || 0));
-  else if (sort === "rating") scored.sort((a, b) => boostPri(a) - boostPri(b) || lookPri(a) - lookPri(b) || byScore(a, b) || Number(b.p.rating) - Number(a.p.rating));
-  else scored.sort((a, b) => byScore(a, b) || b.p.added - a.p.added);
-
-  return scored.map(x => x.p);
+/** Zbiera stan filtrów z formularza. DATA tłumaczy je na zapytanie do
+ *  serwera albo na filtrowanie danych demo. */
+function currentFilters() {
+  return {
+    q: ($("#pSearch").value || "").trim(),
+    game: $("#fGame").value,
+    region: $("#fRegion").value,
+    plat: $("#fPlat").value,
+    style: $("#fStyle").value,
+    time: $("#fTime").value,
+    sort: $("#fSort").value,
+    quick: Array.from(quickOn)
+  };
 }
 
-function renderPlayers(reset) {
-  if (reset) shown = 24;
-  const list = filterPlayers();
+function wynikow(n) {
+  return `${graczy(n)} pasuje do filtrów`;
+}
+
+/**
+ * @param reset true = nowe wyszukiwanie od pierwszej strony,
+ *              false = doładowanie kolejnej strony pod spód
+ */
+async function renderPlayers(reset) {
   const box = $("#playerList");
-  box.innerHTML = "";
-  $("#pCount").textContent = list.length
-    ? `${nf(list.length)} ${list.length === 1 ? "gracz" : list.length < 5 ? "graczy" : "graczy"} pasuje do filtrów`
-    : "Brak wyników";
+  if (reset) {
+    page = 1;
+    box.innerHTML = "";
+    $("#pCount").textContent = "Szukam…";
+    $("#pMore").style.display = "none";
+  } else {
+    page += 1;
+    $("#pMore").disabled = true;
+  }
 
-  if (!list.length) {
+  let res;
+  try {
+    res = await DATA.listAds(currentFilters(), page, PER_PAGE);
+  } catch (e) {
+    $("#pMore").disabled = false;
+    $("#pCount").textContent = "Nie udało się pobrać wyników";
+    if (reset) {
+      box.innerHTML = `<div class="empty" style="grid-column:1/-1">
+        <h3>Brak połączenia z serwerem</h3>
+        <p>${e.message || "Spróbuj odświeżyć stronę."}</p></div>`;
+    } else {
+      page -= 1;
+      toast(e.message || "Nie udało się dociągnąć wyników");
+    }
+    return;
+  }
+
+  lastTotal = res.total;
+  $("#pCount").textContent = res.total ? wynikow(res.total) : "Brak wyników";
+
+  if (!res.total) {
     const e = el("div", "empty");
     e.style.gridColumn = "1/-1";
     const active = [];
@@ -162,12 +191,14 @@ function renderPlayers(reset) {
     e.append(row);
     box.append(e);
     $("#pMore").style.display = "none";
-    addSponsoredSlot(); // monetization.js
     return;
   }
+
   const frag = document.createDocumentFragment();
-  list.slice(0, shown).forEach(p => frag.append(playerCard(p)));
+  res.ads.forEach(p => frag.append(playerCard(p)));
   box.append(frag);
-  $("#pMore").style.display = list.length > shown ? "inline-block" : "none";
-  addSponsoredSlot(); // monetization.js
+
+  $("#pMore").disabled = false;
+  $("#pMore").style.display = page < res.pages ? "inline-block" : "none";
+  if (reset) addSponsoredSlot(); // monetization.js — tylko nad pierwszą stroną wyników
 }

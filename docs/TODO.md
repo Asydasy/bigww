@@ -5,46 +5,41 @@ osobnym etapem projektu.
 
 ## 0. Zrobione
 
-- [x] Rozdzielić `index.html` na `css/style.css` i 17 plików w `js/`.
+- [x] Rozdzielić `index.html` na `css/style.css` i pliki w `js/`.
 - [x] Usunąć nadpisywanie funkcji `go`, `renderPlayers`, `submitAd`.
 - [x] Wybrać stos backendu i sposób logowania.
 - [x] Postawić backend: konta, sesje, katalog gier, CRUD ogłoszeń z filtrami,
-      limitami i obserwowaniem. 23 testy przechodzą.
+      limitami i obserwowaniem. 24 testy przechodzą.
 - [x] `docker-compose.yml`, migracje z runnerem, seed gier z `js/data-games.js`.
-- [x] `js/api.js` — warstwa do rozmowy z serwerem (jeszcze nieużywana).
+- [x] `js/api.js` i `js/data-source.js` — warstwa `DATA` z trybem serwerowym
+      i demo; widoki graczy, ogłoszeń, moich ogłoszeń, obserwowanych i bazy gier
+      przepięte na nią.
+- [x] Ekran logowania i rejestracji plus panel konta w menu bocznym.
 
-## 1. Połączyć front z backendem (następny duży krok)
+## 1. Dokończyć spinanie frontu z backendem
 
-Kolejność ma znaczenie — każdy punkt da się przetestować osobno.
-
-- [ ] **Ekran logowania i rejestracji.** Dziś front w ogóle nie wie, że konta
-      istnieją. Potrzebny modal z dwiema zakładkami (e-mail / Discord) i
-      miejsce w sidebarze pokazujące, kto jest zalogowany.
-- [ ] **Widok graczy z API.** `renderPlayers()` woła `API.ads(filtry)` zamiast
-      `filterPlayers()`. Filtry idą do zapytania, stronicowanie zastępuje
-      „pokaż więcej" po 24. Generator zostaje jako tryb demo pod przełącznikiem.
-- [ ] **Dodawanie ogłoszenia przez API.** `submitAd()` woła `API.createAd()`,
-      obsługuje 401 (pokaż logowanie) i 403 (limit — pokaż Premium).
-- [ ] **Moje ogłoszenia i obserwowani z API**, z prawdziwym limitem z
-      `/ads/mine`.
-- [ ] **Baza gier z API** zamiast z `data-games.js` — z licznikiem ogłoszeń na
-      grę (`?withCounts=true`).
-- [ ] Po przepięciu: usunąć `js/data-demo.js` z listy skryptów albo zostawić
-      pod przełącznikiem trybu demo.
+- [ ] **Edycja ogłoszenia na stronie.** Backend ma `PATCH /api/ads/:id`, front
+      wciąż każe skasować i dodać od nowa. Do zrobienia: przycisk „Edytuj" na
+      karcie w „Moich ogłoszeniach", który otwiera formularz z wypełnionymi polami.
+- [ ] **Przełącznik „szukam teraz" na serwerze.** Dziś ustawia się tylko przy
+      dodawaniu ogłoszenia (`lookingNow`), a przycisk w interfejsie zmienia
+      wyłącznie `PREF.looking` w przeglądarce.
+- [ ] **Ekipy i transmisje w bazie** — jako jedyne zostały na danych demo nawet
+      w trybie serwerowym.
+- [ ] **Odświeżanie trybu bez przeładowania strony.** Teraz uruchomienie
+      backendu przy otwartej stronie wymaga odświeżenia.
+- [ ] **Test przeklikujący front jako część repo.** Sprawdzał oba tryby i
+      wyłapał dwa błędy, ale mieszka w katalogu tymczasowym.
 
 ## 2. Poprawki w prototypie (po jednej sesji każda)
 
 - [ ] **Obsłużyć przepełnienie localStorage.** `save()` w `js/state.js` łyka
       błąd po cichu. Ma pokazywać toast „Brak miejsca — usuń stare ogłoszenie
       albo plik" i nie udawać, że zapisał.
-- [ ] **Karta sponsorowana przy zerowej liczbie wyników.** `addSponsoredSlot()`
-      wstawia ją także nad komunikat „Brak dokładnych wyników".
 - [ ] **Ograniczyć wielkość wrzucanego pliku** (np. 2 MB) i skalować obrazy
       przed zapisem jako data URL.
 - [ ] **Walidacja formularza ogłoszenia** po stronie frontu — serwer już to
       sprawdza, ale użytkownik powinien wiedzieć przed wysłaniem.
-- [ ] **Edycja własnego ogłoszenia.** Backend ma `PATCH /api/ads/:id`, front
-      wciąż każe kasować i dodawać od nowa.
 - [ ] **Zgłoś / zablokuj** na karcie gracza.
 - [ ] Zaktualizować `docs/ARCHITEKTURA.md` i `CHANGELOG.md` po tych zmianach.
 

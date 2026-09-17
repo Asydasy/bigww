@@ -433,3 +433,38 @@ select{cursor:pointer}
   .grid.players,.grid.teams{grid-template-columns:1fr}
   .grid.games{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
 }
+
+/* ---------- konto w sidebarze ---------- */
+.account{margin-bottom:10px}
+.acc-btn{width:100%}
+.acc-demo{
+  background:var(--panel2);border:1px solid var(--line-solid);border-radius:10px;
+  padding:9px 11px;display:flex;flex-direction:column;gap:2px;cursor:default;
+}
+.acc-demo b{font-size:12.5px;color:var(--warn)}
+.acc-demo span{font-size:11px;color:var(--txt-faint);line-height:1.4}
+.acc-row{
+  background:var(--panel2);border:1px solid var(--line-solid);border-radius:10px;
+  padding:8px 9px;display:flex;align-items:center;gap:9px;
+}
+.acc-info{flex:1;min-width:0;display:flex;flex-direction:column}
+.acc-info b{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.acc-info .note{font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ava.sm{width:30px;height:30px;border-radius:8px;flex:0 0 auto;background-size:cover}
+
+/* ---------- okno logowania ---------- */
+.auth-sep{display:flex;align-items:center;gap:10px;color:var(--txt-faint);font-size:11.5px}
+.auth-sep::before,.auth-sep::after{content:"";flex:1;height:1px;background:var(--line-solid)}
+.auth-error{
+  margin-top:12px;padding:9px 11px;border-radius:9px;font-size:13px;
+  background:#ff5c5c1a;border:1px solid #ff5c5c40;color:#ff8f8f;
+}
+:root[data-theme="light"] .auth-error{background:#d9262614;border-color:#d9262633;color:#b02121}
+
+/* ---------- wskaźnik trybu ---------- */
+.mode-tag{
+  display:inline-flex;align-items:center;gap:5px;font-size:11px;
+  padding:2px 7px;border-radius:20px;margin-bottom:8px;
+}
+.mode-tag.demo{background:var(--panel2);color:var(--warn)}
+.mode-tag.api{background:#2ee6a81a;color:var(--on)}

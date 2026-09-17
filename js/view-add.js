@@ -74,7 +74,7 @@ function draft() {
     age: Number($("#aAge").value) || 20,
     region: $("#aRegion").value,
     game,
-    gameId: (GAMES.find(g => g.name === game) || {}).id,
+    gameId: DATA.gameIdByName(game),
     plat: $("#aPlat").value,
     style: $("#aStyle").value,
     time: $("#aTime").value,
@@ -98,21 +98,26 @@ function preview() {
   box.innerHTML = "";
   box.append(playerCard(draft()));
 }
-function submitAd() {
+async function submitAd() {
   const nick = $("#aNick").value.trim();
   if (nick.length < 2) { toast("Wpisz nick"); $("#aNick").focus(); return; }
   if ($("#aDesc").value.trim().length < 10) { toast("Opisz krótko, czego szukasz"); $("#aDesc").focus(); return; }
-  if (MINE.length >= adLimit()) {
-    openModal(`<h3 style="margin-bottom:8px">Limit ogłoszeń wyczerpany</h3>
-      <p class="note">Plan podstawowy pozwala mieć ${adLimit()} aktywne ogłoszenia. Usuń jedno ze starych albo przejdź na Premium, gdzie zmieścisz 10 i trafisz na górę wyników.</p>
-      <button class="btn gold" id="limGo" style="margin-top:16px">Zobacz Premium</button>`);
-    $("#limGo").onclick = () => { $("#modal").classList.remove("on"); go("premium"); };
+
+  // Na serwerze ogłoszenie musi mieć właściciela.
+  if (DATA.isApi && !DATA.user) return requireLogin("dodać ogłoszenie");
+
+  $("#aSubmit").disabled = true;
+  try {
+    await DATA.createAd(draft());
+  } catch (e) {
+    $("#aSubmit").disabled = false;
+    if (e.status === 401) return requireLogin("dodać ogłoszenie");
+    if (e.status === 403) return limitModal();
+    toast(e.message || "Nie udało się opublikować ogłoszenia");
     return;
   }
-  const ad = draft();
-  MINE.unshift(ad);
-  save(KEY.mine, MINE);
-  countCache = null;
+  $("#aSubmit").disabled = false;
+
   toast("Ogłoszenie opublikowane");
   updateBadges();
   renderPlayers(true);
@@ -120,25 +125,74 @@ function submitAd() {
   progressQuest("post"); // monetization.js — zadanie dnia „dodaj ogłoszenie”
 }
 
-function renderMine() {
+function limitModal() {
+  const limit = DATA.isApi ? DATA.limits.limit : adLimit();
+  openModal(`<h3 style="margin-bottom:8px">Limit ogłoszeń wyczerpany</h3>
+    <p class="note">Plan podstawowy pozwala mieć ${limit} aktywne ogłoszenia. Usuń jedno ze starych albo przejdź na Premium, gdzie zmieścisz 10 i trafisz na górę wyników.</p>
+    <button class="btn gold" id="limGo" style="margin-top:16px">Zobacz Premium</button>`);
+  $("#limGo").onclick = () => { $("#modal").classList.remove("on"); go("premium"); };
+}
+
+async function renderMine() {
   const box = $("#mineList");
   box.innerHTML = "";
-  if (!MINE.length) {
+
+  if (DATA.isApi && !DATA.user) {
+    box.innerHTML = `<div class="empty" style="grid-column:1/-1"><h3>Zaloguj się</h3>
+      <p>Twoje ogłoszenia są przypisane do konta, więc najpierw trzeba się zalogować.</p></div>`;
+    const b = el("button", "btn pri", "Zaloguj się");
+    b.onclick = () => openAuth("login");
+    box.firstChild.append(b);
+    return;
+  }
+
+  let res;
+  try {
+    res = await DATA.myAds();
+  } catch (e) {
+    box.innerHTML = `<div class="empty" style="grid-column:1/-1"><h3>Nie udało się pobrać ogłoszeń</h3><p>${e.message || ""}</p></div>`;
+    return;
+  }
+
+  if (!res.ads.length) {
     box.innerHTML = `<div class="empty" style="grid-column:1/-1"><h3>Nie masz jeszcze ogłoszeń</h3><p>Dodaj pierwsze, żeby inni gracze mogli Cię znaleźć.</p></div>`;
     const b = el("button", "btn pri", "Dodaj ogłoszenie");
     b.onclick = () => go("add");
     box.firstChild.append(b);
     return;
   }
-  MINE.forEach(p => box.append(playerCard(p)));
+
+  const info = el("div", "note");
+  info.style.cssText = "grid-column:1/-1;margin-bottom:4px";
+  info.textContent = `Zajęte ${res.used} z ${res.limit} miejsc na ogłoszenia.`;
+  box.append(info);
+  res.ads.forEach(p => box.append(playerCard(p)));
 }
-function renderSaved() {
+
+async function renderSaved() {
   const box = $("#savedList");
   box.innerHTML = "";
-  const list = allPlayers().filter(p => SAVED.includes(p.id));
-  if (!list.length) {
+
+  if (DATA.isApi && !DATA.user) {
+    box.innerHTML = `<div class="empty" style="grid-column:1/-1"><h3>Zaloguj się</h3>
+      <p>Obserwowani są zapisani przy koncie, żeby byli widoczni także na innym urządzeniu.</p></div>`;
+    const b = el("button", "btn pri", "Zaloguj się");
+    b.onclick = () => openAuth("login");
+    box.firstChild.append(b);
+    return;
+  }
+
+  let res;
+  try {
+    res = await DATA.savedAds();
+  } catch (e) {
+    box.innerHTML = `<div class="empty" style="grid-column:1/-1"><h3>Nie udało się pobrać listy</h3><p>${e.message || ""}</p></div>`;
+    return;
+  }
+
+  if (!res.ads.length) {
     box.innerHTML = `<div class="empty" style="grid-column:1/-1"><h3>Pusto</h3><p>Gwiazdka na karcie gracza zapisze go tutaj.</p></div>`;
     return;
   }
-  list.forEach(p => box.append(playerCard(p)));
+  res.ads.forEach(p => box.append(playerCard(p)));
 }

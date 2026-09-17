@@ -2,20 +2,23 @@
 
 ## Krótko
 
-Dwie części, które jeszcze ze sobą nie rozmawiają.
+**Front i backend są spięte.** Ta sama strona działa w dwóch trybach,
+rozpoznawanych przy starcie:
 
-**Front** — `index.html` + `css/style.css` + 17 plików w `js/`. Waniliowy
-JavaScript, zero zależności, stan w localStorage. Kompletny wizualnie i
-klikalny od początku do końca: onboarding, dodawanie ogłoszenia, filtry,
-„zakup" premium, monety, sklep. Wszystko lokalnie, na danych demo.
+- **serwer** — backend odpowiada: ogłoszenia z bazy, konta, logowanie,
+  filtrowanie i wyszukiwanie po stronie PostgreSQL. W stopce menu widać
+  zielone „● serwer".
+- **demo** — backendu nie ma: dane z generatora i localStorage, jak w
+  pierwotnym prototypie. `index.html` otwarty z dysku dalej pokazuje pełną
+  aplikację. W stopce widać żółte „● demo".
 
-**Backend** — `server/`, Node + Fastify + PostgreSQL, zapytania przez Kysely.
-Konta, sesje, katalog gier, pełny CRUD ogłoszeń z filtrami i limitami.
-Działa i ma 23 przechodzące testy. Stawia się przez `docker compose up`.
+Widoki nie wiedzą, który tryb jest aktywny — pytają warstwę `DATA`
+(`js/data-source.js`), a ona decyduje, skąd wziąć dane.
 
-**Czego brakuje między nimi:** widoki wciąż czytają z generatora i
-localStorage. `js/api.js` jest gotową warstwą do rozmowy z serwerem, ale nic
-jeszcze z niej nie korzysta. Przepinanie widok po widoku to następny krok.
+**Front**: `index.html` + `css/style.css` + 19 plików w `js/`, waniliowy
+JavaScript, zero zależności.
+**Backend**: `server/`, Node + Fastify + PostgreSQL, zapytania przez Kysely,
+24 przechodzące testy. Stawia się przez `docker compose up`.
 
 ## Co DZIAŁA
 
@@ -81,26 +84,30 @@ Szczegóły i lista endpointów: `server/README.md`.
   wyszukiwarką odporną na polskie znaki i stronicowaniem.
 - Limit ogłoszeń na konto liczony po stronie serwera: 2 / 10 / 20.
 - Kontakt widzi właściciel i konto premium; reszta dostaje `contactLocked`.
-- 23 testy (`npm test` w `server/`) i ograniczenie liczby prób logowania.
+- 24 testy (`npm test` w `server/`) i ograniczenie liczby prób logowania.
 
 ## Czego NIE MA
 
-- **Połączenia frontu z backendem.** To jest teraz największa dziura: serwer
-  działa, ale strona nadal pokazuje dane demo.
-- **Prawdziwych użytkowników.** We froncie wszyscy „gracze" to generator.
+- **Prawdziwych użytkowników.** Baza startuje pusta — ogłoszenia pojawiają się
+  dopiero wtedy, gdy ktoś je doda. W trybie demo dalej widać 720 wygenerowanych
+  profili.
 - **Portfela monet po stronie serwera.** Kolumna `coins` jest, logiki
   wydawania nie ma — front dalej trzyma saldo w przeglądarce, więc każdy może
   je sobie zmienić w konsoli.
 - **Wysyłania wiadomości.** Przycisk „Napisz" pokazuje kontakt albo modal —
   nic nigdzie nie leci.
 - **Płatności.** Checkout to modal z opóźnieniem i komunikatem sukcesu.
-- **Ekip i transmisji w bazie.** Istnieją tylko we froncie, na danych demo.
+- **Ekip i transmisji w bazie.** Istnieją tylko we froncie, na danych demo —
+  także wtedy, gdy reszta strony chodzi na serwerze.
+- **Edycji ogłoszenia z poziomu strony.** Backend ma `PATCH /api/ads/:id`,
+  front wciąż każe skasować i dodać od nowa.
 - **Live.** Kafelki i licznik widzów są statyczne, nie ma odtwarzacza strumienia.
 - **Moderacji, zgłoszeń, blokowania.** Nie ma nawet zalążka.
 - **RODO / regulaminu / polityki prywatności.** Przy prawdziwych użytkownikach
   to jest warunek startu, nie „potem".
-- **Testów frontu.** Backend ma 23, front tylko ręczny smoke test
-  przeklikujący widoki.
+- **Testów frontu w repozytorium.** Backend ma 24 testy uruchamiane przez
+  `npm test`. Front był sprawdzany testem przeklikującym oba tryby, ale ten
+  test nie jest jeszcze częścią repo.
 
 ## Znane ograniczenia i pułapki techniczne
 
@@ -108,18 +115,20 @@ Szczegóły i lista endpointów: `server/README.md`.
    więc jeden film z telefonu potrafi zapchać limit. `save()` w `state.js` łyka
    wyjątek po cichu (`catch (e) {}`) — dane po prostu się nie zapisują i nikt
    się nie dowiaduje. To pierwszy realny bug do naprawienia.
-2. **Dane demo są generowane od nowa przy każdym odświeżeniu** z `Date.now()`
+2. **Tryb rozpoznawany jest raz, przy starcie.** Uruchomienie backendu przy
+   otwartej stronie nie przełącza jej na serwer — trzeba odświeżyć. Tak samo
+   przy otwarciu `index.html` z dysku obok działającego serwera: przeglądarka
+   zablokuje zapytanie zasadą CORS i strona wejdzie w tryb demo. Żeby pracować
+   na serwerze, otwieraj http://localhost:3000 przy `SERVE_STATIC=1`.
+3. **Dane demo są generowane od nowa przy każdym odświeżeniu** z `Date.now()`
    w polach `added`, więc „dodane 3 h temu" zmienia się między wejściami.
-3. **Kolejność skryptów w `index.html` ma znaczenie** — wszystko żyje w zasięgu
+4. **Kolejność skryptów w `index.html` ma znaczenie** — wszystko żyje w zasięgu
    globalnym. Nowy plik dopisujemy w odpowiednim miejscu listy, nie na końcu.
-4. **Kilka wartości siedzi poza obiektem `KEY`**: `bigww_extra_slot` i
+   `data-source.js` musi być po `api.js` i `state.js`, a `main.js` ostatni.
+5. **Kilka wartości siedzi poza obiektem `KEY`**: `bigww_extra_slot` i
    `bigww_unlock_cred` są czytane bezpośrednio z localStorage. Przy czyszczeniu
    danych trzeba je kasować osobno (kod to robi, ale łatwo przeoczyć).
-5. **Brak walidacji formularza** poza `maxlength` i `min/max` na wieku.
-6. **Karta sponsorowana pokazuje się także przy zerowej liczbie wyników** —
-   nad komunikatem „Brak dokładnych wyników". Zachowanie odziedziczone po
-   pierwszej wersji, świadomie zostawione przy rozdzielaniu plików, żeby refaktor
-   nic nie zmieniał. Do poprawy osobno.
+6. **Brak walidacji formularza** poza `maxlength` i `min/max` na wieku.
 7. **Klipy z Twitcha wymagają parametru `parent`** przy embedzie — na
    `file://` to nie zadziała, potrzebny jest serwowany host.
 8. **Monety i premium są po stronie klienta.** Każdy może otworzyć konsolę i

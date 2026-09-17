@@ -88,6 +88,10 @@ export default async function adsRoutes(app) {
             time: { type: "string", maxLength: 40 },
             mic: { type: "string", maxLength: 40 },
             lookingNow: { type: "boolean" },
+            lang: { type: "string", maxLength: 10 },
+            tag: { type: "string", maxLength: 30 },
+            /** Tylko ogłoszenia z ostatnich N godzin — szybki filtr „Świeże". */
+            newHours: { type: "integer", minimum: 1, maximum: 8760 },
             q: { type: "string", maxLength: 100 },
             page: { type: "integer", minimum: 1, default: 1 },
             perPage: { type: "integer", minimum: 1, maximum: PER_PAGE_MAX, default: PER_PAGE_DEFAULT }
@@ -109,6 +113,9 @@ export default async function adsRoutes(app) {
       if (f.time) q = q.where("ads.time_of_day", "=", f.time);
       if (f.mic) q = q.where("ads.mic", "=", f.mic);
       if (f.lookingNow !== undefined) q = q.where("ads.looking_now", "=", f.lookingNow);
+      if (f.lang) q = q.where("ads.lang", "ilike", `${f.lang}%`);
+      if (f.tag) q = q.where(sql`ads.tags`, "@>", sql`ARRAY[${f.tag}]::text[]`);
+      if (f.newHours) q = q.where(sql`ads.created_at`, ">", sql`now() - make_interval(hours => ${f.newHours})`);
 
       // Każde słowo musi pasować (AND) — tak samo jak wyszukiwarka we froncie.
       // bigww_norm() zdejmuje polskie znaki i wielkość liter po obu stronach,

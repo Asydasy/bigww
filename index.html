@@ -14,6 +14,7 @@
 <div class="shell">
 <aside class="sidebar" id="sidebar">
   <div class="logo">Big<b>WW</b><small>Znajdź ludzi do grania</small></div>
+  <div id="account"></div>
   <div class="coin-bal" id="coinBal" title="Twoje monety WW">
     <span class="coin-icon">◎</span>
     <span><b id="coinNum">0</b> WW</span>
@@ -33,7 +34,7 @@
     <button data-v="shop"><span class="ico">◎</span>Sklep i monety<span class="badge" id="nb-coins"></span></button>
     <button data-v="settings"><span class="ico">⚙</span>Ustawienia</button>
   </nav>
-  <div class="side-foot">Baza demonstracyjna. Profile graczy są generowane lokalnie — nic nie wychodzi poza Twoją przeglądarkę.</div>
+  <div class="side-foot" id="sideFoot">Baza demonstracyjna. Profile graczy są generowane lokalnie — nic nie wychodzi poza Twoją przeglądarkę.</div>
 </aside>
 
 <main class="main">
@@ -421,6 +422,8 @@
 <script src="js/state.js"></script>
 <script src="js/util.js"></script>
 <script src="js/api.js"></script>
+<script src="js/data-source.js"></script>
+<script src="js/auth-ui.js"></script>
 <script src="js/nav.js"></script>
 <script src="js/cards.js"></script>
 <script src="js/view-players.js"></script>
