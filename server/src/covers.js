@@ -21,9 +21,10 @@
  * fetch(), ale zwykły <script src> wczytuje bez problemu. Gdy spisu nie ma,
  * wszystkie karty zostają przy grafice generowanej.
  *
- * UWAGA: gry spoza Steama (Fortnite, Genshin, Roblox, tytuły konsolowe i
- * mobilne) nie zostaną znalezione i to jest normalne. Skrypt wypisuje je na
- * końcu — możesz im dopisać numery ręcznie w RECZNE_NUMERY poniżej.
+ * UWAGA: gry spoza Steama (Fortnite, League of Legends, Genshin, Roblox,
+ * tytuly konsolowe i mobilne) nie zostana znalezione i to jest normalne.
+ * Skrypt wypisuje je na koncu - mozesz im dopisac numery recznie w
+ * RECZNE_NUMERY ponizej.
  */
 import { mkdir, writeFile, access, readdir } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
@@ -46,18 +47,17 @@ const RECZNE_NUMERY = {
   // "Counter-Strike 2": 730,
 };
 
-/** Tytuły, których nie ma na Steamie — pomijamy bez wypisywania ostrzeżenia. */
+/**
+ * Tytuly, ktorych na pewno nie ma na Steamie - pomijamy je bez wypisywania
+ * ostrzezenia. Lista jest celowo krotka: lepiej, zeby skrypt zglosil gre za
+ * duzo, niz zeby po cichu pominal taka, ktora dalo sie pobrac.
+ */
 const NIE_MA_NA_STEAMIE = new Set([
-  "Fortnite", "Genshin Impact", "Honkai: Star Rail", "Wuthering Waves",
-  "Zenless Zone Zero", "Roblox", "Pokémon UNITE", "Halo Infinite",
-  "League of Legends", "VALORANT", "Marvel Snap", "eFootball",
-  "Call of Duty: Warzone", "Call of Duty: Black Ops 6",
-  "Call of Duty: Modern Warfare III", "Apex Legends", "Overwatch 2",
-  "Diablo IV", "Diablo III", "World of Warcraft", "Hearthstone",
-  "Heroes of the Storm", "Magic: The Gathering Arena", "Stumble Guys",
-  "Brawlhalla", "Madden NFL 25", "NBA 2K25", "Destiny 2"
+  "Fortnite", "League of Legends", "VALORANT", "Roblox",
+  "Genshin Impact", "Honkai: Star Rail", "Zenless Zone Zero", "Wuthering Waves",
+  "Pokémon UNITE", "Magic: The Gathering Arena", "Hearthstone",
+  "World of Warcraft", "Heroes of the Storm"
 ]);
-
 /**
  * Nazwa pliku z nazwy gry. MUSI dawać ten sam wynik co slugGry() w js/util.js —
  * inaczej front będzie szukał okładki pod innym adresem, niż zapisał skrypt.
@@ -87,12 +87,12 @@ async function istnieje(p) {
 }
 
 async function pobierzListe(log) {
-  log("Pobieram listę gier ze Steama (to kilkanaście MB, chwilę trwa)…");
+  log("1/3 Pobieram liste gier ze Steama (kilkanascie MB, moze potrwac minute)...");
   const res = await fetch(LISTA_GIER);
-  if (!res.ok) throw new Error(`Steam oddał ${res.status} przy liście gier`);
+  if (!res.ok) throw new Error(`Steam oddal ${res.status} przy liscie gier`);
   const dane = await res.json();
   const apps = dane?.applist?.apps || [];
-  log(`  na liście: ${apps.length.toLocaleString("pl-PL")} pozycji`);
+  log(`    na liscie: ${apps.length} pozycji`);
 
   // Ta sama nazwa potrafi wystąpić wiele razy (dodatki, serwery, edycje).
   // Zostawiamy najniższy numer, bo to zwykle gra podstawowa.
@@ -124,15 +124,19 @@ async function pobierzOkladke(appid) {
   return null;
 }
 
+/** Ile obrazkow pobieramy naraz. Wiecej = szybciej, ale Steam zaczyna odmawiac. */
+const NARAZ = 8;
+
 export async function pobierzOkladki({ force = false, log = console.log } = {}) {
   const gry = await parseGames();
   await mkdir(OUT_DIR, { recursive: true });
 
   const mapa = await pobierzListe(log);
 
-  let zapisane = 0;
+  // Ustalamy, co w ogole trzeba pobrac, zanim ruszymy z siecia.
+  const doPobrania = [];
   let pominiete = 0;
-  const bezOkladki = [];
+  const bezNumeru = [];
 
   for (const gra of gry) {
     const plikDocelowy = path.join(OUT_DIR, slug(gra.name) + ".jpg");
@@ -140,42 +144,70 @@ export async function pobierzOkladki({ force = false, log = console.log } = {}) 
 
     const appid = RECZNE_NUMERY[gra.name] ?? mapa.get(klucz(gra.name));
     if (!appid) {
-      if (!NIE_MA_NA_STEAMIE.has(gra.name)) bezOkladki.push(gra.name);
+      if (!NIE_MA_NA_STEAMIE.has(gra.name)) bezNumeru.push(gra.name);
       continue;
     }
-
-    try {
-      const wynik = await pobierzOkladke(appid);
-      if (!wynik) { bezOkladki.push(`${gra.name} (numer ${appid}, brak pliku)`); continue; }
-      await writeFile(plikDocelowy, wynik.buf);
-      zapisane++;
-      log(`  ✓ ${gra.name} → ${path.basename(plikDocelowy)} (${wynik.plik})`);
-    } catch (err) {
-      bezOkladki.push(`${gra.name} (${err.message})`);
-    }
+    doPobrania.push({ gra, appid, plikDocelowy });
   }
 
-  // Spis obejmuje wszystko, co leży w katalogu — także pobrane wcześniej.
+  log("");
+  log(`2/3 Do pobrania: ${doPobrania.length} okladek. Juz mam: ${pominiete}.`);
+  if (!doPobrania.length) log("    Nie ma czego pobierac.");
+
+  let zapisane = 0;
+  let zrobione = 0;
+  const bezPliku = [];
+
+  // Pobieramy paczkami, zeby nie czekac na kazdy obrazek po kolei.
+  for (let i = 0; i < doPobrania.length; i += NARAZ) {
+    const paczka = doPobrania.slice(i, i + NARAZ);
+    await Promise.all(
+      paczka.map(async ({ gra, appid, plikDocelowy }) => {
+        try {
+          const wynik = await pobierzOkladke(appid);
+          if (!wynik) {
+            bezPliku.push(`${gra.name} (numer ${appid}, Steam nie ma obrazka)`);
+          } else {
+            await writeFile(plikDocelowy, wynik.buf);
+            zapisane++;
+          }
+        } catch (err) {
+          bezPliku.push(`${gra.name} (${err.message})`);
+        } finally {
+          zrobione++;
+          // \r nadpisuje te sama linie, wiec konsola nie zalewa sie tekstem.
+          process.stdout.write(`    ${zrobione}/${doPobrania.length} (zapisanych: ${zapisane})\r`);
+        }
+      })
+    );
+  }
+  if (doPobrania.length) process.stdout.write("\n");
+
+  // Spis obejmuje wszystko, co lezy w katalogu - takze pobrane wczesniej.
   const pliki = (await readdir(OUT_DIR)).filter((f) => f.endsWith(".jpg"));
   const slugi = pliki.map((f) => f.replace(/\.jpg$/, "")).sort();
   await writeFile(
     path.join(OUT_DIR, "index.js"),
-    "/* Spis pobranych okładek. Plik generowany przez: cd server && npm run covers\n" +
+    "/* Spis pobranych okladek. Plik generowany przez: cd server && npm run covers\n" +
       `   Wygenerowano: ${new Date().toISOString()} */\n` +
       "var OKLADKI_Z_DYSKU = " + JSON.stringify(slugi, null, 2) + ";\n"
   );
 
+  const bezOkladki = bezNumeru.concat(bezPliku);
+
   log("");
-  log(`Zapisane: ${zapisane}. Pominięte (już były): ${pominiete}. W katalogu: ${pliki.length}.`);
-  log(`Gier bez okładki: ${bezOkladki.length + NIE_MA_NA_STEAMIE.size} z ${gry.length}.`);
+  log(`3/3 Gotowe. Zapisane teraz: ${zapisane}. W katalogu lacznie: ${pliki.length} z ${gry.length} gier.`);
+  log(`    Spis zapisany do img/games/index.js`);
+
   if (bezOkladki.length) {
     log("");
-    log("Nie znalazłem numeru dla tych tytułów — jeśli któryś jest na Steamie,");
-    log("dopisz go do RECZNE_NUMERY w server/src/covers.js i uruchom ponownie:");
+    log("Bez okladki (jesli ktorys jest na Steamie, dopisz numer do RECZNE_NUMERY");
+    log("w server/src/covers.js i uruchom ponownie):");
     bezOkladki.forEach((n) => log("  - " + n));
   }
   log("");
-  log("Gry bez okładki zostają przy grafice generowanej — nic się nie psuje.");
+  log("Gry bez okladki zostaja przy grafice generowanej - nic sie nie psuje.");
+  log("Odswiez strone z Ctrl+F5, zeby zobaczyc zmiane.");
 
   return { zapisane, pominiete, bezOkladki };
 }
@@ -184,7 +216,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   pobierzOkladki({ force: process.argv.includes("--force") })
     .then(() => process.exit(0))
     .catch((err) => {
-      console.error("Nie udało się pobrać okładek:", err.message);
+      console.error("Nie udalo sie pobrac okladek:", err.message);
       process.exit(1);
     });
 }
