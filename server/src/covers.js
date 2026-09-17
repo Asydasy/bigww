@@ -86,11 +86,25 @@ async function istnieje(p) {
   try { await access(p); return true; } catch { return false; }
 }
 
+/** fetch z limitem czasu - bez tego zawieszone polaczenie wisi w nieskonczonosc. */
+async function pobierz(url, sekundy) {
+  try {
+    return await fetch(url, { signal: AbortSignal.timeout(sekundy * 1000) });
+  } catch (err) {
+    if (err.name === "TimeoutError" || err.name === "AbortError") {
+      throw new Error(`brak odpowiedzi w ${sekundy} s od ${url}`);
+    }
+    throw new Error(`nie moge polaczyc sie ze Steamem (${err.cause?.code || err.message})`);
+  }
+}
+
 async function pobierzListe(log) {
   log("1/3 Pobieram liste gier ze Steama (kilkanascie MB, moze potrwac minute)...");
-  const res = await fetch(LISTA_GIER);
+  const start = Date.now();
+  const res = await pobierz(LISTA_GIER, 120);
   if (!res.ok) throw new Error(`Steam oddal ${res.status} przy liscie gier`);
   const dane = await res.json();
+  log(`    pobrano w ${Math.round((Date.now() - start) / 1000)} s`);
   const apps = dane?.applist?.apps || [];
   log(`    na liscie: ${apps.length} pozycji`);
 
@@ -114,7 +128,7 @@ async function pobierzListe(log) {
  */
 async function pobierzOkladke(appid) {
   for (const plik of ["header.jpg", "library_600x900.jpg"]) {
-    const res = await fetch(`${CDN}/${appid}/${plik}`);
+    const res = await pobierz(`${CDN}/${appid}/${plik}`, 30);
     if (res.ok) {
       const buf = Buffer.from(await res.arrayBuffer());
       // Steam potrafi oddać 200 z obrazkiem zastępczym — takie pliki są małe.
@@ -128,7 +142,15 @@ async function pobierzOkladke(appid) {
 const NARAZ = 8;
 
 export async function pobierzOkladki({ force = false, log = console.log } = {}) {
+  log("");
+  log("=== BigWW: pobieranie okladek gier ze Steama ===");
+  log(`Node ${process.version}. Okladki trafia do: ${OUT_DIR}`);
+  log("Jesli ponizej nic sie nie dzieje przez kilka minut, przerwij Ctrl+C");
+  log("i wklej to, co widzisz - to znaczy, ze Steam nie odpowiada.");
+  log("");
+
   const gry = await parseGames();
+  log(`0/3 Wczytalem ${gry.length} tytulow z js/data-games.js`);
   await mkdir(OUT_DIR, { recursive: true });
 
   const mapa = await pobierzListe(log);
@@ -216,7 +238,13 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   pobierzOkladki({ force: process.argv.includes("--force") })
     .then(() => process.exit(0))
     .catch((err) => {
-      console.error("Nie udalo sie pobrac okladek:", err.message);
+      console.error("");
+      console.error("BLAD: " + err.message);
+      console.error("");
+      console.error("Co sprawdzic:");
+      console.error("  - czy masz internet i czy strona store.steampowered.com otwiera sie w przegladarce");
+      console.error("  - czy firewall albo VPN nie blokuje Node.js");
+      console.error("  - okladki sa opcjonalne: bez nich strona dziala, tylko kafelki maja grafike generowana");
       process.exit(1);
     });
 }
