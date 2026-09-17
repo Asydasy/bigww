@@ -66,7 +66,7 @@ npm run covers
 ```
 
 Pobiera je raz do `img/games/` (katalog jest poza repozytorium) i zapisuje spis
-`img/games/index.json`. Gry spoza Steama — Fortnite, Genshin, tytuły konsolowe
+`img/games/index.js`. Gry spoza Steama — Fortnite, Genshin, tytuły konsolowe
 i mobilne — zostają przy grafice generowanej i to jest w porządku. Skrypt
 wypisuje na końcu, czego nie znalazł.
 

@@ -26,7 +26,6 @@ async function start() {
 
   // Zanim cokolwiek narysujemy, ustalamy skąd biorą się dane.
   await DATA.init();
-  await wczytajSpisOkladek();
 
   renderAccount();
   applyAuthVisibility();

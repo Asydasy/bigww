@@ -27,6 +27,9 @@ a nie tylko w plikach.
   źródło z regulaminem (RAWG, IGDB) i podać je na stronie.
 - Bez pobranych okładek strona robi jedno zapytanie o spis, dostaje 404
   i zostaje przy grafice generowanej.
+- Spis jest plikiem JS, a nie JSON-em: przy otwarciu `index.html` podwójnym
+  kliknięciem przeglądarka blokuje `fetch()` do plików z dysku, więc okładki
+  w ogóle by się nie pojawiały. `<script src>` działa w obu przypadkach.
 
 ### Sprawdzone
 - Kafelek z pobraną okładką pokazuje obrazek i chowa skrót literowy, pozostałe

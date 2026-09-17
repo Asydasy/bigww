@@ -94,8 +94,10 @@ Kafelek gry ma dwie warstwy tła: prawdziwą okładkę z `img/games/<slug>.jpg`
 i pod nią grafikę generowaną z nazwy. Gdy pliku nie ma, przeglądarka po prostu
 nie rysuje pierwszej warstwy i widać drugą.
 
-Które gry mają okładkę, mówi `img/games/index.json` — jeden spis wczytywany raz
-przy starcie do zbioru `OKLADKI` w `js/cards.js`. Pierwsza wersja sprawdzała
+Które gry mają okładkę, mówi `img/games/index.js` — jeden spis wczytywany
+zwykłym `<script src>` do zbioru `OKLADKI` w `js/cards.js`. Plik JS, a nie
+JSON, bo przy otwarciu `index.html` podwójnym kliknięciem przeglądarka blokuje
+`fetch()` do plików z dysku i okładki nigdy by się nie pojawiły. Pierwsza wersja sprawdzała
 każdy obrazek osobno i przy 205 grach dawała 204 błędy 404 na każde wejście
 w bazę gier.
 

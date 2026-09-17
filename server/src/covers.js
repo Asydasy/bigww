@@ -12,10 +12,14 @@
  *  3. pobiera poziomy nagłówek (460x215), a gdy go nie ma — okładkę pionową,
  *  4. zapisuje jako img/games/<slug>.jpg.
  *
- * Na końcu zapisuje spis pobranych okładek do img/games/index.json. Front czyta
+ * Na końcu zapisuje spis pobranych okładek do img/games/index.js. Front wczytuje
  * ten jeden plik i wie, dla których gier ma sięgać po obrazek — bez tego
  * strzelałby o okładkę do każdej z 205 gier i dostawał 204 błędy 404.
- * Gdy spisu nie ma, wszystkie karty zostają przy grafice generowanej.
+ *
+ * Spis jest plikiem JS, a nie JSON-em, celowo: przy otwarciu index.html
+ * podwójnym kliknięciem przeglądarka blokuje odczyt plików z dysku przez
+ * fetch(), ale zwykły <script src> wczytuje bez problemu. Gdy spisu nie ma,
+ * wszystkie karty zostają przy grafice generowanej.
  *
  * UWAGA: gry spoza Steama (Fortnite, Genshin, Roblox, tytuły konsolowe i
  * mobilne) nie zostaną znalezione i to jest normalne. Skrypt wypisuje je na
@@ -153,9 +157,12 @@ export async function pobierzOkladki({ force = false, log = console.log } = {}) 
 
   // Spis obejmuje wszystko, co leży w katalogu — także pobrane wcześniej.
   const pliki = (await readdir(OUT_DIR)).filter((f) => f.endsWith(".jpg"));
+  const slugi = pliki.map((f) => f.replace(/\.jpg$/, "")).sort();
   await writeFile(
-    path.join(OUT_DIR, "index.json"),
-    JSON.stringify({ wygenerowano: new Date().toISOString(), gry: pliki.map((f) => f.replace(/\.jpg$/, "")).sort() }, null, 2)
+    path.join(OUT_DIR, "index.js"),
+    "/* Spis pobranych okładek. Plik generowany przez: cd server && npm run covers\n" +
+      `   Wygenerowano: ${new Date().toISOString()} */\n` +
+      "var OKLADKI_Z_DYSKU = " + JSON.stringify(slugi, null, 2) + ";\n"
   );
 
   log("");

@@ -169,22 +169,13 @@ function teamCard(t) {
 let countCache = null;
 /**
  * Slugi gier, dla których leży prawdziwa okładka w img/games/.
- * Wypełniane raz przy starcie z img/games/index.json, który zapisuje skrypt
- * pobierający (cd server && npm run covers). Bez tego pliku zbiór zostaje
- * pusty i wszystkie karty mają grafikę generowaną — tak jak dotąd.
+ *
+ * Listę dostarcza plik img/games/index.js zapisany przez skrypt pobierający
+ * (cd server && npm run covers) — wczytuje go <script src> w index.html.
+ * Gdy skrypt nie był uruchomiony, pliku nie ma, zbiór zostaje pusty i wszystkie
+ * karty mają grafikę generowaną, tak jak dotąd.
  */
-let OKLADKI = new Set();
-
-async function wczytajSpisOkladek() {
-  try {
-    const res = await fetch("img/games/index.json", { cache: "no-cache" });
-    if (!res.ok) return;
-    const dane = await res.json();
-    if (Array.isArray(dane.gry)) OKLADKI = new Set(dane.gry);
-  } catch {
-    // Brak spisu to normalny stan przed pobraniem okładek — nic nie robimy.
-  }
-}
+const OKLADKI = new Set(typeof OKLADKI_Z_DYSKU !== "undefined" ? OKLADKI_Z_DYSKU : []);
 
 /**
  * Ustawia tło kafelka gry: prawdziwa okładka, jeśli została pobrana, a pod nią
