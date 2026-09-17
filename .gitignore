@@ -10,3 +10,11 @@ Thumbs.db
 .vscode/
 *.bundle
 *.tar.gz
+
+# backend
+server/node_modules/
+server/.env
+server/.env.test
+
+# przyklad konfiguracji MA byc w repo
+!server/.env.example

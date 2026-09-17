@@ -2,14 +2,20 @@
 
 ## Krótko
 
-Front-end rozdzielony na `index.html` + `css/style.css` + 16 plików w `js/`.
-Waniliowy JavaScript, zero zależności, stan w localStorage. Backendu jeszcze
-nie ma — jest zdecydowany stos (Node + Fastify + PostgreSQL w Dockerze,
-Prisma) i logowanie przez Discorda oraz przez e-mail z hasłem.
+Dwie części, które jeszcze ze sobą nie rozmawiają.
 
-Prototyp jest kompletny wizualnie i klikalny od początku do końca: da się
-przejść onboarding, dodać ogłoszenie, przefiltrować graczy, „kupić" premium,
-zarobić monety i wydać je w sklepie. Wszystko lokalnie.
+**Front** — `index.html` + `css/style.css` + 17 plików w `js/`. Waniliowy
+JavaScript, zero zależności, stan w localStorage. Kompletny wizualnie i
+klikalny od początku do końca: onboarding, dodawanie ogłoszenia, filtry,
+„zakup" premium, monety, sklep. Wszystko lokalnie, na danych demo.
+
+**Backend** — `server/`, Node + Fastify + PostgreSQL, zapytania przez Kysely.
+Konta, sesje, katalog gier, pełny CRUD ogłoszeń z filtrami i limitami.
+Działa i ma 23 przechodzące testy. Stawia się przez `docker compose up`.
+
+**Czego brakuje między nimi:** widoki wciąż czytają z generatora i
+localStorage. `js/api.js` jest gotową warstwą do rozmowy z serwerem, ale nic
+jeszcze z niej nie korzysta. Przepinanie widok po widoku to następny krok.
 
 ## Co DZIAŁA
 
@@ -60,19 +66,41 @@ statusu na Starcie i na liście graczy.
 Motyw ciemny/jasny (zapisywany), region domyślny, zmiana awatara, kasowanie
 wszystkich danych lokalnych.
 
+## Co DZIAŁA po stronie serwera
+
+Szczegóły i lista endpointów: `server/README.md`.
+
+- Konta: rejestracja e-mailem z hasłem (scrypt), logowanie, wylogowanie,
+  sesja w ciasteczku httpOnly ważna 30 dni.
+- Logowanie przez Discorda — gotowe, wymaga tylko wpisania `DISCORD_CLIENT_ID`
+  i `DISCORD_CLIENT_SECRET` w `server/.env`. Konto z tym samym potwierdzonym
+  adresem jest dopinane do istniejącego, a nie dublowane.
+- Katalog 205 gier w bazie, wypełniany seedem z `js/data-games.js`.
+- Ogłoszenia: dodawanie, edycja, usuwanie, obserwowanie, lista z filtrami
+  (gra, region, platforma, styl, pora, mikrofon, „szukam teraz"),
+  wyszukiwarką odporną na polskie znaki i stronicowaniem.
+- Limit ogłoszeń na konto liczony po stronie serwera: 2 / 10 / 20.
+- Kontakt widzi właściciel i konto premium; reszta dostaje `contactLocked`.
+- 23 testy (`npm test` w `server/`) i ograniczenie liczby prób logowania.
+
 ## Czego NIE MA
 
-- **Backendu.** Zero. Żadnego API, serwera, bazy, kont, logowania, sesji.
-- **Prawdziwych użytkowników.** Wszyscy „gracze" to generator. Dwie osoby
-  otwierające stronę nie widzą się nawzajem.
+- **Połączenia frontu z backendem.** To jest teraz największa dziura: serwer
+  działa, ale strona nadal pokazuje dane demo.
+- **Prawdziwych użytkowników.** We froncie wszyscy „gracze" to generator.
+- **Portfela monet po stronie serwera.** Kolumna `coins` jest, logiki
+  wydawania nie ma — front dalej trzyma saldo w przeglądarce, więc każdy może
+  je sobie zmienić w konsoli.
 - **Wysyłania wiadomości.** Przycisk „Napisz" pokazuje kontakt albo modal —
   nic nigdzie nie leci.
 - **Płatności.** Checkout to modal z opóźnieniem i komunikatem sukcesu.
+- **Ekip i transmisji w bazie.** Istnieją tylko we froncie, na danych demo.
 - **Live.** Kafelki i licznik widzów są statyczne, nie ma odtwarzacza strumienia.
 - **Moderacji, zgłoszeń, blokowania.** Nie ma nawet zalążka.
 - **RODO / regulaminu / polityki prywatności.** Przy prawdziwych użytkownikach
   to jest warunek startu, nie „potem".
-- **Testów automatycznych.** Jest tylko ręczny smoke test przeklikujący widoki.
+- **Testów frontu.** Backend ma 23, front tylko ręczny smoke test
+  przeklikujący widoki.
 
 ## Znane ograniczenia i pułapki techniczne
 
@@ -98,9 +126,10 @@ wszystkich danych lokalnych.
    wpisać sobie dowolny balans. Dziś bez znaczenia, przy prawdziwych
    płatnościach krytyczne — musi trafić do bazy.
 
-## Podjęte decyzje czekające na realizację
+## Decyzje
 
-- Backend: **Node + Fastify + PostgreSQL w Dockerze, Prisma jako ORM**.
-- Logowanie: **Discord OAuth oraz e-mail z hasłem** (obie drogi).
+- Backend: **Node + Fastify + PostgreSQL w Dockerze**, zapytania przez
+  **Kysely** (zamiast Prismy — powód w `CHANGELOG.md` i `docs/DECYZJE.md`).
+- Logowanie: **Discord OAuth oraz e-mail z hasłem** (obie drogi, obie gotowe).
 
-Szczegóły i kolejność prac: `docs/TODO.md`.
+Kolejność dalszych prac: `docs/TODO.md`.

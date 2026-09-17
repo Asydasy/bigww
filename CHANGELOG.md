@@ -3,6 +3,40 @@
 Format: najnowsze na górze. Każdy wpis mówi, co zmieniło się w **zachowaniu**,
 a nie tylko w plikach.
 
+## [0.3.0] — 2026-09-17
+
+### Dodane
+- **Backend** w `server/`: Node + Fastify + PostgreSQL, zapytania przez Kysely.
+  Konta (rejestracja e-mailem z hasłem, logowanie przez Discorda), sesja w
+  ciasteczku httpOnly, katalog gier, pełny CRUD ogłoszeń z filtrami,
+  stronicowaniem i limitem na konto, obserwowanie ogłoszeń.
+- **`docker-compose.yml`** — `docker compose up` stawia bazę i serwer.
+- **Migracje** w `server/migrations/` z własnym runnerem (`npm run migrate`)
+  oraz seed katalogu gier z `js/data-games.js` (`npm run seed`), żeby front i
+  baza nie rozjechały się co do nazw.
+- **23 testy API** (`npm test` w `server/`) — konta, uprawnienia, filtry,
+  limity, obserwowanie. Idą na osobnej bazie.
+- **`js/api.js`** — jedyne miejsce, przez które front będzie rozmawiał z
+  serwerem. Widoki jeszcze z niego nie korzystają; można go wywołać z konsoli
+  (`await API.games({ q: "elden" })`).
+
+### Naprawione
+- **Wyszukiwarka na serwerze gubiła polskie znaki.** „rankedow" nie znajdowało
+  „rankedów", choć front dokładnie tak normalizuje zapytania. Doszła funkcja
+  `bigww_norm()` w bazie, kolumna `ads.search_text` pilnowana wyzwalaczem i
+  indeks trigramowy. Znalezione przez test.
+- **Serwer wysyłał klientowi wewnętrzne komunikaty błędów** (np. nazwę
+  brakującej funkcji w bazie), bo handler błędów był rejestrowany po trasach i
+  w ogóle nie działał. Teraz idzie przed nimi, a 500 zwraca ogólny komunikat.
+  Znalezione przez smoke test po HTTP.
+
+### Zmienione
+- **ORM: Kysely zamiast Prismy.** Prisma pobiera swój silnik z
+  `binaries.prisma.sh`, a środowisko, w którym powstaje kod, ma ten host
+  zablokowany — każda linijka byłaby pisana bez możliwości uruchomienia.
+  Kysely to czysty pakiet z npm, więc całość dało się przetestować na żywej
+  bazie przed oddaniem.
+
 ## [0.2.0] — 2026-09-17
 
 ### Zmienione

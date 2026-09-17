@@ -1,5 +1,8 @@
 # Architektura
 
+Projekt ma dwie części: front (katalog główny) i backend (`server/`).
+Ten plik opisuje front; backend ma własny `server/README.md`.
+
 ## Układ plików
 
 ```
@@ -11,6 +14,8 @@ js/data-demo.js         generator demo: PLAYERS (720), TEAMS (80), LIVES (36),
 js/state.js             localStorage: obiekt KEY, load/save, premium, monety,
                         limity, canSeeContact(), adLimit()
 js/util.js              $, el, norm, nf, tokens, searchScore, ago, toast, fillSelect
+js/api.js               jedyne wejście do serwera (API.login, API.ads, ...);
+                        widoki jeszcze z niego nie korzystają
 js/nav.js               go(view), podpięcie sidebara i bottom-nav, setLooking()
 js/cards.js             playerCard, gameCard, teamCard, openProfile, showContact,
                         openModal, toggleSave, podgląd mediów

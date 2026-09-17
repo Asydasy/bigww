@@ -1,0 +1,46 @@
+# Uruchomienie całości: docker compose up
+# Pierwsze uruchomienie:
+#   1. cp server/.env.example server/.env   (i wpisz własny JWT_SECRET)
+#   2. docker compose up
+#   3. docker compose exec api npm run migrate
+#   4. docker compose exec api npm run seed
+# Potem front: otwórz index.html albo http://localhost:3000 przy SERVE_STATIC=1
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: bigww
+      POSTGRES_PASSWORD: bigww
+      POSTGRES_DB: bigww
+    ports:
+      - "5432:5432"
+    volumes:
+      - bigww_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bigww"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    image: node:22-alpine
+    working_dir: /app/server
+    command: sh -c "npm install && npm run start"
+    env_file:
+      - server/.env
+    environment:
+      # W sieci Dockera baza nazywa się "db", nie "localhost".
+      DATABASE_URL: postgresql://bigww:bigww@db:5432/bigww
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      - bigww_node_modules:/app/server/node_modules
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  bigww_pgdata:
+  bigww_node_modules:

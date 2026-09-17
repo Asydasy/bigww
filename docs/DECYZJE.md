@@ -38,9 +38,47 @@ przy każdym odświeżeniu i nie dałoby się o nim sensownie rozmawiać.
 przepływ (dodaj ogłoszenie → zobacz je na liście → wypromuj → kup premium) bez
 ani jednej linijki serwera.
 
-**Monetyzacja doszyta przez nadpisanie funkcji.** `go`, `renderPlayers`
-i `submitAd` są podmieniane w sekcji monetyzacji zamiast przepisywania
-oryginałów. To skrót, nie wzorzec — przy przepisywaniu na backend do usunięcia.
+**Monetyzacja doszyta przez nadpisanie funkcji** — cofnięte 17.09.2026.
+`go`, `renderPlayers` i `submitAd` były podmieniane w sekcji monetyzacji
+zamiast przepisywania oryginałów. Przy rozdzielaniu plików to by się rozsypało
+albo zaczęło działać losowo w zależności od kolejności ładowania, więc
+monetyzacja wchodzi teraz przez trzy zwykłe wywołania.
+
+## Backend
+
+**Node + Fastify + PostgreSQL.** Ten sam język co front, więc nie przeskakuje
+się między dwoma światami. Baza w kontenerze — `docker compose up` i stoi.
+
+**Kysely zamiast Prismy.** Pierwotnie wybrana była Prisma. Okazało się, że
+pobiera swój silnik z `binaries.prisma.sh`, a środowisko, w którym powstaje
+kod, ma ten host zablokowany polityką sieci. Każda linijka kodu z Prismą byłaby
+pisana bez możliwości uruchomienia. Kysely to czysty pakiet z npm: zapytania
+dalej składa się w JavaScripcie, a całość dało się przetestować na żywej bazie
+przed oddaniem. Cena: migracje piszemy jako pliki SQL i nie ma `prisma studio`.
+
+**Logowanie dwiema drogami.** Discord jest naturalny dla graczy i daje gotowy,
+wiarygodny kontakt. E-mail z hasłem zostaje dla tych, którzy Discorda nie mają.
+Konto z tym samym, potwierdzonym przez Discorda adresem jest dopinane do
+istniejącego zamiast tworzyć duplikat.
+
+**Hasła przez scrypt z wbudowanego `crypto`.** Bez zewnętrznej biblioteki —
+Node ma to od lat, a jest to funkcja zaprojektowana pod hasła.
+
+**Sesja jako JWT w ciasteczku httpOnly.** Token w localStorage byłby do
+odczytania przez JavaScript strony, więc jeden udany XSS wynosiłby cudze sesje.
+
+**Nazwy kolumn `time_of_day` i `descr`.** `time` i `desc` to słowa zastrzeżone
+w SQL. Zamiana z powrotem na `time` i `desc` siedzi w `server/src/shape.js`,
+dzięki czemu front nie musi o tym wiedzieć.
+
+**Wyszukiwanie znormalizowane w bazie.** Front od początku zdejmował polskie
+znaki (`norm()`), więc baza musi robić dokładnie to samo — inaczej ten sam
+wpisany tekst daje inne wyniki. Stąd funkcja `bigww_norm()`, kolumna
+`ads.search_text` pilnowana wyzwalaczem i indeks trigramowy.
+
+**Monety i premium po stronie serwera.** W przeglądarce każdy wpisze sobie
+dowolne saldo w konsoli. Dopóki nie ma prawdziwych pieniędzy, to nie boli, ale
+schemat bazy jest już przygotowany pod przeniesienie portfela.
 
 ## Sposób prowadzenia projektu
 

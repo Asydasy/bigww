@@ -19,9 +19,11 @@ Google Fonts; bez internetu strona działa, tylko na fontach systemowych.
 ```
 index.html            markup — 11 widoków i modale
 css/style.css         style
-js/                   16 plików: dane, stan, widoki, monetyzacja, start
+js/                   17 plików: dane, stan, widoki, monetyzacja, api, start
+server/               backend — Fastify + PostgreSQL + Kysely
+docker-compose.yml    baza i serwer jednym poleceniem
 docs/STAN.md          co jest zrobione, co nie działa, znane ograniczenia
-docs/ARCHITEKTURA.md  układ plików, kolejność ładowania, model danych
+docs/ARCHITEKTURA.md  układ plików frontu, kolejność ładowania, model danych
 docs/DECYZJE.md       podjęte decyzje projektowe i dlaczego
 docs/TODO.md          kolejne kroki, uporządkowane
 CHANGELOG.md          co zmieniło się w której wersji
@@ -29,6 +31,21 @@ CLAUDE.md             instrukcja dla Claude'a w kolejnych sesjach
 ```
 
 Co gdzie siedzi w `js/` — tabela w `docs/ARCHITEKTURA.md`.
+Backend i lista endpointów — `server/README.md`.
+
+## Backend
+
+```
+cp server/.env.example server/.env      # i wpisz własny JWT_SECRET
+docker compose up
+docker compose exec api npm run migrate
+docker compose exec api npm run seed
+```
+
+Sprawdzenie: http://localhost:3000/api/health
+
+**Front jeszcze z niego nie korzysta** — strona działa na danych demo.
+`js/api.js` jest gotową warstwą do przepięcia widoków na serwer.
 
 ## Podział ról
 

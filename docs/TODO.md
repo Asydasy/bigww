@@ -5,68 +5,80 @@ osobnym etapem projektu.
 
 ## 0. Zrobione
 
-- [x] **Rozdzielić `index.html`** na `css/style.css` i 16 plików w `js/`.
-- [x] **Usunąć nadpisywanie funkcji** `go`, `renderPlayers`, `submitAd`.
-- [x] **Wybrać stos backendu**: Node + Fastify + PostgreSQL w Dockerze, Prisma.
-- [x] **Wybrać sposób logowania**: Discord OAuth oraz e-mail z hasłem.
+- [x] Rozdzielić `index.html` na `css/style.css` i 17 plików w `js/`.
+- [x] Usunąć nadpisywanie funkcji `go`, `renderPlayers`, `submitAd`.
+- [x] Wybrać stos backendu i sposób logowania.
+- [x] Postawić backend: konta, sesje, katalog gier, CRUD ogłoszeń z filtrami,
+      limitami i obserwowaniem. 23 testy przechodzą.
+- [x] `docker-compose.yml`, migracje z runnerem, seed gier z `js/data-games.js`.
+- [x] `js/api.js` — warstwa do rozmowy z serwerem (jeszcze nieużywana).
 
-## 1. Poprawki w prototypie (po jednej sesji każda)
+## 1. Połączyć front z backendem (następny duży krok)
+
+Kolejność ma znaczenie — każdy punkt da się przetestować osobno.
+
+- [ ] **Ekran logowania i rejestracji.** Dziś front w ogóle nie wie, że konta
+      istnieją. Potrzebny modal z dwiema zakładkami (e-mail / Discord) i
+      miejsce w sidebarze pokazujące, kto jest zalogowany.
+- [ ] **Widok graczy z API.** `renderPlayers()` woła `API.ads(filtry)` zamiast
+      `filterPlayers()`. Filtry idą do zapytania, stronicowanie zastępuje
+      „pokaż więcej" po 24. Generator zostaje jako tryb demo pod przełącznikiem.
+- [ ] **Dodawanie ogłoszenia przez API.** `submitAd()` woła `API.createAd()`,
+      obsługuje 401 (pokaż logowanie) i 403 (limit — pokaż Premium).
+- [ ] **Moje ogłoszenia i obserwowani z API**, z prawdziwym limitem z
+      `/ads/mine`.
+- [ ] **Baza gier z API** zamiast z `data-games.js` — z licznikiem ogłoszeń na
+      grę (`?withCounts=true`).
+- [ ] Po przepięciu: usunąć `js/data-demo.js` z listy skryptów albo zostawić
+      pod przełącznikiem trybu demo.
+
+## 2. Poprawki w prototypie (po jednej sesji każda)
 
 - [ ] **Obsłużyć przepełnienie localStorage.** `save()` w `js/state.js` łyka
       błąd po cichu. Ma pokazywać toast „Brak miejsca — usuń stare ogłoszenie
-      albo plik” i nie udawać, że zapisał.
+      albo plik" i nie udawać, że zapisał.
 - [ ] **Karta sponsorowana przy zerowej liczbie wyników.** `addSponsoredSlot()`
-      wstawia ją także nad komunikat „Brak dokładnych wyników”. Powinna
-      pojawiać się tylko wtedy, gdy na liście są prawdziwe karty.
+      wstawia ją także nad komunikat „Brak dokładnych wyników".
 - [ ] **Ograniczyć wielkość wrzucanego pliku** (np. 2 MB) i skalować obrazy
       przed zapisem jako data URL.
-- [ ] **Walidacja formularza ogłoszenia**: nick niepusty, gra wybrana, wiek
-      13-80, kontakt w rozpoznawalnym formacie. Teraz da się opublikować pustkę.
-- [ ] **Edycja własnego ogłoszenia.** Jest usuwanie i promowanie, nie ma zmiany
-      treści — trzeba skasować i dodać od nowa.
-- [ ] **Zgłoś / zablokuj** na karcie gracza — nawet jako atrapa, żeby przepływ
-      moderacji był widoczny w demo.
+- [ ] **Walidacja formularza ogłoszenia** po stronie frontu — serwer już to
+      sprawdza, ale użytkownik powinien wiedzieć przed wysłaniem.
+- [ ] **Edycja własnego ogłoszenia.** Backend ma `PATCH /api/ads/:id`, front
+      wciąż każe kasować i dodawać od nowa.
+- [ ] **Zgłoś / zablokuj** na karcie gracza.
 - [ ] Zaktualizować `docs/ARCHITEKTURA.md` i `CHANGELOG.md` po tych zmianach.
 
-## 2. Testy (naturalny wkład użytkownika — tester manualny)
+## 3. Testy (naturalny wkład użytkownika — tester manualny)
 
-- [ ] Spisać scenariusze testowe dla przepływów: onboarding, dodanie ogłoszenia,
-      filtrowanie, zakup premium, wydanie monet, dzienny reset zadań.
+- [ ] Spisać scenariusze testowe dla przepływów: rejestracja, logowanie,
+      onboarding, dodanie ogłoszenia, filtrowanie, zakup premium, wydanie
+      monet, dzienny reset zadań.
 - [ ] Sprawdzić zachowanie przy wyczyszczonym localStorage i przy pełnym.
 - [ ] Sprawdzić motyw jasny na wszystkich 11 widokach — to najczęstsze miejsce
       na przeoczone kolory.
 - [ ] Zdecydować, czy błędy prowadzić w Redmine (jak w pracy), czy w issues
       repozytorium.
 
-## 3. Decyzje do podjęcia przed backendem
+## 4. Backend — drugi etap
 
-- [x] **Stos technologiczny** — Node + Fastify + PostgreSQL w Dockerze, Prisma
-      jako ORM. Ten sam język co front, baza w kontenerze, SQL pisany przez
-      Prismę.
-- [x] **Logowanie** — obie drogi: Discord OAuth jako główna i e-mail z hasłem
-      dla reszty.
-- [ ] **Model kontaktu.** Czy pokazujemy cudzy Discord (jak teraz), czy budujemy
-      wewnętrzne wiadomości? Wewnętrzne = więcej pracy, ale to jedyne miejsce,
-      gdzie monetyzacja wiadomości ma sens i gdzie da się moderować.
+- [ ] **Portfel monet po stronie serwera**: wydawanie, doładowania, historia
+      operacji. Dopóki saldo siedzi w przeglądarce, monety nie znaczą nic.
+- [ ] **Odblokowywanie kontaktu za monety** — tabela `unlocks` i sprawdzanie
+      w `publicAd()`. Dziś kontakt widzi właściciel i premium.
+- [ ] **Ekipy i transmisje w bazie** — teraz istnieją tylko we froncie.
+- [ ] **Wiadomości między użytkownikami.** Do przemyślenia razem z decyzją,
+      czy w ogóle chcemy je u siebie, czy zostajemy przy pokazywaniu Discorda.
+- [ ] **Model kontaktu** — decyzja wciąż otwarta.
 - [ ] **Hosting** i domena.
-
-## 4. Backend — pierwszy etap
-
-- [ ] Schemat bazy: `users`, `ads` (ogłoszenia), `games`, `teams`, `saves`,
-      `messages`, `payments`, `coins_ledger`.
-- [ ] Rejestracja, logowanie, sesja.
-- [ ] CRUD ogłoszeń z prawdziwym limitem na konto.
-- [ ] Endpoint listy graczy z filtrami i paginacją po stronie serwera
-      (teraz cała lista jest w pamięci przeglądarki).
-- [ ] Przepięcie frontu z localStorage na API — widok po widoku, zaczynając od
-      graczy i ogłoszeń.
 
 ## 5. Zanim wpuścimy prawdziwych ludzi
 
 - [ ] Regulamin i polityka prywatności, zgoda na przetwarzanie danych.
-- [ ] Minimalny wiek i jego weryfikacja — w ogłoszeniach jest pole od 13 lat,
+- [ ] Minimalny wiek i jego weryfikacja — ogłoszenia dopuszczają od 13 lat,
       co przy serwisie kojarzącym ludzi wymaga przemyślenia.
 - [ ] Moderacja: zgłoszenia, blokowanie, kolejka do przejrzenia.
 - [ ] Prawdziwa bramka płatnicza (Przelewy24 / Stripe) i obsługa zwrotów.
+- [ ] `JWT_SECRET` i hasło do bazy inne niż przykładowe, HTTPS, `secure` na
+      ciasteczku (kod już to robi przy `NODE_ENV=production`).
 - [ ] Problem pustego serwisu: skąd pierwszych stu użytkowników. Bez tego
       reszta nie ma znaczenia.
