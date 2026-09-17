@@ -1,10 +1,12 @@
 # Uruchomienie całości: docker compose up
-# Pierwsze uruchomienie:
-#   1. cp server/.env.example server/.env   (i wpisz własny JWT_SECRET)
-#   2. docker compose up
-#   3. docker compose exec api npm run migrate
-#   4. docker compose exec api npm run seed
-# Potem front: otwórz index.html albo http://localhost:3000 przy SERVE_STATIC=1
+#
+# Nic więcej nie trzeba — kontener sam zakłada tabele (migrate), wgrywa katalog
+# gier (seed) i startuje serwer razem z plikami frontu. Potem wchodzisz na
+# http://localhost:3000
+#
+# Własne ustawienia (JWT_SECRET, Discord) wpisujesz w server/.env — serwer
+# czyta ten plik sam, a wartości podane niżej mają pierwszeństwo tylko tam,
+# gdzie Docker musi (adres bazy) albo gdzie chcemy działania "od ręki".
 
 services:
   db:
@@ -26,12 +28,15 @@ services:
   api:
     image: node:22-alpine
     working_dir: /app/server
-    command: sh -c "npm install && npm run start"
-    env_file:
-      - server/.env
+    command: sh -c "npm install && npm run migrate && npm run seed && npm run start"
     environment:
       # W sieci Dockera baza nazywa się "db", nie "localhost".
       DATABASE_URL: postgresql://bigww:bigww@db:5432/bigww
+      # Front i API pod jednym adresem — bez kłopotów z CORS-em.
+      SERVE_STATIC: "${SERVE_STATIC:-1}"
+      PUBLIC_URL: "${PUBLIC_URL:-http://localhost:3000}"
+      FRONT_URL: "${FRONT_URL:-http://localhost:3000/index.html}"
+      CORS_ORIGIN: "${CORS_ORIGIN:-http://localhost:3000,http://localhost:8000,http://127.0.0.1:8000}"
     ports:
       - "3000:3000"
     volumes:

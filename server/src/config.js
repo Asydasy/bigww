@@ -1,24 +1,38 @@
 /**
  * Konfiguracja z zmiennych środowiskowych. Wszystko w jednym miejscu, żeby
  * dało się zobaczyć na raz, czego serwer potrzebuje do startu.
+ *
+ * Zasada: poza produkcją serwer ma wstać bez żadnego pliku .env — po to, żeby
+ * "git clone && docker compose up" działało u kogoś, kto widzi repo pierwszy
+ * raz. Na produkcji (NODE_ENV=production) brakujące wartości są błędem.
  */
-const required = (name) => {
+const isProd = process.env.NODE_ENV === "production";
+
+const DEV_DATABASE_URL = "postgresql://bigww:bigww@localhost:5432/bigww";
+const DEV_JWT_SECRET = "bigww-dev-tylko-lokalnie-nie-uzywaj-na-produkcji";
+
+/** Wartość z środowiska albo awaryjna na czas pracy lokalnej. */
+const withDevFallback = (name, fallback, note) => {
   const v = process.env[name];
-  if (!v) throw new Error(`Brak zmiennej środowiskowej ${name} — skopiuj .env.example do .env`);
-  return v;
+  if (v) return v;
+  if (isProd) {
+    throw new Error(`Brak zmiennej środowiskowej ${name} — skopiuj server/.env.example do server/.env`);
+  }
+  console.warn(`[config] ${name} nie ustawione — ${note}`);
+  return fallback;
 };
 
 export const config = {
   port: Number(process.env.PORT || 3000),
   host: process.env.HOST || "0.0.0.0",
-  databaseUrl: required("DATABASE_URL"),
-  jwtSecret: required("JWT_SECRET"),
+  databaseUrl: withDevFallback("DATABASE_URL", DEV_DATABASE_URL, `używam ${DEV_DATABASE_URL}`),
+  jwtSecret: withDevFallback("JWT_SECRET", DEV_JWT_SECRET, "używam klucza testowego, sesje nie są bezpieczne"),
   /** Skąd wolno wołać API (front na innym porcie niż serwer). */
-  corsOrigin: (process.env.CORS_ORIGIN || "http://localhost:8000").split(","),
+  corsOrigin: (process.env.CORS_ORIGIN || "http://localhost:3000,http://localhost:8000,http://127.0.0.1:8000").split(","),
   /** Publiczny adres serwera — potrzebny Discordowi do powrotu po zalogowaniu. */
   publicUrl: process.env.PUBLIC_URL || "http://localhost:3000",
   /** Gdzie odesłać przeglądarkę po udanym logowaniu przez Discorda. */
-  frontUrl: process.env.FRONT_URL || "http://localhost:8000/index.html",
+  frontUrl: process.env.FRONT_URL || "http://localhost:3000/index.html",
   discord: {
     clientId: process.env.DISCORD_CLIENT_ID || "",
     clientSecret: process.env.DISCORD_CLIENT_SECRET || "",
@@ -30,7 +44,7 @@ export const config = {
   serveStatic: process.env.SERVE_STATIC === "1",
   cookieName: "bigww_session",
   sessionDays: 30,
-  isProd: process.env.NODE_ENV === "production"
+  isProd
 };
 
 /** Ile ogłoszeń wolno mieć na koncie. Te same liczby co w js/state.js —
