@@ -180,43 +180,65 @@ function startEditAd(p) {
   toast("Edytujesz ogłoszenie");
 }
 
-function submitAd() {
+async function submitAd() {
   if (!requireLogin("dodać ogłoszenie")) return;
   const nick = $("#aNick").value.trim();
   if (nick.length < 2) { toast("Wpisz nick"); $("#aNick").focus(); return; }
   if ($("#aDesc").value.trim().length < 10) { toast("Opisz krótko, czego szukasz"); $("#aDesc").focus(); return; }
+
+  // Serwer nie przyjmuje plików z dysku — na razie zostają tylko lokalnie.
+  if (DATA.isApi && pendingMedia.fileData) {
+    toast("Plik z dysku zostaje tylko na tym komputerze — na serwer idzie odsyłacz do klipu");
+  }
+
+  const ad = draft();
+
   if (editingAdId) {
-    const ad = draft();
-    ad.id = editingAdId;
-    ad.ownerId = SESSION && SESSION.userId;
-    ad.added = (MINE.find(m => m.id === editingAdId) || {}).added || Date.now();
-    MINE = MINE.map(m => m.id === editingAdId ? ad : m);
-    save(KEY.mine, MINE);
+    try {
+      await DATA.updateAd(editingAdId, ad);
+    } catch (e) {
+      toast(e && e.message ? e.message : "Nie udało się zapisać zmian");
+      return;
+    }
     editingAdId = null;
     if ($("#aSubmit")) $("#aSubmit").textContent = "Opublikuj ogłoszenie";
-    countCache = null;
     toast("Ogłoszenie zaktualizowane");
     updateBadges();
     renderPlayers(true);
+    renderMine();
     go("mine");
     return;
   }
-  if (MINE.length >= adLimit()) {
-    openModal(`<h3 style="margin-bottom:8px">Limit ogłoszeń wyczerpany</h3>
-      <p class="note">Plan podstawowy pozwala mieć ${adLimit()} aktywne ogłoszenia. Usuń jedno ze starych albo przejdź na Premium, gdzie zmieścisz 10 i trafisz na górę wyników.</p>
-      <button class="btn gold" id="limGo" style="margin-top:16px">Zobacz Premium</button>`);
-    $("#limGo").onclick = () => { $("#modal").classList.remove("on"); go("premium"); };
+
+  if (!DATA.isApi && MINE.length >= adLimit()) {
+    pokazLimitOgloszen(adLimit());
     return;
   }
-  const ad = draft();
-  ad.ownerId = SESSION.userId;
-  MINE.unshift(ad);
-  save(KEY.mine, MINE);
-  countCache = null;
+
+  ad.ownerId = SESSION ? SESSION.userId : undefined;
+  try {
+    await DATA.createAd(ad);
+  } catch (e) {
+    if (e && e.status === 403) {
+      pokazLimitOgloszen((e.data && e.data.limit) || DATA.limits.limit || adLimit());
+      return;
+    }
+    if (e && e.status === 401) { requireLogin("dodać ogłoszenie"); return; }
+    toast(e && e.message ? e.message : "Nie udało się dodać ogłoszenia");
+    return;
+  }
   toast("Ogłoszenie opublikowane");
   updateBadges();
   renderPlayers(true);
+  renderMine();
   go("mine");
+}
+
+function pokazLimitOgloszen(limit) {
+  openModal(`<h3 style="margin-bottom:8px">Limit ogłoszeń wyczerpany</h3>
+    <p class="note">Twój plan pozwala mieć ${limit} aktywne ogłoszenia. Usuń jedno ze starych albo przejdź na Premium, gdzie zmieścisz 10 i trafisz na górę wyników.</p>
+    <button class="btn gold" id="limGo" style="margin-top:16px">Zobacz Premium</button>`);
+  $("#limGo").onclick = () => { $("#modal").classList.remove("on"); go("premium"); };
 }
 
 function renderMine() {

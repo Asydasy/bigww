@@ -47,6 +47,11 @@ $("#sExport").onclick = () => {
   };
 };
 if ($("#sImport")) $("#sImport").onclick = () => {
+  if (DATA.isApi) {
+    openModal(`<h3 style="margin-bottom:10px">Import danych</h3>
+      <p class="note" style="margin-top:10px">W trybie serwerowym ogłoszenia i obserwowani siedzą w bazie, a nie w przeglądarce — wczytanie pliku nic by tam nie zmieniło. Import działa po odłączeniu backendu, na danych lokalnych.</p>`);
+    return;
+  }
   openModal(`<h3 style="margin-bottom:10px">Import danych</h3>
     <p class="note" style="margin-bottom:10px">Wklej wcześniej wyeksportowany plik JSON. Obecne ogłoszenia i ustawienia zostaną nadpisane.</p>
     <textarea id="importArea" style="height:180px" placeholder='{"version":3,...}'></textarea>
@@ -75,11 +80,14 @@ if ($("#sImport")) $("#sImport").onclick = () => {
   };
 };
 $("#sWipe").onclick = () => {
+  const naSerwerze = DATA.isApi;
   openModal(`<h3 style="margin-bottom:10px">Usunąć wszystkie dane?</h3>
-    <p class="note">Zniknie ${MINE.length} ogłoszeń i ${SAVED.length} obserwowanych graczy. Tego nie da się cofnąć.</p>
+    <p class="note">${naSerwerze
+      ? `Wyczyścimy dane z tej przeglądarki: monety, premium, skrzynkę, powiadomienia, oceny i blokady. <b>Twoje ${MINE.length} ogłoszeń i ${SAVED.length} obserwowanych zostaje w bazie</b> — te kasuje się na listach.`
+      : `Zniknie ${MINE.length} ogłoszeń i ${SAVED.length} obserwowanych graczy. Tego nie da się cofnąć.`}</p>
     <button class="btn pri" id="wipeYes" style="margin-top:16px">Tak, usuń</button>`);
   $("#wipeYes").onclick = () => {
-    MINE = []; SAVED = [];
+    if (!naSerwerze) { MINE = []; SAVED = []; }
     COINS = { bal: 40, earned: 0, spent: 0 };
     REF = { code: genRefCode(), used: [], count: 0, earned: 0, applied: false };
     BOOSTS = {};
@@ -93,7 +101,7 @@ $("#sWipe").onclick = () => {
     LIVEPASS = { until: 0 };
     LIVETICKETS = [];
     pendingMedia = { clipUrl: "", fileData: null, fileType: "" };
-    save(KEY.mine, MINE); save(KEY.saved, SAVED);
+    if (!naSerwerze) { save(KEY.mine, MINE); save(KEY.saved, SAVED); }
     save(KEY.coins, COINS); save(KEY.ref, REF); save(KEY.boosts, BOOSTS); save(KEY.adlog, ADLOG);
     save(KEY.msg, MSG); save(KEY.bp, BP); save(KEY.quests, QUESTS); save(KEY.unlocks, UNLOCKS);
     save(KEY.navcount, NAVCOUNT); save(KEY.prem, PREM);

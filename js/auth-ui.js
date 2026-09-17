@@ -306,13 +306,29 @@ async function doRegister() {
   const pass2 = $("#regPass2")?.value || "";
   $("#regErr")?.classList.remove("on");
 
+  const minPass = DATA.minPassword;
   if (nick.length < 3) return showAuthErr("#regErr", "Nick musi mieć co najmniej 3 znaki.");
   if (nick.length > 24) return showAuthErr("#regErr", "Nick max 24 znaki.");
   if (!/^[a-zA-Z0-9_\-ąćęłńóśźżĄĆĘŁŃÓŚŹŻ.]+$/.test(nick)) return showAuthErr("#regErr", "Nick: litery, cyfry, _ - .");
   if (!email) return showAuthErr("#regErr", "Podaj adres e-mail.");
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return showAuthErr("#regErr", "Podaj poprawny adres e-mail.");
-  if (pass.length < 6) return showAuthErr("#regErr", "Hasło musi mieć min. 6 znaków.");
+  if (pass.length < minPass) return showAuthErr("#regErr", `Hasło musi mieć min. ${minPass} znaków.`);
   if (pass !== pass2) return showAuthErr("#regErr", "Hasła nie są takie same.");
+
+  // Tryb serwerowy: konto zakłada backend, hasło nie wychodzi poza to żądanie.
+  if (DATA.isApi) {
+    try {
+      await DATA.register({ email, password: pass, displayName: nick });
+    } catch (e) {
+      return showAuthErr("#regErr", e && e.message ? e.message : "Nie udało się założyć konta.");
+    }
+    if ($("#aNick") && !$("#aNick").value) $("#aNick").value = nick;
+    refreshAfterAuth();
+    closeAuthModal();
+    toast("Konto utworzone — jesteś zalogowany");
+    return;
+  }
+
   if (USERS.some(u => u.nick.toLowerCase() === nick.toLowerCase())) return showAuthErr("#regErr", "Ten nick jest już zajęty.");
   if (USERS.some(u => u.email && u.email === email)) return showAuthErr("#regErr", "Ten e-mail jest już używany.");
 
@@ -346,6 +362,22 @@ async function doLogin() {
   $("#loginErr")?.classList.remove("on");
   if (!ident || !pass) return showAuthErr("#loginErr", "Wpisz nick/e-mail i hasło.");
 
+  // Tryb serwerowy: sesję zakłada backend i wraca ciasteczkiem httpOnly.
+  if (DATA.isApi) {
+    if (!ident.includes("@")) {
+      return showAuthErr("#loginErr", "Na serwerze logujesz się adresem e-mail, nie nickiem.");
+    }
+    try {
+      await DATA.login({ email: ident, password: pass });
+    } catch (e) {
+      return showAuthErr("#loginErr", e && e.message ? e.message : "Nie udało się zalogować.");
+    }
+    refreshAfterAuth();
+    closeAuthModal();
+    toast("Zalogowano jako " + (DATA.user.displayName || ident));
+    return;
+  }
+
   const user = USERS.find(u =>
     u.nick.toLowerCase() === ident.toLowerCase() ||
     (u.email && u.email === ident.toLowerCase())
@@ -360,6 +392,18 @@ async function doLogin() {
 }
 
 function socialLogin(provider) {
+  // Tryb serwerowy: Discord to prawdziwy OAuth — wychodzimy na backend, który
+  // przekierowuje do Discorda i wraca z gotową sesją.
+  if (DATA.isApi) {
+    if (provider === "discord") {
+      location.href = DATA.discordLoginUrl();
+      return;
+    }
+    openModal(`<h3 style="margin-bottom:8px">Google</h3>
+      <p class="note" style="margin-top:10px">Logowanie przez Google nie jest jeszcze wpięte w backend. Na serwerze działa Discord albo e-mail z hasłem.</p>`);
+    return;
+  }
+
   openModal(`<h3 style="margin-bottom:8px">${provider === "google" ? "Google" : "Discord"}</h3>
     <p class="note" style="margin-bottom:12px">Połącz konto ${provider === "google" ? "Google" : "Discord"} z BigWW. W wersji produkcyjnej otworzy się oficjalne okno OAuth.</p>
     <div class="field"><label>Nick w BigWW</label>
@@ -403,6 +447,9 @@ function socialLogin(provider) {
 
 function phoneSendCode() {
   $("#phoneErr")?.classList.remove("on");
+  if (DATA.isApi) {
+    return showAuthErr("#phoneErr", "Logowanie numerem działa tylko w trybie lokalnym — backend nie wysyła SMS-ów. Użyj e-maila albo Discorda.");
+  }
   let num = ($("#phoneNum")?.value || "").trim().replace(/[\s\-()]/g, "");
   if (!/^\+?[0-9]{9,15}$/.test(num)) return showAuthErr("#phoneErr", "Podaj poprawny numer (np. +48500000000).");
   if (!num.startsWith("+")) num = "+48" + num.replace(/^0/, "");
@@ -440,10 +487,19 @@ function phoneVerifyLogin() {
   loginAsUser(user, "Zalogowano numerem telefonu");
 }
 
-function doLogout() {
-  SESSION = null;
-  rawSave(KEY.session, null);
-  loadUserData();
+async function doLogout() {
+  if (DATA.isApi) {
+    try {
+      await DATA.logout();
+    } catch (e) {
+      toast("Nie udało się wylogować — sprawdź połączenie z serwerem");
+      return;
+    }
+  } else {
+    SESSION = null;
+    rawSave(KEY.session, null);
+    loadUserData();
+  }
   refreshAfterAuth();
   toast("Wylogowano");
   go("home");

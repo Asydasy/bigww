@@ -104,8 +104,8 @@ function setLooking(on) {
   PREF.looking = !!on;
   PREF.lookingUntil = on ? Date.now() + LOOKING_TTL_MS : 0;
   save(KEY.pref, PREF);
-  MINE.forEach(m => { m.status = on ? "on" : (m.status || "on"); });
-  save(KEY.mine, MINE);
+  // W trybie serwerowym status leci do bazy, żeby widzieli go inni.
+  DATA.setLookingNow(on).then(() => { renderPlayers(false); renderMine(); }).catch(() => {});
   updateLookingUI();
   if (on) {
     toast("Szukam teraz — auto-wyłączenie za 2 h");

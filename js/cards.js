@@ -60,7 +60,10 @@ function playerCard(p) {
   const msg = el("button", "btn sm pri", canSeeContact(p) ? "Napisz" : "🔒 Kontakt");
   msg.onclick = () => showContact(p);
   const star = el("button", "btn sm", SAVED.includes(p.id) ? "★ Obserwujesz" : "☆ Obserwuj");
-  star.onclick = () => { toggleSave(p.id); star.textContent = SAVED.includes(p.id) ? "★ Obserwujesz" : "☆ Obserwuj"; };
+  star.onclick = async () => {
+    await toggleSave(p.id);
+    star.textContent = SAVED.includes(p.id) ? "★ Obserwujesz" : "☆ Obserwuj";
+  };
   const when = el("span", "note", ago(p.added));
   row1.append(msg, star, el("span", "spacer"), when);
   foot.append(row1);
@@ -114,10 +117,13 @@ function playerCard(p) {
     const share = el("button", "btn sm", "Udostępnij");
     share.onclick = () => shareListing(p);
     const del = el("button", "btn sm ghost", "Usuń");
-    del.onclick = () => {
-      MINE = MINE.filter(m => m.id !== p.id);
-      save(KEY.mine, MINE);
-      countCache = null;
+    del.onclick = async () => {
+      try {
+        await DATA.deleteAd(p.id);
+      } catch (e) {
+        toast(e && e.message ? e.message : "Nie udało się usunąć ogłoszenia");
+        return;
+      }
       toast("Ogłoszenie usunięte");
       renderMine(); renderPlayers(true); updateBadges();
     };
@@ -208,7 +214,13 @@ function countFor(gameName) {
 }
 
 function contactStr(p) {
-  return p.contact || "discord: " + p.nick.toLowerCase() + "#" + (1000 + (p.nick.length * 137) % 8999);
+  if (p.contact) return p.contact;
+  // W trybie serwerowym kontakt albo jest w bazie, albo go nie ma. Zmyślanie
+  // tagu Discorda z nicku ma sens tylko przy danych demo.
+  if (typeof DATA !== "undefined" && DATA.isApi) {
+    return p.contactLocked ? "ukryty — zaloguj się, żeby zobaczyć" : "nie podano — napisz w BigWW";
+  }
+  return "discord: " + p.nick.toLowerCase() + "#" + (1000 + (p.nick.length * 137) % 8999);
 }
 
 function parseClipEmbed(url) {
@@ -330,8 +342,8 @@ function renderProfilePage(p) {
     (p.tags || []).forEach(t => tagBox.append(el("span", "tag", t)));
   }
   $("#profMsg2").onclick = () => showContact(p);
-  $("#profStar2").onclick = () => {
-    toggleSave(p.id);
+  $("#profStar2").onclick = async () => {
+    await toggleSave(p.id);
     $("#profStar2").textContent = SAVED.includes(p.id) ? "★ Obserwujesz" : "☆ Obserwuj";
   };
   $("#profShare2").onclick = () => {
@@ -461,10 +473,16 @@ document.addEventListener("keydown", e => {
   }
 });
 
-function toggleSave(id) {
-  if (SAVED.includes(id)) { SAVED = SAVED.filter(s => s !== id); toast("Usunięto z obserwowanych"); }
-  else { SAVED.push(id); toast("Dodano do obserwowanych"); }
-  save(KEY.saved, SAVED);
+async function toggleSave(id) {
+  try {
+    const teraz = await DATA.toggleSave(id);
+    toast(teraz ? "Dodano do obserwowanych" : "Usunięto z obserwowanych");
+  } catch (e) {
+    if (e && e.status === 401) return requireLogin("obserwować gracza");
+    toast(e && e.message ? e.message : "Nie udało się zapisać");
+    return;
+  }
   updateBadges();
+  renderSaved();
 }
 

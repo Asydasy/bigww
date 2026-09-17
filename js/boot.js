@@ -1,26 +1,9 @@
 "use strict";
 
 /* =========================================================
-   OFFICIAL BOOT — splash, cookies, PWA, API adapter
+   START APLIKACJI — splash, cookies, PWA, wybór źródła danych
 ========================================================= */
-const APP_VERSION = "1.0.0";
-const STORAGE_MODE = "local"; // later: "api"
-
-/** Adapter pod przyszły backend — dziś mapuje na localStorage */
-const API = {
-  mode: STORAGE_MODE,
-  async getPlayers(filters) {
-    return filterPlayers();
-  },
-  async saveListing(ad) {
-    MINE.unshift(ad);
-    save(KEY.mine, MINE);
-    return ad;
-  },
-  async health() {
-    return { ok: true, mode: STORAGE_MODE, version: APP_VERSION, ts: Date.now() };
-  }
-};
+const APP_VERSION = "1.1.0";
 
 function hideSplash() {
   const s = $("#splash");
@@ -66,13 +49,54 @@ function registerPWA() {
   } catch (e) {}
 }
 
+/** Kropka w stopce menu: skąd lecą dane. */
+function pokazTrybDanych(mode) {
+  const box = $("#dataMode");
+  if (!box) return;
+  const api = mode === "api";
+  box.className = "data-mode " + (api ? "on-api" : "on-local");
+  box.textContent = api ? "● serwer" : "● lokalnie";
+  box.title = api
+    ? "Ogłoszenia i konta z bazy (" + API.base + ")"
+    : "Backend nie odpowiada — dane z generatora i localStorage";
+}
+
+/** Po rozpoznaniu trybu przerysowujemy to, co mogło się zmienić. */
+function odswiezPoStarcie() {
+  countCache = null;
+  updateAuthUI();
+  if (typeof applyAuthVisibility === "function") applyAuthVisibility();
+  updateBadges();
+  updateCoinUI();
+  updateLookingUI();
+  renderHome();
+  renderPlayers(true);
+  renderGames();
+  renderMine();
+  renderSaved();
+  renderInbox();
+  renderInfo();
+}
+
 // boot
 requestAnimationFrame(() => {
   setTimeout(hideSplash, 550);
 });
 initCookies();
 registerPWA();
-API.health().then(h => {
-  console.info("[BigWW]", h.version, "storage:", h.mode);
-}).catch(() => {});
-window.BigWW = { version: APP_VERSION, api: API, go, t };
+
+/* Źródło danych rozpoznajemy raz, przy starcie: gdy backend odpowiada na
+   /api/health, ogłoszenia, gry i konta idą z bazy; gdy nie — zostaje warstwa
+   lokalna, więc index.html otwarty z dysku dalej działa. */
+DATA.init()
+  .then(mode => {
+    pokazTrybDanych(mode);
+    odswiezPoStarcie();
+    console.info("[BigWW]", APP_VERSION, "dane:", mode, mode === "api" ? API.base : "");
+  })
+  .catch(err => {
+    console.warn("[BigWW] nie udało się rozpoznać trybu danych:", err);
+    pokazTrybDanych("local");
+  });
+
+window.BigWW = { version: APP_VERSION, api: API, data: DATA, go, t };

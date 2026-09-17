@@ -41,7 +41,12 @@ function rawSave(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } cat
 let USERS = rawLoad(KEY.users, []);
 let SESSION = rawLoad(KEY.session, null); // { userId, nick, loggedAt }
 
+/** Dane lokalne (monety, skrzynka, powiadomienia) trzymamy osobno dla każdego
+ *  konta. W trybie serwerowym kontem jest to z bazy, w lokalnym — SESSION. */
 function scopeSuffix() {
+  if (typeof DATA !== "undefined" && DATA.isApi) {
+    return DATA.user ? "_u_" + DATA.user.id : "_guest";
+  }
   return (SESSION && SESSION.userId) ? ("_u_" + SESSION.userId) : "_guest";
 }
 function resolveKey(k) {
@@ -68,8 +73,25 @@ function genSalt() {
   for (let i = 0; i < 12; i++) s += chars[Math.floor(Math.random() * chars.length)];
   return s;
 }
-function isLoggedIn() { return !!(SESSION && SESSION.userId); }
+function isLoggedIn() {
+  if (typeof DATA !== "undefined" && DATA.isApi) return !!DATA.user;
+  return !!(SESSION && SESSION.userId);
+}
 function currentUser() {
+  if (typeof DATA !== "undefined" && DATA.isApi) {
+    const u = DATA.user;
+    if (!u) return null;
+    // Konto z bazy podane w kształcie, którego oczekuje reszta frontu.
+    return {
+      id: u.id,
+      nick: u.displayName,
+      email: u.email || "",
+      emailVerified: true,
+      provider: u.discordTag ? "discord" : null,
+      discordTag: u.discordTag || null,
+      created: u.createdAt ? new Date(u.createdAt).getTime() : Date.now()
+    };
+  }
   if (!SESSION) return null;
   return USERS.find(u => u.id === SESSION.userId) || null;
 }
@@ -364,7 +386,13 @@ function msgsLeft() {
   return Math.max(0, FREE_MSG_LIMIT - MSG.used);
 }
 
-function allPlayers() { return MINE.concat(PLAYERS); }
+/** Wszystkie ogłoszenia widoczne na listach.
+ *  W trybie serwerowym daje je DATA (baza), w lokalnym — moje plus generator.
+ *  Widoki wołają tylko to, więc nie muszą wiedzieć, skąd dane przyszły. */
+function allPlayers() {
+  if (typeof DATA !== "undefined" && DATA.isApi) return DATA.players();
+  return MINE.concat(PLAYERS);
+}
 
 function todayKey() {
   const d = new Date();
