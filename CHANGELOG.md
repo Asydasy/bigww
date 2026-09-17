@@ -3,6 +3,15 @@
 Format: najnowsze na górze. Każdy wpis mówi, co zmieniło się w **zachowaniu**,
 a nie tylko w plikach.
 
+## [0.4.1] — 2026-09-17
+
+### Naprawione
+- **Strona otwarta spod innego adresu niż `localhost:3000` nie znajdowała API.**
+  Dotyczyło to każdego udostępnienia na zewnątrz: przez tunel, przez adres w
+  sieci domowej albo przez domenę. `API.resolveBase()` sprawdza teraz po kolei
+  możliwe adresy serwera (ten sam host co strona, potem `localhost:3000`) i
+  zostaje przy pierwszym, który odpowie na `/health`.
+
 ## [0.4.0] — 2026-09-17
 
 ### Dodane

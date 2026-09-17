@@ -1,10 +1,10 @@
 "use strict";
 
-/* BigWW — jedyne miejsce, w którym front rozmawia z serwerem.
+/* BigWW — surowe wywołania HTTP do serwera.
  *
- * Widoki jeszcze z tego nie korzystają: aplikacja dalej działa na danych demo
- * i localStorage. Ten plik jest gotową warstwą, na którą będziemy je
- * przepinać widok po widoku.
+ * Widoki NIE korzystają z tego pliku bezpośrednio — idą przez DATA
+ * (js/data-source.js), która wybiera między serwerem a danymi demo.
+ * Tutaj jest tylko warstwa transportowa.
  *
  * Do wypróbowania z konsoli przeglądarki:
  *   await API.health()
@@ -14,12 +14,20 @@
  */
 
 const API = (() => {
-  /** Adres serwera.
-   *  - front serwowany przez backend (SERVE_STATIC=1, port 3000) → ten sam host
-   *  - wszystko inne, łącznie z otwarciem pliku z dysku → localhost:3000
-   *  Własny adres: ustaw window.BIGWW_API_URL przed załadowaniem tego pliku. */
-  const sameHost = location.protocol.startsWith("http") && location.port === "3000";
-  const base = window.BIGWW_API_URL || (sameHost ? "" : "http://localhost:3000") + "/api";
+  /* Adres serwera nie jest z góry znany: strona może być otwarta z dysku,
+   * spod localhost:3000, spod osobnego serwera na innym porcie albo przez
+   * tunel z losowym adresem. Dlatego sprawdzamy po kolei kilka możliwości
+   * i zostajemy przy pierwszej, która odpowiada na /health.
+   *
+   * Własny adres na sztywno: ustaw window.BIGWW_API_URL przed tym plikiem. */
+  const candidates = [];
+  if (window.BIGWW_API_URL) candidates.push(window.BIGWW_API_URL);
+  // Ten sam host co strona — tak jest przy SERVE_STATIC=1 i przez tunel.
+  if (location.protocol.startsWith("http")) candidates.push(location.origin + "/api");
+  // Strona z dysku albo z osobnego serwera deweloperskiego.
+  candidates.push("http://localhost:3000/api");
+
+  let base = candidates[0];
 
   /** Błąd z serwera niosący kod HTTP — front może na niego reagować
    *  (np. 401 = pokaż logowanie, 403 = limit ogłoszeń). */
@@ -62,9 +70,28 @@ const API = (() => {
     return data;
   }
 
+  /**
+   * Znajduje działający adres API. Woła to DATA.init() przed pierwszym
+   * zapytaniem. Zwraca true, gdy któryś kandydat odpowiedział.
+   */
+  async function resolveBase() {
+    for (const candidate of candidates) {
+      const previous = base;
+      base = candidate;
+      try {
+        await request("/health");
+        return true;
+      } catch {
+        base = previous;
+      }
+    }
+    return false;
+  }
+
   return {
     ApiError,
-    base,
+    get base() { return base; },
+    resolveBase,
 
     health: () => request("/health"),
 

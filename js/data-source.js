@@ -138,12 +138,9 @@ const DATA = (() => {
 
   /* ---------- start ---------- */
   async function init() {
-    try {
-      await API.health();
-      mode = "api";
-    } catch {
-      mode = "demo";
-    }
+    // resolveBase() sprawdza po kolei możliwe adresy serwera (ten sam host,
+    // localhost:3000) i zostaje przy tym, który odpowiada.
+    mode = (await API.resolveBase()) ? "api" : "demo";
 
     if (mode === "api") {
       try {
