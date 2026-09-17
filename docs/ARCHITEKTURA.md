@@ -30,6 +30,7 @@ js/view-add.js          formularz ogłoszenia, podgląd, submitAd, moje, obserwo
 js/view-home.js         strona startowa i statystyki
 js/view-premium.js      plany, checkout (demonstracyjny), FAQ
 js/view-settings.js     motyw, region, awatar, kasowanie danych
+js/view-terms.js        regulamin i polityka prywatności (jeden widok, dwie treści)
 js/monetization.js      monety WW, sklep, zadania, battle pass, reklamy,
                         polecenia, interstitial, karta sponsorowana
 js/onboard.js           onboarding przy pierwszym wejściu

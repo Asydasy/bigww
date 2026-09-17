@@ -77,6 +77,10 @@ statusu na Starcie i na liście graczy.
   program polecający z kodem BIG-XXXX, interstitial co kilka przejść nawigacji.
 - Darmowe wiadomości: 10 dziennie, potem za monety albo premium.
 
+**Regulamin i polityka prywatności**
+Dostępne z odsyłaczy w stopce menu, także dla niezalogowanych. Dokumenty
+wzorcowe pod prawo polskie — wymagają przejrzenia przez prawnika.
+
 **Ustawienia**
 Motyw ciemny/jasny (zapisywany), region domyślny, zmiana awatara, kasowanie
 wszystkich danych lokalnych.
@@ -114,8 +118,10 @@ Szczegóły i lista endpointów: `server/README.md`.
   także wtedy, gdy reszta strony chodzi na serwerze.
 - **Live.** Kafelki i licznik widzów są statyczne, nie ma odtwarzacza strumienia.
 - **Moderacji, zgłoszeń, blokowania.** Nie ma nawet zalążka.
-- **RODO / regulaminu / polityki prywatności.** Przy prawdziwych użytkownikach
-  to jest warunek startu, nie „potem".
+- **Zgody na regulamin przy rejestracji i usuwania konta.** Same dokumenty już
+  są (Regulamin i Polityka prywatności w stopce menu), ale nikt ich nie
+  akceptuje przy zakładaniu konta, a backend nie ma `DELETE /api/auth/me`.
+  Prawo do bycia zapomnianym nie jest opcjonalne.
 - **Testów frontu w repozytorium.** Backend ma 25 testów uruchamianych przez
   `npm test`. Front był sprawdzany testem przeklikującym oba tryby, ale ten
   test nie jest jeszcze częścią repo.

@@ -38,6 +38,12 @@ osobnym etapem projektu.
 - [ ] **Portfel monet na serwerze**, a po nim przywrócenie Sklepu i Premium
       (razem z prawdziwą bramką płatniczą — bez niej zostają schowane).
 
+## 1c. Do rozstrzygnięcia
+
+- [ ] **Wielojęzyczność PL/EN.** Gotowe tłumaczenia (~156 kluczy) są w
+      równoległej wersji frontu. Jeśli wchodzimy, to atrybutami `data-i18n`
+      w markupie, a nie jedną funkcją przepisującą interfejs.
+
 ## 2. Poprawki w prototypie (po jednej sesji każda)
 
 - [ ] **Obsłużyć przepełnienie localStorage.** `save()` w `js/state.js` łyka
@@ -75,7 +81,12 @@ osobnym etapem projektu.
 
 ## 5. Zanim wpuścimy prawdziwych ludzi
 
-- [ ] Regulamin i polityka prywatności, zgoda na przetwarzanie danych.
+- [x] Regulamin i polityka prywatności — dokumenty są w serwisie.
+- [ ] **Przejrzenie dokumentów przez prawnika** — są wzorcowe, nie są poradą.
+- [ ] **Zgoda na regulamin przy rejestracji** (checkbox plus zapis daty zgody
+      w bazie).
+- [ ] **Usuwanie konta** — `DELETE /api/auth/me` plus przycisk w ustawieniach.
+      Prawo do bycia zapomnianym nie jest opcjonalne.
 - [ ] Minimalny wiek i jego weryfikacja — ogłoszenia dopuszczają od 13 lat,
       co przy serwisie kojarzącym ludzi wymaga przemyślenia.
 - [ ] Moderacja: zgłoszenia, blokowanie, kolejka do przejrzenia.

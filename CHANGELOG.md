@@ -3,6 +3,40 @@
 Format: najnowsze na górze. Każdy wpis mówi, co zmieniło się w **zachowaniu**,
 a nie tylko w plikach.
 
+## [0.7.0] — 2026-09-17
+
+Przeniesienie tego, co dało się wziąć z kolejnej równoległej wersji frontu
+(znów jeden plik HTML, znów na starszym kodzie).
+
+### Dodane
+- **Regulamin** (12 paragrafów) i **polityka prywatności** (9 rozdziałów, RODO)
+  jako osobny widok `js/view-terms.js`. Odsyłacze w stopce menu bocznego,
+  dostępne bez logowania. Oba dokumenty dzielą jeden widok — `go("privacy")`
+  przełącza treść.
+
+### Nieprzeniesione i dlaczego
+- **Wielojęzyczność PL/EN** (~156 kluczy tłumaczeń). To realna funkcja, ale
+  w tamtej wersji działa przez jedną wielką funkcję `applyStaticI18n()`, która
+  ręcznie przepisuje `innerHTML` przycisków menu i każdego nagłówka. Przy
+  naszym podziale na 20 plików trzeba by ją rozbudowywać przy każdym nowym
+  napisie. Jeśli wchodzimy w języki, lepiej zrobić to atrybutami `data-i18n`
+  w markupie — wtedy nowy napis nie wymaga dopisywania niczego w kodzie.
+  Do ustalenia osobno: dziś nie ma zagranicznych użytkowników.
+- **Konta w localStorage, weryfikacja e-maila kodem, logowanie telefonem
+  i przez portale społecznościowe.** Kod generuje kod weryfikacyjny w
+  przeglądarce i sam go sobie pokazuje — to nie jest weryfikacja, tylko jej
+  wygląd. Przy działającym backendzie z prawdziwymi kontami wstawienie tego
+  byłoby krokiem wstecz. Prawdziwa weryfikacja e-maila wymaga tokenu po stronie
+  serwera i wysyłki poczty; logowanie przez Discorda już mamy.
+
+### Uwaga
+- Dokumenty są wzorcowe, napisane pod prawo polskie, ale **nie są poradą
+  prawną**. Przed wpuszczeniem prawdziwych użytkowników powinien je przejrzeć
+  prawnik — zwłaszcza § 3 (wiek od 13 lat przy serwisie kojarzącym ludzi).
+- Samo istnienie dokumentów nie zamyka tematu: **przy rejestracji nie ma jeszcze
+  zgody na regulamin, a konta nie da się usunąć** (backend nie ma
+  `DELETE /api/auth/me`). To zostaje na liście blokerów.
+
 ## [0.6.0] — 2026-09-17
 
 ### Dodane

@@ -506,3 +506,18 @@ select{cursor:pointer}
   .main{align-items:stretch}
   .page{max-width:100%}
 }
+
+/* ---------- regulamin i polityka prywatności ---------- */
+.side-foot-links{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.side-foot-links .btn-legal{
+  width:100%;text-align:center;padding:9px 12px;border-radius:10px;cursor:pointer;
+  border:1px solid var(--line-solid);background:var(--panel2);color:var(--txt-dim);
+  font-weight:600;font-size:12.5px;
+  transition:background .15s,border-color .15s,color .15s;
+}
+.side-foot-links .btn-legal:hover{background:var(--acc-soft);border-color:var(--acc);color:var(--txt)}
+.terms-box h3{font-size:15px;margin:18px 0 8px}
+.terms-box h3:first-child{margin-top:0}
+.terms-box p,.terms-box li{font-size:13.5px;color:var(--txt-dim);line-height:1.65;margin-bottom:8px}
+.terms-box ul{padding-left:18px;margin-bottom:10px}
+.terms-box .terms-meta{font-size:12px;color:var(--txt-faint);margin-bottom:16px}

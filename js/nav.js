@@ -13,9 +13,13 @@ function go(view) {
     openAuth("login");
     return;
   }
-  document.querySelectorAll(".page").forEach(p => p.classList.toggle("on", p.id === "v-" + view));
-  document.querySelectorAll("#nav button").forEach(b => b.classList.toggle("on", b.dataset.v === view));
-  document.querySelectorAll("#bottomNav button").forEach(b => b.classList.toggle("on", b.dataset.v === view));
+  // Regulamin i polityka prywatności dzielą jeden widok — różnią się treścią.
+  if (view === "terms" || view === "privacy") renderTerms(view);
+  const strona = view === "privacy" ? "terms" : view;
+
+  document.querySelectorAll(".page").forEach(p => p.classList.toggle("on", p.id === "v-" + strona));
+  document.querySelectorAll("#nav button").forEach(b => b.classList.toggle("on", b.dataset.v === strona));
+  document.querySelectorAll("#bottomNav button").forEach(b => b.classList.toggle("on", b.dataset.v === strona));
   $("#sidebar").classList.remove("open");
   window.scrollTo({ top: 0, behavior: "instant" in window ? "instant" : "auto" });
   if (view === "mine") renderMine();

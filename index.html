@@ -35,6 +35,10 @@
     <button data-v="settings"><span class="ico">⚙</span>Ustawienia</button>
   </nav>
   <div class="side-foot" id="sideFoot">Baza demonstracyjna. Profile graczy są generowane lokalnie — nic nie wychodzi poza Twoją przeglądarkę.</div>
+  <div class="side-foot-links">
+    <button type="button" class="btn-legal" data-go="terms">Regulamin</button>
+    <button type="button" class="btn-legal" data-go="privacy">Polityka prywatności</button>
+  </div>
 </aside>
 
 <main class="main">
@@ -377,6 +381,18 @@
   </section>
 
   <!-- ============ USTAWIENIA ============ -->
+  <!-- ============ REGULAMIN I PRYWATNOŚĆ ============ -->
+  <section class="page" id="v-terms">
+    <div class="head">
+      <h1 id="termsTitle">Regulamin serwisu BigWW</h1>
+      <p id="termsSub">Warunki korzystania z platformy.</p>
+    </div>
+    <div class="panel terms-box" id="termsContent"></div>
+    <div style="text-align:center;margin-top:18px">
+      <button class="btn" data-go="settings" type="button">← Wróć do ustawień</button>
+    </div>
+  </section>
+
   <section class="page" id="v-settings">
     <div class="head"><h1>Ustawienia</h1><p>Wygląd i dane lokalne.</p></div>
     <div class="two">
@@ -456,6 +472,7 @@
 <script src="js/view-home.js"></script>
 <script src="js/view-premium.js"></script>
 <script src="js/view-settings.js"></script>
+<script src="js/view-terms.js"></script>
 <script src="js/monetization.js"></script>
 <script src="js/onboard.js"></script>
 <script src="js/main.js"></script>
