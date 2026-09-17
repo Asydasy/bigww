@@ -51,10 +51,18 @@ export function publicAd(row, viewer = null) {
     hourTo: row.hour_to,
     mic: row.mic,
     lang: row.lang,
+    rank: row.rank,
+    days: row.days || [],
     tags: row.tags,
     desc: row.descr,
     clipUrl: row.clip_url,
     lookingNow: row.looking_now,
+    // Pola, których baza jeszcze nie liczy, a front ich oczekuje na karcie.
+    // „szukam teraz" traktujemy jako status online; godziny i ocena wracają,
+    // gdy będzie co liczyć (historia sesji, oceny ekip).
+    status: row.looking_now ? "on" : "idle",
+    hours: 0,
+    rating: "—",
     boosted: Boolean(row.boost_until && new Date(row.boost_until) > new Date()),
     prem: ownerPremium,
     added: new Date(row.created_at).getTime(),

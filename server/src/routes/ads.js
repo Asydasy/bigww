@@ -19,7 +19,7 @@ function adsQuery() {
     .select([
       "ads.id", "ads.user_id", "ads.game_id", "ads.nick", "ads.age", "ads.region",
       "ads.plat", "ads.style", "ads.time_of_day", "ads.hour_from", "ads.hour_to",
-      "ads.mic", "ads.lang", "ads.descr",
+      "ads.mic", "ads.lang", "ads.rank", "ads.days", "ads.descr",
       "ads.tags", "ads.contact", "ads.clip_url", "ads.looking_now", "ads.boost_until",
       "ads.created_at",
       "games.name as game_name",
@@ -42,6 +42,12 @@ const adBody = {
     hourTo: { type: "integer", minimum: 0, maximum: 23 },
     mic: { type: "string", maxLength: 40 },
     lang: { type: "string", maxLength: 10 },
+    rank: { type: "string", enum: ["beginner", "mid", "high", "pro"] },
+    days: {
+      type: "array",
+      maxItems: 7,
+      items: { type: "string", enum: ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] }
+    },
     desc: { type: "string", minLength: 10, maxLength: 320 },
     tags: { type: "array", maxItems: 4, items: { type: "string", maxLength: 30 } },
     contact: { type: "string", maxLength: 120 },
@@ -63,6 +69,8 @@ function toRow(body) {
     hour_to: body.hourTo ?? null,
     mic: body.mic || "Mikrofon: tak",
     lang: body.lang || "PL",
+    rank: body.rank || null,
+    days: body.days || [],
     descr: body.desc.trim(),
     tags: body.tags || [],
     contact: body.contact || null,
@@ -97,6 +105,9 @@ export default async function adsRoutes(app) {
             mic: { type: "string", maxLength: 40 },
             lookingNow: { type: "boolean" },
             lang: { type: "string", maxLength: 10 },
+            rank: { type: "string", enum: ["beginner", "mid", "high", "pro"] },
+            /** Dzień tygodnia; ogłoszenia bez zadeklarowanych dni pasują zawsze. */
+            day: { type: "string", enum: ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] },
             tag: { type: "string", maxLength: 30 },
             /** Tylko ogłoszenia z ostatnich N godzin — szybki filtr „Świeże". */
             newHours: { type: "integer", minimum: 1, maximum: 8760 },
@@ -131,6 +142,17 @@ export default async function adsRoutes(app) {
       if (f.mic) q = q.where("ads.mic", "=", f.mic);
       if (f.lookingNow !== undefined) q = q.where("ads.looking_now", "=", f.lookingNow);
       if (f.lang) q = q.where("ads.lang", "ilike", `${f.lang}%`);
+      if (f.rank) q = q.where("ads.rank", "=", f.rank);
+      // Ogłoszenie bez zadeklarowanych dni pasuje do każdego filtru — tak samo
+      // jak puste godziny. Inaczej wybranie dnia chowałoby większość bazy.
+      if (f.day) {
+        q = q.where((eb) =>
+          eb.or([
+            eb(sql`ads.days`, "@>", sql`ARRAY[${f.day}]::text[]`),
+            eb(sql`cardinality(ads.days)`, "=", 0)
+          ])
+        );
+      }
       if (f.tag) q = q.where(sql`ads.tags`, "@>", sql`ARRAY[${f.tag}]::text[]`);
       if (f.newHours) q = q.where(sql`ads.created_at`, ">", sql`now() - make_interval(hours => ${f.newHours})`);
 
@@ -250,7 +272,7 @@ export default async function adsRoutes(app) {
     const map = {
       gameId: "game_id", nick: "nick", age: "age", region: "region", plat: "plat",
       style: "style", time: "time_of_day", hourFrom: "hour_from", hourTo: "hour_to",
-      mic: "mic", lang: "lang", desc: "descr",
+      mic: "mic", lang: "lang", rank: "rank", days: "days", desc: "descr",
       tags: "tags", contact: "contact", clipUrl: "clip_url", lookingNow: "looking_now"
     };
     const set = { updated_at: new Date() };

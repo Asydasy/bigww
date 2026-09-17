@@ -48,6 +48,10 @@ export interface AdsTable {
   hour_to: number | null;
   mic: string;
   lang: Generated<string>;
+  /** beginner | mid | high | pro. Null = nie podano. */
+  rank: string | null;
+  /** Dni tygodnia: mon, tue, wed, thu, fri, sat, sun. Pusta = bez ograniczeń. */
+  days: Generated<string[]>;
   descr: string;
   tags: Generated<string[]>;
   contact: string | null;

@@ -272,6 +272,49 @@ describe("ogłoszenia", () => {
     assert.equal(stale.json().total, 0, "ogłoszenie nie ma ustawionego „szukam teraz”");
   });
 
+  test("ranga i dni tygodnia wracają z bazy i dają się filtrować", async () => {
+    const dodane = await call({
+      method: "PATCH",
+      url: `/api/ads/${adId}`,
+      headers: { cookie },
+      payload: { rank: "high", days: ["mon", "wed", "fri"] }
+    });
+    assert.equal(dodane.statusCode, 200);
+    assert.equal(dodane.json().ad.rank, "high");
+    assert.deepEqual(dodane.json().ad.days, ["mon", "wed", "fri"]);
+
+    const byRank = await call({ method: "GET", url: "/api/ads?rank=high" });
+    assert.equal(byRank.json().total, 1);
+
+    const innaRanga = await call({ method: "GET", url: "/api/ads?rank=pro" });
+    assert.equal(innaRanga.json().total, 0);
+
+    const byDay = await call({ method: "GET", url: "/api/ads?day=wed" });
+    assert.equal(byDay.json().total, 1);
+
+    const innyDzien = await call({ method: "GET", url: "/api/ads?day=sun" });
+    assert.equal(innyDzien.json().total, 0, "ogłoszenie ma zadeklarowane dni, więc niedziela nie pasuje");
+
+    const zlaRanga = await call({
+      method: "PATCH",
+      url: `/api/ads/${adId}`,
+      headers: { cookie },
+      payload: { rank: "legenda" }
+    });
+    assert.equal(zlaRanga.statusCode, 400, "ranga spoza listy ma być odrzucona");
+
+    // Wracamy do stanu bez dni, żeby kolejne testy widziały ogłoszenie
+    // w każdym filtrze dnia.
+    await call({
+      method: "PATCH",
+      url: `/api/ads/${adId}`,
+      headers: { cookie },
+      payload: { days: [] }
+    });
+    const bezDni = await call({ method: "GET", url: "/api/ads?day=sun" });
+    assert.equal(bezDni.json().total, 1, "ogłoszenie bez dni pasuje do każdego filtru");
+  });
+
   test("edycja zmienia tylko przysłane pola", async () => {
     const res = await call({
       method: "PATCH",
