@@ -3,6 +3,38 @@
 Format: najnowsze na górze. Każdy wpis mówi, co zmieniło się w **zachowaniu**,
 a nie tylko w plikach.
 
+## [0.6.0] — 2026-09-17
+
+### Dodane
+- **Prawdziwe okładki gier ze Steama.** `cd server && npm run covers` ściąga
+  listę gier ze Steama, dopasowuje do niej nasze 205 tytułów po znormalizowanej
+  nazwie i pobiera poziome nagłówki do `img/games/`. Kafelek gry pokazuje
+  okładkę, a pod nią zostaje dotychczasowa grafika generowana — gdy pliku nie
+  ma, widać po prostu tę drugą warstwę. Dwuliterowy skrót znika, gdy jest
+  prawdziwy obrazek.
+- Skrypt można uruchamiać wielokrotnie: pomija to, co już pobrał.
+  `npm run covers -- --force` pobiera wszystko od nowa. Tytuły, których nie
+  dopasował, wypisuje na końcu — numer ze Steama można im dopisać ręcznie
+  w `RECZNE_NUMERY`.
+
+### Uwagi
+- **Gry spoza Steama zostają przy grafice generowanej** — Fortnite, Genshin,
+  Roblox, tytuły konsolowe i mobilne, w sumie około 50 z 205. To nie jest błąd.
+- **Okładki nie trafiają do repozytorium** (`img/games/` w `.gitignore`): to
+  kilka MB cudzych plików. Każdy uruchamia skrypt u siebie raz.
+- Okładki są własnością wydawców. Przy ogłoszeniach do danej gry to praktyka
+  powszechna, ale bez licencji — przy zarabianiu na serwisie trzeba przejść na
+  źródło z regulaminem (RAWG, IGDB) i podać je na stronie.
+- Bez pobranych okładek strona robi jedno zapytanie o spis, dostaje 404
+  i zostaje przy grafice generowanej.
+
+### Sprawdzone
+- Kafelek z pobraną okładką pokazuje obrazek i chowa skrót literowy, pozostałe
+  zostają przy grafice generowanej.
+- Wejście w bazę gier bez okładek: 205 kafelków, jedno zapytanie o spis, zero
+  błędów w kodzie. Pierwsza wersja sprawdzała każdy obrazek osobno i dawała
+  204 błędy 404 — stąd spis `index.json`.
+
 ## [0.5.1] — 2026-09-17
 
 ### Naprawione

@@ -88,6 +88,23 @@ rzeczy:
 `isGuest()` jest prawdziwe tylko w trybie `api`. W trybie demo kont nie ma,
 więc cała strona zostaje widoczna.
 
+## Okładki gier
+
+Kafelek gry ma dwie warstwy tła: prawdziwą okładkę z `img/games/<slug>.jpg`
+i pod nią grafikę generowaną z nazwy. Gdy pliku nie ma, przeglądarka po prostu
+nie rysuje pierwszej warstwy i widać drugą.
+
+Które gry mają okładkę, mówi `img/games/index.json` — jeden spis wczytywany raz
+przy starcie do zbioru `OKLADKI` w `js/cards.js`. Pierwsza wersja sprawdzała
+każdy obrazek osobno i przy 205 grach dawała 204 błędy 404 na każde wejście
+w bazę gier.
+
+`slugGry()` w `js/util.js` i `slug()` w `server/src/covers.js` **muszą dawać ten
+sam wynik** — inaczej front szuka pliku pod innym adresem, niż zapisał skrypt.
+
+Katalog `img/games/` jest poza repozytorium: to kilka MB cudzych plików.
+Po sklonowaniu repozytorium uruchamia się `cd server && npm run covers`.
+
 ## Godziny grania
 
 Ogłoszenie ma `hourFrom` i `hourTo` (0-23). Zakres może przechodzić przez

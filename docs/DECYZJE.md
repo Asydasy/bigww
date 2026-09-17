@@ -5,7 +5,7 @@ Zapis „co postanowiliśmy i dlaczego”, żeby nie wracać do tych samych rozm
 ## Produkt
 
 **Wszystkie gry, nie jedna.** Serwis nie zawęża się do jednego tytułu — baza ma
-204 gry z gatunkami i platformami. Zawężenie byłoby łatwiejsze do wypełnienia
+205 gier z gatunkami i platformami. Zawężenie byłoby łatwiejsze do wypełnienia
 ludźmi, ale zamyka drogę do skali.
 
 **Wzór biznesowy: ePal + Tinder.** Ogłoszenie gracza jako podstawowa jednostka,
@@ -26,9 +26,11 @@ klikać, nie ma być fundamentem produkcji. Brak builda oznacza, że otwiera si�
 podwójnym kliknięciem i działa na każdej maszynie — również do testowania.
 Przy przejściu na backend ten plik jest referencją UI, nie bazą kodu.
 
-**Zero zależności zewnętrznych.** Brak bibliotek JS, brak obrazków. Awatary i
-okładki gier są generowane jako SVG z hasza nazwy — dzięki temu repo waży tyle,
-co jeden plik tekstowy, a nic nie wygasa ani nie znika z CDN-u.
+**Zero zależności zewnętrznych we froncie.** Brak bibliotek JS. Awatary i
+zapasowe okładki gier są generowane jako SVG z hasza nazwy — dzięki temu repo
+waży tyle, co pliki tekstowe, a nic nie wygasa ani nie znika z CDN-u. Prawdziwe
+okładki doszły później, ale pobiera się je raz na dysk i serwuje u siebie
+(patrz niżej), więc strona dalej nie ciągnie niczego z cudzego serwera.
 
 **Generator deterministyczny (mulberry32 z seeda).** Ten sam nick zawsze daje
 ten sam awatar, ta sama gra tę samą okładkę. Bez tego demo wyglądałoby inaczej
@@ -43,6 +45,17 @@ ani jednej linijki serwera.
 zamiast przepisywania oryginałów. Przy rozdzielaniu plików to by się rozsypało
 albo zaczęło działać losowo w zależności od kolejności ładowania, więc
 monetyzacja wchodzi teraz przez trzy zwykłe wywołania.
+
+**Okładki gier pobierane raz na dysk, nie podłączane z cudzego serwera.**
+Obrazki idą ze Steama, ale zapisujemy je u siebie i serwujemy z własnego hosta.
+Trzyma to zasadę, że strona nie ładuje niczego z zewnątrz: działa offline, nie
+zależy od cudzego CDN-u i nie wysyła naszych użytkowników do Steama przy każdym
+wejściu. Cena: jedno polecenie po sklonowaniu repozytorium.
+
+Warto wiedzieć, że okładki są własnością wydawców. Pokazywanie ich przy
+ogłoszeniach do danej gry to praktyka powszechna i ryzyko niewielkie, ale nie ma
+tu licencji — przy zarabianiu na serwisie trzeba wrócić do źródła z regulaminem
+(RAWG albo IGDB) i podać je na stronie.
 
 ## Backend
 

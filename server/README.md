@@ -33,6 +33,21 @@ npm run seed
 npm run dev
 ```
 
+## Okładki gier
+
+```
+npm run covers            # pobiera brakujące
+npm run covers -- --force # pobiera wszystko od nowa
+```
+
+Ściąga ze Steama listę gier, dopasowuje do niej nasze 205 tytułów po
+znormalizowanej nazwie i pobiera poziomy nagłówek (460x215) do `img/games/`.
+Zapisuje też `img/games/index.json` — front czyta ten jeden spis zamiast pytać
+o każdy obrazek z osobna. Numery gier, których nie udało się dopasować, można
+dopisać ręcznie w `RECZNE_NUMERY` w `src/covers.js`.
+
+Skrypt nie dotyka bazy — czyta tylko `js/data-games.js`.
+
 ## Testy
 
 ```

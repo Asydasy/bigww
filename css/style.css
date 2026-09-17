@@ -176,6 +176,8 @@ select{cursor:pointer}
 }
 .gcard:hover{border-color:var(--acc)}
 .gcard .cover{height:104px;position:relative;display:grid;place-items:center;background-size:cover;background-position:center}
+/* Przy prawdziwej okładce dwuliterowy skrót tylko zasłania obrazek. */
+.gcard .cover.ma-okladke span{display:none}
 .gcard .cover span{
   font-family:"Space Grotesk";font-weight:700;font-size:30px;color:#fff;letter-spacing:-.04em;
   text-shadow:0 2px 16px #000c;opacity:.95;

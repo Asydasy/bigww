@@ -19,7 +19,8 @@ Google Fonts; bez internetu strona działa, tylko na fontach systemowych.
 ```
 index.html            markup — 11 widoków i modale
 css/style.css         style
-js/                   19 plików: dane, stan, warstwa DATA, widoki, konto, start
+js/                   20 plików: dane, stan, warstwa DATA, widoki, konto, start
+img/games/            okładki gier pobierane skryptem (poza repozytorium)
 server/               backend — Fastify + PostgreSQL + Kysely
 docker-compose.yml    baza i serwer jednym poleceniem
 docs/STAN.md          co jest zrobione, co nie działa, znane ograniczenia
@@ -53,6 +54,22 @@ Strona sama sprawdza przy starcie, czy backend odpowiada. Jeśli tak — chodzi 
 prawdziwych kontach i ogłoszeniach z bazy. Jeśli nie — wraca do danych demo,
 więc `index.html` otwarty z dysku dalej pokazuje pełną aplikację. Aktywny tryb
 widać w stopce menu bocznego.
+
+## Okładki gier
+
+Kafelki gier mają domyślnie grafikę generowaną z nazwy. Żeby wstawić prawdziwe
+okładki ze Steama:
+
+```
+cd server
+npm run covers
+```
+
+Pobiera je raz do `img/games/` (katalog jest poza repozytorium) i zapisuje spis
+`img/games/index.json`. Gry spoza Steama — Fortnite, Genshin, tytuły konsolowe
+i mobilne — zostają przy grafice generowanej i to jest w porządku. Skrypt
+wypisuje na końcu, czego nie znalazł.
+
 
 ## Podział ról
 

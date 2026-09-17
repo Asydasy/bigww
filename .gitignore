@@ -18,3 +18,7 @@ server/.env.test
 
 # przyklad konfiguracji MA byc w repo
 !server/.env.example
+
+# Okladki gier pobierane skryptem (cd server && npm run covers).
+# Nie trzymamy ich w repo: to kilka MB binariow i cudza wlasnosc.
+img/games/

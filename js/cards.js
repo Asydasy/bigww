@@ -114,7 +114,7 @@ function gameCard(g) {
   const count = DATA.adsForGame(g.name);
   const b = el("button", "gcard");
   const cover = el("div", "cover");
-  cover.style.backgroundImage = coverArt(g);
+  ustawOkladke(cover, g);
   cover.append(el("span", null, g.name.replace(/[^A-Za-z0-9]/g, "").slice(0, 2).toUpperCase()));
   const body = el("div", "body");
   body.append(el("div", "gname", g.name));
@@ -167,6 +167,41 @@ function teamCard(t) {
 }
 
 let countCache = null;
+/**
+ * Slugi gier, dla których leży prawdziwa okładka w img/games/.
+ * Wypełniane raz przy starcie z img/games/index.json, który zapisuje skrypt
+ * pobierający (cd server && npm run covers). Bez tego pliku zbiór zostaje
+ * pusty i wszystkie karty mają grafikę generowaną — tak jak dotąd.
+ */
+let OKLADKI = new Set();
+
+async function wczytajSpisOkladek() {
+  try {
+    const res = await fetch("img/games/index.json", { cache: "no-cache" });
+    if (!res.ok) return;
+    const dane = await res.json();
+    if (Array.isArray(dane.gry)) OKLADKI = new Set(dane.gry);
+  } catch {
+    // Brak spisu to normalny stan przed pobraniem okładek — nic nie robimy.
+  }
+}
+
+/**
+ * Ustawia tło kafelka gry: prawdziwa okładka, jeśli została pobrana, a pod nią
+ * grafika generowana z nazwy. Gdyby plik zniknął, przeglądarka pokaże tę drugą
+ * warstwę, bo obrazek, którego nie da się wczytać, po prostu się nie rysuje.
+ */
+function ustawOkladke(node, game) {
+  const zapas = coverArt(game);
+  const slug = slugGry(game.name);
+  if (!OKLADKI.has(slug)) {
+    node.style.backgroundImage = zapas;
+    return;
+  }
+  node.style.backgroundImage = `url("img/games/${slug}.jpg"), ` + zapas;
+  node.classList.add("ma-okladke");
+}
+
 function countFor(gameName) {
   if (!countCache) {
     countCache = {};

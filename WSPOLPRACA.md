@@ -12,6 +12,7 @@ cp server/.env.example server/.env      # w środku wpisz własny JWT_SECRET
 docker compose up -d
 docker compose exec api npm run migrate
 docker compose exec api npm run seed
+cd server && npm run covers && cd ..   # okładki gier, opcjonalne
 ```
 
 W `server/.env` ustaw też `SERVE_STATIC=1` i wejdź na http://localhost:3000.

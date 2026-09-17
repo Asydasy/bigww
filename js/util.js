@@ -131,3 +131,17 @@ function fillHourSelect(sel, firstLabel, defaultVal) {
   for (let h = 0; h < 24; h++) sel.appendChild(new Option(fmtHour(h), String(h)));
   if (defaultVal != null && defaultVal !== "") sel.value = String(defaultVal);
 }
+
+/**
+ * Nazwa pliku okładki z nazwy gry: "Counter-Strike 2" -> "counter-strike-2".
+ * MUSI dawać ten sam wynik co slug() w server/src/covers.js — inaczej front
+ * szuka okładki pod innym adresem, niż zapisał skrypt pobierający.
+ */
+function slugGry(nazwa) {
+  return (nazwa || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
