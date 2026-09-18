@@ -284,12 +284,18 @@ const DATA = (() => {
     return res.threads || [];
   }
 
-  async function dmSend(toId, toNick, text) {
+  /** @param cel { adId } — piszę z karty ogłoszenia, albo { userId } — odpowiadam
+   *  w istniejącym wątku. Nicka nadawcy nie wysyłamy: bierze go serwer z sesji. */
+  async function dmSend(cel, text) {
+    const toNick = cel.nick || "";
     if (mode === "api") {
       if (!user) { const e = new Error("Zaloguj się, żeby wysłać wiadomość."); e.status = 401; throw e; }
-      const res = await API.dmSend({ toId, text });
+      const res = await API.dmSend(cel.userId ? { toUserId: cel.userId, text } : { adId: cel.adId, text });
       return res.thread;
     }
+    // Bez backendu nie ma kont, więc rozmówcę identyfikuje id ogłoszenia
+    // z generatora demo — tak jak działała stara skrzynka.
+    const toId = cel.userId || cel.adId;
     const me = currentUser();
     const id = [String(SESSION.userId), String(toId)].sort().join("_");
     let thread = INBOX.find(t => t.id === id);

@@ -80,9 +80,10 @@
 
     // Wątek zakłada się dopiero przy pierwszej wiadomości, więc zanim ktoś coś
     // napisze, okienko pracuje na „pustym" wątku trzymanym tylko w oknie.
+    const klucz = player.userId || player.adId;
     const znany = (typeof DM_THREADS !== "undefined" ? DM_THREADS : [])
-      .find(t => String(t.withId) === String(player.id));
-    const tid = znany ? znany.id : "nowy_" + player.id;
+      .find(t => String(t.withId) === String(player.userId || ""));
+    const tid = znany ? znany.id : "nowy_" + klucz;
 
     let win = document.querySelector('.im-chat[data-tid="' + tid + '"]');
     if (!win) {
@@ -118,13 +119,14 @@
         if (!text) return;
         inp.value = "";
         status.textContent = "wysyłanie…";
-        const ok = await sendInboxMessage({ id: player.id, nick: player.nick }, text);
+        const ok = await sendInboxMessage(player, text);
         status.textContent = ok ? "" : "nie wysłano";
         if (ok) {
           // Po pierwszej wiadomości wątek dostaje prawdziwy identyfikator
           // z serwera — okienko przesiada się na niego.
           const teraz = (typeof DM_THREADS !== "undefined" ? DM_THREADS : [])
-            .find(t => String(t.withId) === String(player.id));
+            .find(t => t.id === win.dataset.tid || String(t.withId) === String(player.userId || ""))
+            || (typeof DM_THREADS !== "undefined" ? DM_THREADS : [])[0];
           if (teraz && teraz.id !== win.dataset.tid) win.dataset.tid = teraz.id;
           imPaintChat(win.dataset.tid);
         }
@@ -184,7 +186,7 @@
     const row = e.target.closest(".im-row");
     if (!row) return;
     const t = watek(row.dataset.tid);
-    if (t) imOpen({ id: t.withId, nick: t.withNick });
+    if (t) imOpen({ userId: t.withId, nick: t.withNick });
   };
 
   const top = document.getElementById("inboxTopBtn");

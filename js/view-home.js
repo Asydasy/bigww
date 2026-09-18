@@ -27,6 +27,8 @@ function renderHome() {
   // pustej bazie na górze lądują przypadkowe tytuły z zerem ogłoszeń.
   const top = GAMES.slice().sort((a, b) => (b.pop - a.pop) || (countFor(b.name) - countFor(a.name))).slice(0, 10);
 
+  const gbox = $("#homeGames");
+
   // Trzy pierwsze jeszcze raz, w większym pasku nad siatką.
   let feat = $("#homeFeatured");
   if (!feat && gbox && gbox.parentNode) {
@@ -38,7 +40,7 @@ function renderHome() {
     feat.innerHTML = "";
     top.slice(0, 3).forEach(g => feat.append(gameCard(g, { featured: true })));
   }
-  const gbox = $("#homeGames");
+
   gbox.innerHTML = "";
   top.forEach(g => gbox.append(gameCard(g)));
 

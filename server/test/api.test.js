@@ -10,6 +10,7 @@ import assert from "node:assert/strict";
 import { buildServer } from "../src/server.js";
 import { migrate } from "../src/migrate.js";
 import { seedGames } from "../src/seed.js";
+import { parseGames } from "../src/games-file.js";
 import { db, closeDb, pool } from "../src/db.js";
 
 let app;
@@ -46,9 +47,12 @@ describe("zdrowie i katalog gier", () => {
   });
 
   test("GET /api/games zwraca pełny katalog", async () => {
+    // Liczba brana z js/data-games.js, a nie wpisana na sztywno: dopisanie
+    // nowej gry do katalogu nie ma wywracać testu API.
+    const zPliku = await parseGames();
     const res = await call({ method: "GET", url: "/api/games" });
     assert.equal(res.statusCode, 200);
-    assert.equal(res.json().games.length, 205);
+    assert.equal(res.json().games.length, zPliku.length);
   });
 
   test("GET /api/games?q= filtruje po nazwie", async () => {
@@ -557,5 +561,158 @@ describe("licznik aktywnych", () => {
     const czat = await call({ method: "GET", url: "/api/chat" });
     assert.equal(typeof czat.json().online, "number");
     assert.ok(czat.json().online >= 1, "front bierze licznik z odpowiedzi czatu, bez drugiego zapytania");
+  });
+});
+
+describe("prywatne wiadomości", () => {
+  let ciastkoA;      // autor ogłoszenia
+  let ciastkoB;      // ten, kto pisze
+  let idOgloszenia;
+  let idWatku;
+
+  before(async () => {
+    await db.deleteFrom("dm_messages").execute();
+    await db.deleteFrom("dm_threads").execute();
+
+    const logA = await call({
+      method: "POST",
+      url: "/api/auth/login",
+      payload: { email: "seba@example.com", password: "haslo-testowe-1" }
+    });
+    ciastkoA = sessionOf(logA);
+
+    const regB = await call({
+      method: "POST",
+      url: "/api/auth/register",
+      payload: { email: "kasia@example.com", password: "haslo-testowe-2", displayName: "Kasia" }
+    });
+    ciastkoB = sessionOf(regB);
+
+    const gry = await call({ method: "GET", url: "/api/games?q=valorant" });
+    const ogl = await call({
+      method: "POST",
+      url: "/api/ads",
+      headers: { cookie: ciastkoA },
+      payload: {
+        gameId: gry.json().games[0].id,
+        nick: "seba",
+        age: 29,
+        desc: "Szukam ekipy na wieczorne granie w Valoranta."
+      }
+    });
+    idOgloszenia = ogl.json().ad.id;
+  });
+
+  test("bez zalogowania nie da się ani czytać, ani pisać", async () => {
+    const czyt = await call({ method: "GET", url: "/api/dm" });
+    assert.equal(czyt.statusCode, 401);
+    const pisz = await call({
+      method: "POST",
+      url: "/api/dm",
+      payload: { adId: idOgloszenia, text: "hej" }
+    });
+    assert.equal(pisz.statusCode, 401, "prywatna skrzynka nie jest publiczna");
+  });
+
+  test("wiadomość z karty ogłoszenia zakłada wątek", async () => {
+    const res = await call({
+      method: "POST",
+      url: "/api/dm",
+      headers: { cookie: ciastkoB },
+      payload: { adId: idOgloszenia, text: "  Cześć, masz jeszcze miejsce?  " }
+    });
+    assert.equal(res.statusCode, 201);
+    const w = res.json().thread;
+    idWatku = w.id;
+    assert.equal(w.withNick, "Seba", "wątek jest z KONTEM autora, więc nazwa konta, nie nick z ogłoszenia");
+    assert.equal(w.messages.length, 1);
+    assert.equal(w.messages[0].text, "Cześć, masz jeszcze miejsce?", "spacje z brzegów lecą");
+    assert.equal(w.unread, 0, "własna wiadomość nie jest nieprzeczytana");
+  });
+
+  test("nadawca bierze się z sesji, nie z ciała żądania", async () => {
+    await call({
+      method: "POST",
+      url: "/api/dm",
+      headers: { cookie: ciastkoB },
+      payload: { adId: idOgloszenia, text: "druga wiadomość", fromNick: "seba", fromId: "ktokolwiek" }
+    });
+    const res = await call({ method: "GET", url: "/api/dm", headers: { cookie: ciastkoA } });
+    const w = res.json().threads[0];
+    const nadawcy = new Set(w.messages.map((m) => m.fromNick));
+    assert.deepEqual([...nadawcy], ["Kasia"], "podrobiony nick z payloadu ma być zignorowany");
+  });
+
+  test("odbiorca widzi wątek i licznik nieprzeczytanych", async () => {
+    const res = await call({ method: "GET", url: "/api/dm", headers: { cookie: ciastkoA } });
+    assert.equal(res.statusCode, 200);
+    const w = res.json().threads[0];
+    assert.equal(w.withNick, "Kasia");
+    assert.equal(w.unread, 2, "dwie wiadomości od Kasi, żadnej nieprzeczytanej od siebie");
+  });
+
+  test("oznaczenie przeczytania zeruje licznik", async () => {
+    const ozn = await call({ method: "POST", url: `/api/dm/${idWatku}/read`, headers: { cookie: ciastkoA } });
+    assert.equal(ozn.statusCode, 200);
+    const res = await call({ method: "GET", url: "/api/dm", headers: { cookie: ciastkoA } });
+    assert.equal(res.json().threads[0].unread, 0);
+  });
+
+  test("wątek jest jeden na parę kont, niezależnie od tego, kto pisze", async () => {
+    const widokSeby = await call({ method: "GET", url: "/api/dm", headers: { cookie: ciastkoA } });
+    const idKasi = widokSeby.json().threads[0].withId;
+    const odp = await call({
+      method: "POST",
+      url: "/api/dm",
+      headers: { cookie: ciastkoA },
+      payload: { toUserId: idKasi, text: "Mam, wbijaj." }
+    });
+    assert.equal(odp.statusCode, 201);
+    assert.equal(odp.json().thread.id, idWatku, "odpowiedź trafia do istniejącego wątku");
+    const res = await call({ method: "GET", url: "/api/dm", headers: { cookie: ciastkoB } });
+    assert.equal(res.json().threads.length, 1, "nie powstaje drugi wątek dla tej samej pary");
+    assert.equal(res.json().threads[0].messages.length, 3);
+  });
+
+  test("do siebie nie da się napisać", async () => {
+    const res = await call({
+      method: "POST",
+      url: "/api/dm",
+      headers: { cookie: ciastkoA },
+      payload: { adId: idOgloszenia, text: "sam do siebie" }
+    });
+    assert.equal(res.statusCode, 400);
+  });
+
+  test("nieistniejące ogłoszenie i pusta treść są odrzucane", async () => {
+    const zleOgl = await call({
+      method: "POST",
+      url: "/api/dm",
+      headers: { cookie: ciastkoB },
+      payload: { adId: "00000000-0000-0000-0000-000000000000", text: "hej" }
+    });
+    assert.equal(zleOgl.statusCode, 404);
+
+    const pusta = await call({
+      method: "POST",
+      url: "/api/dm",
+      headers: { cookie: ciastkoB },
+      payload: { adId: idOgloszenia, text: "   " }
+    });
+    assert.equal(pusta.statusCode, 400);
+  });
+
+  test("cudzy wątek nie da się oznaczyć jako przeczytany", async () => {
+    const reg = await call({
+      method: "POST",
+      url: "/api/auth/register",
+      payload: { email: "obcy@example.com", password: "haslo-testowe-3", displayName: "Obcy" }
+    });
+    const res = await call({
+      method: "POST",
+      url: `/api/dm/${idWatku}/read`,
+      headers: { cookie: sessionOf(reg) }
+    });
+    assert.equal(res.statusCode, 404, "obcy nie ma prawa wiedzieć, że taki wątek istnieje");
   });
 });

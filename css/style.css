@@ -1653,7 +1653,12 @@ select{cursor:pointer}
 .im-send button{width:auto;border-radius:12px;padding:0 12px;height:34px}
 
 
-#imRoot,#imPanel,.im-chat{pointer-events:auto!important;z-index:400!important}
-.im-chat{display:flex!important;visibility:visible!important;opacity:1!important;width:320px!important;height:380px!important;right:20px!important;bottom:20px!important}
+/* #imRoot rozciąga się na cały ekran, więc MUSI przepuszczać kliknięcia.
+   Łapią je dopiero jego dzieci — panel i okienka rozmów. Inaczej niewidzialna
+   warstwa zjada każde kliknięcie na stronie i nie działa nic: ani logowanie,
+   ani menu, ani karty graczy. */
+#imRoot{pointer-events:none;z-index:400}
+#imPanel,.im-chat{pointer-events:auto;z-index:401}
+.im-chat{display:flex;width:320px;height:380px;right:20px;bottom:20px}
 #imPanel{display:block}
-#imPanel[hidden]{display:none!important}
+#imPanel[hidden]{display:none}

@@ -61,7 +61,10 @@ try {
   const tryb = (await page.textContent("#dataMode")) || "";
   ok(tryb.includes("serwer"), `stopka pokazuje tryb serwerowy (jest: "${tryb.trim()}")`);
   ok((await page.evaluate(() => DATA.mode)) === "api", "DATA.mode = api");
-  ok((await page.evaluate(() => DATA.games.length)) === 205, "katalog 205 gier przyszedł z bazy");
+  // Ile gier ma być, mówi katalog z bazy — nie liczba wpisana w test. Dopisanie
+  // tytułu do js/data-games.js nie ma wywracać testu frontu.
+  const ileGier = (await (await fetch(BASE.replace("/index.html", "") + "/api/games")).json()).games.length;
+  ok((await page.evaluate(() => DATA.games.length)) === ileGier, `katalog ${ileGier} gier przyszedł z bazy`);
 
   const przed = await page.evaluate(() => allPlayers().length);
 
@@ -173,6 +176,35 @@ try {
   }));
   ok(bezObrazka.obrazki === 0, "cudza treść nie staje się znacznikiem HTML");
   ok(bezObrazka.tekst.includes("<img"), "znaczniki widać jako zwykły tekst");
+
+  // Prywatne wiadomości: ta sama zasada co na czacie — cudza treść wchodzi
+  // jako tekst, nigdy jako znacznik. Piszemy z DRUGIEGO konta, żeby sprawdzić
+  // dokładnie tę drogę, którą leci cudza wiadomość: przeglądarka -> baza ->
+  // moja skrzynka.
+  const dmZlosliwa = "<img src=x onerror=alert(2)> " + Date.now();
+  const mojeOgloszenie = await page.evaluate(() => (MINE[0] || {}).id);
+
+  await stronaGoscia.evaluate(async (tekst) => {
+    await DATA.register({
+      email: "dm" + Date.now() + "@example.com",
+      password: "haslo-testowe-dm",
+      displayName: "PiszeDoCiebie"
+    });
+  }, dmZlosliwa);
+  await stronaGoscia.evaluate(async ([id, tekst]) => {
+    await DATA.dmSend({ adId: id, nick: "autor" }, tekst);
+  }, [mojeOgloszenie, dmZlosliwa]);
+
+  await page.evaluate(async () => { await refreshInbox(); go("inbox"); });
+  await page.waitForTimeout(700);
+  const dmBezObrazka = await page.evaluate(() => ({
+    obrazki: document.querySelectorAll("#inboxList img").length,
+    tekst: document.getElementById("inboxList").textContent
+  }));
+  ok(dmBezObrazka.obrazki === 0, "treść prywatnej wiadomości nie staje się znacznikiem HTML");
+  ok(dmBezObrazka.tekst.includes("<img"), "znaczniki w skrzynce widać jako zwykły tekst");
+  ok(dmBezObrazka.tekst.includes("PiszeDoCiebie"), "wątek podpisany nazwą konta nadawcy, nie tym, co przyszło w payloadzie");
+  await page.evaluate(() => go("home"));
 
   // kasowanie własnej wiadomości
   await page.evaluate(() => document.querySelector("#chatList .chat-msg .chat-del").click());

@@ -71,7 +71,7 @@ function playerCard(p) {
   msg.onclick = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    if (canSeeContact(p) && typeof imOpen === "function") imOpen({ id: p.id, nick: p.nick });
+    if (canSeeContact(p) && typeof imOpen === "function") imOpen({ adId: p.id, nick: p.nick });
     else showContact(p);
   };
   const star = el("button", "btn sm", SAVED.includes(p.id) ? "★ Obserwujesz" : "☆ Obserwuj");

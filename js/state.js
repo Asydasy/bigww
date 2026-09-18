@@ -292,12 +292,14 @@ async function refreshInbox() {
   renderInbox();
 }
 
-async function sendInboxMessage(toPlayer, text) {
+/** @param cel { adId } — piszę z karty ogłoszenia, albo { userId } — odpowiadam
+ *  komuś, z kim wątek już istnieje. Zawsze plus `nick` do podpisu okienka. */
+async function sendInboxMessage(cel, text) {
   if (!requireLogin("wysłać wiadomość")) return false;
   text = String(text || "").trim();
   if (!text) return false;
   try {
-    await DATA.dmSend(toPlayer.id, toPlayer.nick, text);
+    await DATA.dmSend(cel, text);
   } catch (e) {
     toast((e && e.message) || "Nie udało się wysłać wiadomości");
     return false;
@@ -335,7 +337,7 @@ function openInboxThread(thread) {
   $("#inboxSend").onclick = async () => {
     const text = ($("#inboxReply").value || "").trim();
     if (text.length < 2) return toast("Wpisz wiadomość");
-    if (await sendInboxMessage({ id: thread.withId, nick: thread.withNick }, text)) {
+    if (await sendInboxMessage({ userId: thread.withId, nick: thread.withNick }, text)) {
       $("#modal").classList.remove("on");
       toast("Wysłano");
     }
