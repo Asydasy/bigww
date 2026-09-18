@@ -73,6 +73,10 @@ function updateAuthUI() {
     if (settingsBtn) settingsBtn.onclick = () => { closeUserMenu(); go("settings"); };
     if (coinsBtn) coinsBtn.onclick = () => { closeUserMenu(); go("shop"); };
     if (logoutBtn) logoutBtn.onclick = () => { closeUserMenu(); doLogout(); };
+    // Drugie wyjście, w samym pasku — żeby wylogowanie nie było schowane
+    // w rozwijanym menu, którego można nie znaleźć.
+    const logoutTop = document.getElementById("btnLogoutTop");
+    if (logoutTop) logoutTop.onclick = () => { closeUserMenu(); doLogout(); };
     const goClose = (v) => () => { closeUserMenu(); go(v); };
     const addBtn = document.getElementById("userMenuAdd");
     const mineBtn = document.getElementById("userMenuMine");
@@ -495,11 +499,14 @@ async function doLogout() {
       toast("Nie udało się wylogować — sprawdź połączenie z serwerem");
       return;
     }
-  } else {
-    SESSION = null;
-    rawSave(KEY.session, null);
-    loadUserData();
   }
+  // Sesję lokalną kasujemy zawsze, także po wylogowaniu z serwera. Inaczej
+  // zostaje w localStorage i wraca w chwili, gdy backend przestanie
+  // odpowiadać i front przejdzie na dane lokalne — z widoku użytkownika
+  // wygląda to dokładnie jak „wylogowanie nie działa".
+  SESSION = null;
+  rawSave(KEY.session, null);
+  loadUserData();
   refreshAfterAuth();
   toast("Wylogowano");
   go("home");
@@ -519,12 +526,16 @@ function refreshAfterAuth() {
   renderPremium();
   renderSettingsPrem();
   renderShop();
-  renderLives();
   // restore filters UI if needed
   if ($("#sTheme")) $("#sTheme").value = PREF.theme;
   if ($("#sRegion")) $("#sRegion").value = PREF.region;
   // po zmianie konta zmienia się to, czy wolno pisać na czacie
   if (typeof chatPoAuth === "function") chatPoAuth();
+  // ...i czyja jest skrzynka. Po wylogowaniu musi zostać pusta.
+  if (typeof refreshInbox === "function") refreshInbox();
+  document.querySelectorAll(".im-chat").forEach(w => w.remove());
+  const imPanel = document.getElementById("imPanel");
+  if (imPanel) imPanel.hidden = true;
 }
 
 function requireLogin(actionLabel) {
