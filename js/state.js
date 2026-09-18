@@ -8,7 +8,7 @@ const KEY = {
   prem: "bigww_premium_v2", coins: "bigww_coins_v2", ref: "bigww_ref_v2",
   boosts: "bigww_boosts_v2", adlog: "bigww_adlog_v2", msg: "bigww_msg_v2",
   bp: "bigww_bp_v2", quests: "bigww_quests_v2", unlocks: "bigww_unlocks_v2",
-  navcount: "bigww_nav_v2", livePass: "bigww_livepass_v2", liveTickets: "bigww_livetickets_v2",
+  navcount: "bigww_nav_v2",
   users: "bigww_users_v2", session: "bigww_session_v2",
   blocked: "bigww_blocked_v2", reports: "bigww_reports_v2",
   inbox: "bigww_inbox_v2", notifs: "bigww_notifs_v2", ratings: "bigww_ratings_v2",
@@ -17,7 +17,7 @@ const KEY = {
 const SCOPED_KEYS = new Set([
   KEY.mine, KEY.saved, KEY.pref, KEY.prem, KEY.coins, KEY.ref, KEY.boosts,
   KEY.adlog, KEY.msg, KEY.bp, KEY.quests, KEY.unlocks, KEY.navcount,
-  KEY.livePass, KEY.liveTickets, KEY.blocked, KEY.reports, KEY.inbox, KEY.notifs, KEY.ratings,
+  KEY.blocked, KEY.reports, KEY.inbox, KEY.notifs, KEY.ratings,
   KEY.presets
 ]);
 const LOOKING_TTL_MS = 2 * 3600000;
@@ -122,6 +122,9 @@ function loadUserData() {
   if (PREF.onboarded === undefined) PREF.onboarded = false;
   if (PREF.filters === undefined) PREF.filters = null;
   if (PREF.lang !== "en" && PREF.lang !== "pl") PREF.lang = "pl";
+  if (PREF.fx !== "off") PREF.fx = "max";
+  if (PREF.music !== "on") PREF.music = "off";
+  if (typeof PREF.musicVol !== "number") PREF.musicVol = 0.6;
   LANG = PREF.lang || "pl";
   PREM = load(KEY.prem, { active: false, plan: null, until: 0, since: 0 });
   COINS = load(KEY.coins, { bal: 40, earned: 0, spent: 0 });
@@ -133,8 +136,6 @@ function loadUserData() {
   QUESTS = load(KEY.quests, { day: "", done: {} });
   UNLOCKS = load(KEY.unlocks, []);
   NAVCOUNT = load(KEY.navcount, 0);
-  LIVEPASS = load(KEY.livePass, { until: 0 });
-  LIVETICKETS = load(KEY.liveTickets, []);
   BLOCKED = load(KEY.blocked, []);
   REPORTS = load(KEY.reports, []);
   INBOX = load(KEY.inbox, []);
@@ -150,8 +151,29 @@ function loadUserData() {
   }
 }
 
-let MINE, SAVED, PREF, PREM, COINS, REF, BOOSTS, ADLOG, MSG, BP, QUESTS, UNLOCKS, NAVCOUNT, LIVEPASS, LIVETICKETS;
+let MINE, SAVED, PREF, PREM, COINS, REF, BOOSTS, ADLOG, MSG, BP, QUESTS, UNLOCKS, NAVCOUNT;
 let BLOCKED, REPORTS, INBOX, NOTIFS, RATINGS, PRESETS;
+
+/* Sprzątanie po automatycznym koncie gościa.
+ *
+ * Wcześniejsza wersja zakładała przy starcie konto `guest_…` i zapisywała je
+ * do `bigww_users_v2` razem z sesją. Efekt: strona pokazywała zalogowanego,
+ * którego nie dało się wylogować, bo po odświeżeniu zakładała go od nowa.
+ * Automat wyleciał, ale komuś, kto go już złapał, siedzi w przeglądarce —
+ * to poniżej czyści ten stan raz i na zawsze. Nie dotyka kont prawdziwych. */
+(function usunKontaGoscia() {
+  if (SESSION && typeof SESSION.userId === "string" && SESSION.userId.indexOf("guest_") === 0) {
+    SESSION = null;
+    rawSave(KEY.session, null);
+  }
+  if (Array.isArray(USERS) && USERS.some(u => u && typeof u.id === "string" && u.id.indexOf("guest_") === 0)) {
+    USERS = USERS.filter(u => !(u && typeof u.id === "string" && u.id.indexOf("guest_") === 0));
+    rawSave(KEY.users, USERS);
+  }
+})();
+
+// Dopiero teraz — scopeSuffix() czyta SESSION, więc dane muszą wczytać się już
+// po wyrzuceniu gościa, inaczej wylądowałyby pod jego przyrostkiem.
 loadUserData();
 let pickedDays = [];
 let currentProfileId = null;
@@ -243,53 +265,103 @@ function matchScore(p) {
   } else if (hoursOverlap(p.hourFrom, p.hourTo, 17, 23)) s += 5;
   return Math.min(99, s);
 }
-function sendInboxMessage(toPlayer, text) {
-  if (!requireLogin("wysłać wiadomość")) return false;
-  const me = currentUser();
-  const threadId = [SESSION.userId, toPlayer.id].sort().join("_");
-  let thread = INBOX.find(t => t.id === threadId);
-  if (!thread) {
-    thread = { id: threadId, withId: toPlayer.id, withNick: toPlayer.nick, messages: [] };
-    INBOX.unshift(thread);
+/* ---- prywatna skrzynka ----
+ *
+ * Wątki trzyma `DM_THREADS`, wypełniane przez `DATA.dmThreads()`: w trybie
+ * serwerowym z bazy, bez backendu ze starej skrzynki w localStorage. Widoki
+ * nie wiedzą, skąd to przyszło.
+ *
+ * Wszystko, co napisał ktoś inny — nick i treść — wchodzi na stronę przez
+ * `textContent`. To nie jest kosmetyka: od kiedy wiadomości chodzą przez
+ * serwer, `innerHTML` w tym miejscu byłby XSS-em działającym na cudzym koncie.
+ */
+let DM_THREADS = [];
+
+function inboxUnreadCount() {
+  return DM_THREADS.reduce((n, t) => n + (Number(t.unread) || 0), 0);
+}
+
+async function refreshInbox() {
+  if (!isLoggedIn()) { DM_THREADS = []; updateBadges(); return; }
+  try {
+    DM_THREADS = await DATA.dmThreads();
+  } catch (e) {
+    DM_THREADS = [];
   }
-  thread.messages.push({ from: SESSION.userId, fromNick: me ? me.nick : SESSION.nick, text, ts: Date.now() });
-  thread.updated = Date.now();
-  save(KEY.inbox, INBOX);
-  pushNotif("Wiadomość wysłana", "Do " + toPlayer.nick + ": " + text.slice(0, 60), "inbox");
   updateBadges();
+  renderInbox();
+}
+
+async function sendInboxMessage(toPlayer, text) {
+  if (!requireLogin("wysłać wiadomość")) return false;
+  text = String(text || "").trim();
+  if (!text) return false;
+  try {
+    await DATA.dmSend(toPlayer.id, toPlayer.nick, text);
+  } catch (e) {
+    toast((e && e.message) || "Nie udało się wysłać wiadomości");
+    return false;
+  }
+  await refreshInbox();
   return true;
 }
+
 function openInboxThread(thread) {
-  const msgs = (thread.messages || []).map(m =>
-    `<div style="margin:8px 0;padding:10px;border-radius:10px;background:var(--bg2)"><b>${m.fromNick}</b><div class="note">${ago(m.ts)}</div><p style="margin-top:6px">${m.text}</p></div>`
-  ).join("");
-  openModal(`<h3 style="margin-bottom:8px">${thread.withNick}</h3>
-    <div style="max-height:280px;overflow:auto">${msgs || '<p class="note">Brak wiadomości</p>'}</div>
+  openModal(`<h3 style="margin-bottom:8px" id="inboxWith"></h3>
+    <div style="max-height:280px;overflow:auto" id="inboxMsgs"></div>
     <div class="field" style="margin-top:12px"><textarea id="inboxReply" maxlength="400" placeholder="Napisz odpowiedź…"></textarea></div>
     <button class="btn pri" id="inboxSend" style="margin-top:8px">Wyślij</button>`);
-  $("#inboxSend").onclick = () => {
+
+  $("#inboxWith").textContent = thread.withNick;
+  const box = $("#inboxMsgs");
+  const msgs = thread.messages || [];
+  if (!msgs.length) {
+    box.append(el("p", "note", "Brak wiadomości"));
+  } else {
+    msgs.forEach(m => {
+      const row = el("div");
+      row.style.cssText = "margin:8px 0;padding:10px;border-radius:10px;background:var(--bg2)";
+      row.append(el("b", null, m.fromNick), el("div", "note", ago(m.ts)));
+      const p = el("p");
+      p.style.marginTop = "6px";
+      p.textContent = m.text;
+      row.append(p);
+      box.append(row);
+    });
+  }
+  box.scrollTop = box.scrollHeight;
+  DATA.dmMarkRead(thread.id).catch(() => {});
+
+  $("#inboxSend").onclick = async () => {
     const text = ($("#inboxReply").value || "").trim();
     if (text.length < 2) return toast("Wpisz wiadomość");
-    const p = allPlayers().find(x => x.id === thread.withId) || { id: thread.withId, nick: thread.withNick };
-    if (sendInboxMessage(p, text)) {
+    if (await sendInboxMessage({ id: thread.withId, nick: thread.withNick }, text)) {
       $("#modal").classList.remove("on");
-      renderInbox();
       toast("Wysłano");
     }
   };
 }
+
 function renderInbox() {
   const box = $("#inboxList");
   if (!box) return;
   box.innerHTML = "";
-  if (!INBOX.length) {
-    box.innerHTML = `<div class="empty"><h3>Pusta skrzynka</h3><p>Napisz do gracza z karty — wiadomość pojawi się tutaj.</p></div>`;
+  if (!DM_THREADS.length) {
+    const empty = el("div", "empty");
+    empty.append(
+      el("h3", null, "Pusta skrzynka"),
+      el("p", null, "Napisz do gracza z karty — rozmowa pojawi się tutaj i w pływającym okienku.")
+    );
+    box.append(empty);
     return;
   }
-  INBOX.slice().sort((a, b) => (b.updated || 0) - (a.updated || 0)).forEach(t => {
+  DM_THREADS.slice().sort((a, b) => (b.updated || 0) - (a.updated || 0)).forEach(t => {
     const last = (t.messages || [])[t.messages.length - 1];
-    const row = el("div", "inbox-thread");
-    row.innerHTML = `<b>${t.withNick}</b><div class="note">${last ? last.text.slice(0, 80) : ""} · ${last ? ago(last.ts) : ""}</div>`;
+    const row = el("div", "inbox-thread" + (t.unread ? " unread" : ""));
+    row.append(el("b", null, t.withNick));
+    const note = el("div", "note");
+    note.textContent = (last ? last.text.slice(0, 80) : "") + (last ? " · " + ago(last.ts) : "");
+    row.append(note);
     row.onclick = () => openInboxThread(t);
     box.append(row);
   });
@@ -331,13 +403,6 @@ function shareListing(p) {
     navigator.clipboard.writeText(text + "\n" + url).then(() => toast("Link skopiowany")).catch(() => toast(url));
   } else toast(url);
   pushNotif("Udostępniono", "Link do ogłoszenia " + p.nick, "players");
-}
-
-function canWatchLive(streamId) {
-  if (isPrem()) return true;
-  if (LIVEPASS.until > Date.now()) return true;
-  if (LIVETICKETS.includes(streamId)) return true;
-  return false;
 }
 
 const FREE_MSG_LIMIT = 10;

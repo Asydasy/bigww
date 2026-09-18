@@ -95,6 +95,37 @@ export function publicChatMessage(row, viewer = null) {
   };
 }
 
+/**
+ * Wątek prywatnych wiadomości widziany oczami jednego z uczestników.
+ * @param row wiersz z dm_threads
+ * @param messages wiersze z dm_messages należące do tego wątku, od najstarszej
+ * @param viewerId id konta, które pyta
+ * @param nickById mapa id konta → nick rozmówcy
+ */
+export function publicDmThread(row, messages, viewerId, nickById) {
+  const peerId = row.user_a === viewerId ? row.user_b : row.user_a;
+  const czytaneOd = viewerId === row.user_a ? row.a_read_at : row.b_read_at;
+  const prog = czytaneOd ? new Date(czytaneOd).getTime() : 0;
+
+  return {
+    id: row.id,
+    withId: peerId,
+    withNick: nickById.get(peerId) || "Konto usunięte",
+    unread: messages.filter(
+      (m) => m.from_id !== viewerId && new Date(m.created_at).getTime() > prog
+    ).length,
+    updated: new Date(row.updated_at).getTime(),
+    messages: messages.map((m) => ({
+      id: m.id,
+      from: m.from_id,
+      fromNick: m.nick,
+      text: m.body,
+      mine: m.from_id === viewerId,
+      ts: new Date(m.created_at).getTime()
+    }))
+  };
+}
+
 export function publicGame(row) {
   return {
     id: row.id,

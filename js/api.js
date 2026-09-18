@@ -125,6 +125,10 @@ const API = (() => {
     /** Ile kont było aktywnych w ostatnich minutach. */
     presence: () => request("/presence"),
     sendChat: (body) => request("/chat", { method: "POST", body: { body } }),
-    deleteChat: (id) => request("/chat/" + encodeURIComponent(id), { method: "DELETE" })
+    deleteChat: (id) => request("/chat/" + encodeURIComponent(id), { method: "DELETE" }),
+    // Prywatne wiadomości. Nadawcę bierze serwer z sesji — nie wysyłamy go stąd.
+    dmList: () => request("/dm"),
+    dmSend: (payload) => request("/dm", { method: "POST", body: payload }),
+    dmRead: (id) => request("/dm/" + encodeURIComponent(id) + "/read", { method: "POST" })
   };
 })();

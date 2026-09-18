@@ -273,6 +273,52 @@ const DATA = (() => {
     return res.message;
   }
 
+  /* ---------- prywatne wiadomości (DM) ---------- */
+  /** W trybie „api" wątki leżą w bazie, a nadawcę bierze serwer z sesji —
+   *  przeglądarka nie może podać cudzego nicku. Bez backendu zostaje stara
+   *  skrzynka w localStorage: wiadomość widzi tylko autor, ale nic nie ginie. */
+  async function dmThreads() {
+    if (mode !== "api") return INBOX.slice();
+    if (!user) return [];
+    const res = await API.dmList();
+    return res.threads || [];
+  }
+
+  async function dmSend(toId, toNick, text) {
+    if (mode === "api") {
+      if (!user) { const e = new Error("Zaloguj się, żeby wysłać wiadomość."); e.status = 401; throw e; }
+      const res = await API.dmSend({ toId, text });
+      return res.thread;
+    }
+    const me = currentUser();
+    const id = [String(SESSION.userId), String(toId)].sort().join("_");
+    let thread = INBOX.find(t => t.id === id);
+    if (!thread) {
+      thread = { id, withId: toId, withNick: toNick, messages: [], unread: 0 };
+      INBOX.unshift(thread);
+    }
+    thread.withNick = toNick || thread.withNick;
+    thread.messages.push({
+      from: SESSION.userId,
+      fromNick: me ? me.nick : SESSION.nick,
+      text: text,
+      ts: Date.now()
+    });
+    thread.updated = Date.now();
+    save(KEY.inbox, INBOX);
+    return thread;
+  }
+
+  async function dmMarkRead(threadId) {
+    if (mode !== "api") {
+      const t = INBOX.find(x => x.id === threadId);
+      if (t) { t.unread = 0; save(KEY.inbox, INBOX); }
+      return;
+    }
+    if (!user) return;
+    await API.dmRead(threadId);
+  }
+
   async function chatDelete(id) {
     if (mode !== "api") throw bladBezSerwera();
     await API.deleteChat(id);
@@ -342,6 +388,9 @@ const DATA = (() => {
     chatList,
     chatSend,
     chatDelete,
+    dmThreads,
+    dmSend,
+    dmMarkRead,
     aktywniTeraz,
     login,
     register,

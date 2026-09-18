@@ -76,6 +76,28 @@ export interface ChatMessagesTable {
   created_at: Generated<Timestamp>;
 }
 
+export interface DmThreadsTable {
+  /** Posortowana para identyfikatorów kont sklejona przez "__". */
+  id: string;
+  user_a: string;
+  user_b: string;
+  /** Kiedy user_a ostatnio otworzył wątek — od tego liczą się nieprzeczytane. */
+  a_read_at: Timestamp | null;
+  b_read_at: Timestamp | null;
+  updated_at: Generated<Timestamp>;
+  created_at: Generated<Timestamp>;
+}
+
+export interface DmMessagesTable {
+  id: string;
+  thread_id: string;
+  from_id: string;
+  /** Nick z chwili wysłania — zmiana nazwy konta nie przepisuje historii. */
+  nick: string;
+  body: string;
+  created_at: Generated<Timestamp>;
+}
+
 export interface SavesTable {
   user_id: string;
   ad_id: string;
@@ -93,5 +115,7 @@ export interface DB {
   ads: AdsTable;
   saves: SavesTable;
   chat_messages: ChatMessagesTable;
+  dm_threads: DmThreadsTable;
+  dm_messages: DmMessagesTable;
   _migrations: MigrationsTable;
 }
