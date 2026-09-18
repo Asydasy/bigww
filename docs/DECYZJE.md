@@ -5,7 +5,7 @@ Zapis „co postanowiliśmy i dlaczego”, żeby nie wracać do tych samych rozm
 ## Produkt
 
 **Wszystkie gry, nie jedna.** Serwis nie zawęża się do jednego tytułu — baza ma
-205 gier z gatunkami i platformami. Zawężenie byłoby łatwiejsze do wypełnienia
+277 gier z gatunkami i platformami. Zawężenie byłoby łatwiejsze do wypełnienia
 ludźmi, ale zamyka drogę do skali.
 
 **Wzór biznesowy: ePal + Tinder.** Ogłoszenie gracza jako podstawowa jednostka,
@@ -123,6 +123,27 @@ pokazowa — wygląda jak konto, nie jest kontem. W trybie serwerowym nic z tego
 nie jest używane: konto zakłada backend, hasło hashuje scrypt po stronie
 serwera, a Discord to prawdziwy OAuth. Usunięcie kodu lokalnych kont zabrałoby
 możliwość pokazania serwisu z pliku na dysku, więc zostaje — z wyraźną granicą.
+
+**Live wypadło z serwisu.** Zakładka pokazywała 36 zmyślonych transmisji
+z generatora i brała monety za podgląd czegoś, czego nie było. Przy pustym
+serwisie to jest obietnica, której nie da się dotrzymać, a im dłużej by wisiała,
+tym więcej kodu trzymałoby się jej kurczowo (`LIVEPASS`, `LIVETICKETS`,
+punkty w cenniku Premium). Jeśli transmisje wrócą, to na prawdziwych danych
+i jako osobny widok — nic z poprzedniej wersji nie jest wart odgrzewania.
+
+**Muzyka i okładki nie leżą w repozytorium.** `audio/party.mp3` trafia do
+`.gitignore` dokładnie z tego samego powodu co `img/games/`: to kilka MB cudzej
+twórczości, a repo trzyma kod, nie bibliotekę mediów. Kod ma działać bez nich —
+panel radia sam się chowa, gdy pliku nie ma, a kafelek gry zostaje przy grafice
+generowanej. **Uwaga: oba te zbiory wymagają sprawdzenia licencji, zanim
+serwis wyjdzie poza testy.**
+
+**Okładki ze Steama to świadome odstępstwo od zasady „zero zewnętrznych
+zależności".** Reguła 5 z `CLAUDE.md` mówi: żadnych CDN-ów bez wyraźnej zgody.
+Zgoda jest, bo alternatywą jest pobranie 277 obrazków na dysk przy każdym
+klonie. Kolejność w `coverCandidates()` jest za to nieprzypadkowa: najpierw
+plik lokalny, dopiero potem Steam, a gdy nic nie wejdzie — grafika generowana.
+Strona działa w całości bez sieci, po prostu ładniej wygląda z nią.
 
 ## Sposób prowadzenia projektu
 

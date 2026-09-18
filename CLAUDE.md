@@ -6,8 +6,8 @@ Przeczytaj to na początku sesji, zanim cokolwiek zmienisz w kodzie.
 
 BigWW — serwis do szukania ludzi do wspólnego grania. Dwie części:
 
-**Front** (katalog główny): `index.html` + `css/style.css` + 25 plików w `js/`,
-waniliowy JS, zero zależności. Wersja w `js/boot.js` (`APP_VERSION`).
+**Front** (katalog główny): `index.html` + `css/style.css` + 28 plików w `js/`,
+waniliowy JS, zero bibliotek. Wersja w `js/boot.js` (`APP_VERSION`).
 
 **Backend** (`server/`): Node + Fastify + PostgreSQL, zapytania przez Kysely,
 logowanie e-mailem z hasłem i przez Discorda. `docker compose up`, `npm test`.
@@ -18,14 +18,16 @@ przy starcie pyta `/api/health` i działa w trybie `api` albo `local`:
 - **`api`** — ogłoszenia, gry, konta i obserwowani z bazy,
 - **`local`** — generator demo i localStorage (strona otwarta z dysku).
 
-Podział: **serwer trzyma ogłoszenia, gry, konta, obserwowanych i czat ogólny**;
-**przeglądarka trzyma monety, premium, prywatną skrzynkę, powiadomienia,
+Podział: **serwer trzyma ogłoszenia, gry, konta, obserwowanych, czat ogólny
+i prywatne wiadomości**; **przeglądarka trzyma monety, premium, powiadomienia,
 giveawaye, oceny, blokady i ustawienia** — tego backend jeszcze nie ma.
 
 Uruchomienie całości: `docker compose up`, potem http://localhost:3000.
 Nic więcej nie trzeba — migracje i seed lecą same.
 
 Pracę we dwójkę opisuje `WSPOLPRACA.md` (gałęzie, podział plików, konflikty).
+Druga osoba pracuje z innym modelem — jej zasady są w `GROK.md` i są **węższe**
+niż te; gdy coś tu i tam się rozjeżdża, obowiązuje ten plik.
 
 Pełny obraz: `docs/STAN.md` (co działa, czego nie ma, znane błędy),
 `docs/ARCHITEKTURA.md` (front), `server/README.md` (backend i endpointy),
@@ -73,7 +75,11 @@ repozytorium potrafi pójść do przodu między jedną rozmową a drugą.
 5. **Nie dodawaj zależności zewnętrznych do frontu** (bibliotek, CDN-ów,
    obrazków) bez wyraźnej zgody — brak builda to świadoma decyzja. Grafika
    powstaje jako generowany SVG (`avatarArt`, `coverArt`), okładki pobiera się
-   raz na dysk skryptem.
+   raz na dysk skryptem. Jedyne odstępstwo: CDN Steama jako **zapasowe** źródło
+   okładek w `coverCandidates()` — z lokalnym plikiem przed nim i grafiką
+   generowaną pod spodem, więc strona działa też bez sieci.
+   **Pliki mediów nie wchodzą do repo**: `img/games/` i `audio/` są
+   w `.gitignore`. Kod ma działać, gdy ich nie ma.
 6. **Commituj po każdej skończonej zmianie**, z opisem po polsku mówiącym, co
    się zmieniło w zachowaniu, nie tylko w plikach.
 7. **Aktualizuj `docs/STAN.md`** — sekcje „Co DZIAŁA", „Czego NIE MA" i „Znane
@@ -105,29 +111,37 @@ repozytorium potrafi pójść do przodu między jedną rozmową a drugą.
     to na czacie; przy nowych miejscach dopisz podobny.
 14. **Nie licz na `fileData` w trybie serwerowym.** Pliki z dysku zostają
     w przeglądarce autora — serwer ich nie przyjmuje.
+15. **Warstwa rozciągnięta na cały ekran ma `pointer-events: none`.**
+    `#imRoot` (okienka wiadomości) i `#fx-stage` (tło) przykrywają całe okno.
+    Kliknięcia łapią dopiero ich dzieci. Jedno `pointer-events: auto` na
+    rodzicu unieruchamia całą stronę i nie widać tego na oczy — było, boli.
 
 ## Zasady dla backendu
 
-15. **Po każdej zmianie w `server/` puść `npm test`.** Testy idą na osobnej
+16. **Po każdej zmianie w `server/` puść `npm test`.** Testy idą na osobnej
     bazie z `.env.test` i wykryły już trzy realne błędy. Nowy endpoint = nowy
     test.
-16. **Handler błędów w `src/server.js` musi być rejestrowany PRZED trasami.**
+17. **Handler błędów w `src/server.js` musi być rejestrowany PRZED trasami.**
     Odwrotna kolejność zostawia trasom domyślny handler Fastify, który wysyła
     klientowi wewnętrzne komunikaty błędów. To nie jest kosmetyka.
-17. **Zmiana schematu = nowy plik w `server/migrations/`**, nigdy edycja
+18. **Zmiana schematu = nowy plik w `server/migrations/`**, nigdy edycja
     istniejącego (runner pamięta, co już poszło). Zaktualizuj też
     `server/src/db-schema.d.ts` — nie generuje się sam. Po dodaniu migracji
     puść `npm run migrate` na obu bazach: roboczej i testowej. Brakująca
     kolumna potrafi dać mylący błąd (`rank` bez kolumny to dla Postgresa
     funkcja okienkowa).
-18. **Wszystko, co szuka po tekście, przepuszczaj przez `bigww_norm()`.**
+19. **Wszystko, co szuka po tekście, przepuszczaj przez `bigww_norm()`.**
     Front zdejmuje polskie znaki od zawsze; baza musi robić to samo.
-19. **Nie przenoś pieniędzy ani limitów do przeglądarki.** Limit ogłoszeń liczy
+20. **Nie przenoś pieniędzy ani limitów do przeglądarki.** Limit ogłoszeń liczy
     serwer (`adLimitFor()` w `src/config.js`) i te same liczby są w `adLimit()`
     w `js/state.js` — zmieniasz jedno, zmień drugie.
-20. **Serwer ma wstawać bez `.env` poza produkcją.** Nie dokładaj nowych
+21. **Serwer ma wstawać bez `.env` poza produkcją.** Nie dokładaj nowych
     wymaganych zmiennych bez wartości domyślnej — inaczej „git clone &&
     docker compose up" przestanie działać.
+22. **Kto pisze, bierze się z sesji, nie z ciała żądania.** Dotyczy czatu,
+    prywatnych wiadomości i wszystkiego, co dojdzie później. Przeglądarka mówi
+    najwyżej, DO KOGO — nigdy, KIM jest. Endpoint przyjmujący `fromNick`
+    z payloadu to podszywanie się na jedno żądanie.
 
 ## Uwaga o środowisku
 

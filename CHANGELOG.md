@@ -3,6 +3,101 @@
 Format: najnowsze na górze. Każdy wpis mówi, co zmieniło się w **zachowaniu**,
 a nie tylko w plikach.
 
+## [1.3.0] — 2026-09-18
+
+Scalenie paczki roboczej z repozytorium. Nowe funkcje wchodzą, rzeczy, które
+paczka po drodze zepsuła albo wyłączyła — wracają do stanu z repo.
+
+### Naprawione
+
+- **Konto gościa przestało się zakładać samo.** Przy starcie tworzyło się
+  konto `guest_…`, zapisywane do `bigww_users_v2` i `bigww_session_v2`. Strona
+  pokazywała zalogowanego, a po kliknięciu „Wyloguj" i odświeżeniu konto
+  wracało, bo automat robił je od nowa. Automatu nie ma, a `js/state.js` przy
+  starcie **czyści konta `guest_*` i sesję gościa** tym, którym już zostały
+  w przeglądarce.
+- **„Wyloguj" wylogowuje do końca.** `doLogout()` w trybie serwerowym nie
+  kasował sesji lokalnej — po zerwaniu połączenia z backendem front wracał na
+  dane lokalne i znowu było się zalogowanym. Teraz sesja lokalna leci zawsze,
+  a dane konta przeładowują się od zera. Przycisk „Wyloguj" jest też wprost
+  w pasku górnym, nie tylko w rozwijanym menu.
+- **Strona znowu przyjmuje kliknięcia.** `#imRoot` (warstwa okienek
+  wiadomości) miał wymuszone `pointer-events:auto!important` przy
+  `position:fixed; inset:0`, czyli przezroczystą płytę na cały ekran, która
+  łapała **każde** kliknięcie — logowanie, menu, karty graczy, wszystko.
+  Kliknięcia łapią teraz dopiero panel i okienka rozmów.
+- **Logowanie znowu jest logowaniem.** Paczka wycięła hasła i ścieżkę
+  serwerową: wpisany nick zakładał nowe konto bez żadnego sprawdzenia
+  (plus przycisk „Wylosuj konto testowe"). Wróciło to, co jest w repo —
+  e-mail z hasłem, sesja zakładana przez backend, sprawdzanie hasha
+  w trybie lokalnym.
+- **Generator demo znowu generuje.** Paczka ustawiła pętlę na `0` graczy,
+  a `allPlayers()` zwracało tylko własne ogłoszenia — strona bez backendu
+  była pusta. Wróciło 720 graczy demo.
+- **Wymóg logowania wrócił** dla Sklepu, Premium, Moich ogłoszeń, Skrzynki,
+  Obserwowanych i Dodawania ogłoszenia (`AUTH_REQUIRED_VIEWS` było puste).
+- **Powitanie przy pierwszym wejściu** znowu się pokazuje (`onboard.js` miał
+  gołe `return;`).
+- **Migracja `006_presence.sql` nie jest już pusta**, a `server/test/front.e2e.mjs`
+  wrócił — paczka zgubiła oba pliki.
+- **`prefers-reduced-motion` znowu działa samo z siebie.** Paczka uzależniła
+  je od suwaka „Efekty wizualne"; ustawienie systemowe wygrywa niezależnie.
+- Pętla rysowania tła nie mnoży się przy każdym przełączeniu karty
+  przeglądarki, `renderHome()` nie wywala się na `gbox`, a karta sponsorowana
+  wróciła na listę graczy.
+
+### Dodane
+
+- **Prywatne wiadomości w bazie.** Migracja `007_dm.sql` (`dm_threads`,
+  `dm_messages`) i endpointy `GET /api/dm`, `POST /api/dm`,
+  `POST /api/dm/:id/read`. Wszystko wymaga zalogowania, a **nadawcę podpisuje
+  serwer z sesji** — przeglądarka podaje tylko odbiorcę (`adId` z karty
+  ogłoszenia albo `toUserId` w istniejącym wątku). Wcześniej paczka trzymała
+  rozmowy w pliku `server/data/dms.json` i przyjmowała nick nadawcy z ciała
+  żądania, czyli każdy mógł napisać jako ktokolwiek.
+- **Pływające okienka rozmów** (`js/im-ui.js`) — przeciągalne, kilka naraz,
+  plus przycisk ✉ z odznaką w pasku górnym. Widok „Wiadomości" i okienka
+  pokazują te same wątki, z jednego źródła.
+- **Animowane tło** (`js/fx-bg.js`): shader WebGL plus bloby CSS,
+  z przełącznikiem „Efekty wizualne" w Ustawieniach.
+- **Radio BigWW** (`js/party.js`): przeciągalny panel z Play, wyciszeniem
+  i głośnością. Plik `audio/party.mp3` jest poza repozytorium (jak okładki) —
+  bez niego panel się nie pokazuje.
+- **Prawdziwe okładki gier** (`js/covers-map.js`): `appid` 400 gier na Steamie.
+  Kafelek próbuje po kolei plik z dysku, potem CDN Steama, a gdy nic nie wejdzie,
+  zostaje przy grafice generowanej. Karta gry dostała platformy, pięć kropek
+  popularności i znacznik `HOT`; karta gracza — miniaturę okładki.
+- **Pasek trzech wyróżnionych gier** na Starcie, nad siatką.
+- **72 nowe tytuły** w katalogu gier (razem 277).
+- Giveawaye: wzięty bilet wyłącza przycisk zamiast przyjmować kliknięcie
+  w próżnię, a przy braku monet wchodzi okno z wyjściem do Sklepu i Premium.
+- Podgląd w formularzu ogłoszenia przestał być klikalny — „Napisz" otwierało
+  rozmowę z samym sobą.
+- Reklama pełnoekranowa nie wchodzi w formularzu, ustawieniach i regulaminie.
+- Serwer oddaje statyki z `Cache-Control` na tydzień (poza `index.html`).
+
+### Usunięte
+
+- **Zakładka Live.** Była warstwą demonstracyjną: 36 zmyślonych transmisji
+  z generatora i płatny podgląd za monety, których nie dało się z niczym
+  spiąć. Wypadła cała — zakładka, widok, karty, `canWatchLive`, `LIVEPASS`,
+  `LIVETICKETS`, tłumaczenia `live.*` i punkty o Live w cenniku Premium.
+  Klucze `bigww_livepass_v2` i `bigww_livetickets_v2` kasuje teraz „Usuń
+  wszystkie dane". `js/view-teams-live.js` → `js/view-teams.js`.
+- `js/audio-embed.js` (235 kB zakodowanego dźwięku, do którego nic się nie
+  odwoływało), `WGRAJ.txt`, `server/data/dms.json`.
+
+### Testy
+
+- **47 testów API** (było 38): dziewięć nowych na `/api/dm`, w tym sprawdzenie,
+  że podrobiony nick nadawcy z ciała żądania jest ignorowany, że wątek jest
+  jeden na parę kont i że obcy nie oznaczy cudzego wątku jako przeczytanego.
+- **40 sprawdzeń w teście przeglądarkowym** (było 37): doszedł test XSS na
+  prywatnej wiadomości wysłanej **z drugiego konta** — treść ma wejść do
+  skrzynki jako tekst, nigdy jako znacznik.
+- Liczba gier w obu testach brana z katalogu, a nie wpisana na sztywno —
+  dopisanie tytułu nie wywraca już testów.
+
 ## [1.2.1] — 2026-09-18
 
 ### Dodane

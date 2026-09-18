@@ -1,4 +1,4 @@
-# Stan projektu — 2026-09-18
+# Stan projektu — 2026-09-18 (po scaleniu paczki 1.3.0)
 
 ## Krótko
 
@@ -11,15 +11,15 @@ rozpoznawanych raz przy starcie przez `DATA.init()`:
   w przeglądarce. `index.html` otwarty z dysku dalej pokazuje pełną aplikację.
   W stopce żółte „● lokalnie”.
 
-Podział jest prosty: **serwer trzyma ogłoszenia, gry, konta, obserwowanych
-i czat ogólny**, **przeglądarka trzyma to, czego backend jeszcze nie ma** —
-monety, premium, prywatną skrzynkę, powiadomienia, giveawaye, oceny, blokady
+Podział jest prosty: **serwer trzyma ogłoszenia, gry, konta, obserwowanych,
+czat ogólny i prywatne wiadomości**, **przeglądarka trzyma to, czego backend
+jeszcze nie ma** — monety, premium, powiadomienia, giveawaye, oceny, blokady
 i zapisane filtry.
 
-**Front**: `index.html` + `css/style.css` + 25 plików w `js/`, waniliowy
-JavaScript, zero zależności. Wersja w `js/boot.js`: `APP_VERSION = "1.2.1"`.
+**Front**: `index.html` + `css/style.css` + 28 plików w `js/`, waniliowy
+JavaScript, zero bibliotek. Wersja w `js/boot.js`: `APP_VERSION = "1.3.0"`.
 **Backend**: `server/`, Node + Fastify + PostgreSQL, zapytania przez Kysely,
-38 testów. Stawia się jednym `docker compose up`.
+47 testów. Stawia się jednym `docker compose up`.
 
 Widoki nie wiedzą, który tryb jest aktywny — czytają `allPlayers()`, `MINE`
 i `SAVED`, a zapisy robią przez `DATA`.
@@ -40,14 +40,17 @@ Okładki gier (opcjonalnie, raz): `cd server && npm run covers`.
 
 ## Co DZIAŁA
 
-### Widoki — 15 sekcji `.page`
+### Widoki — 14 sekcji `.page`
 
-Start, Gracze, Baza gier, Ekipy, Live, Giveawaye, Dodaj ogłoszenie, Moje
+Start, Gracze, Baza gier, Ekipy, Giveawaye, Dodaj ogłoszenie, Moje
 ogłoszenia, Obserwowani, Wiadomości, Profil gracza, Premium, Sklep, Ustawienia,
 Regulamin/Prywatność (jeden widok `v-terms`, dwie treści).
 
+**Zakładki Live nie ma** — wypadła razem z całą warstwą płatnego podglądu
+transmisji. Jeśli wróci, to jako osobny widok na prawdziwych danych.
+
 W menu bocznym zostało to, co widzi każdy: Start, Gracze, Baza gier, Ekipy,
-Live, Giveawaye. Rzeczy konta — monety, Premium, Dodaj ogłoszenie, Moje
+Giveawaye. Rzeczy konta — monety, Premium, Dodaj ogłoszenie, Moje
 ogłoszenia, Obserwowani, Wiadomości, Sklep, Ustawienia, Discord i Wyloguj —
 siedzą w **rozwijanym menu pod awatarem** (`#userMenu`, z animacją wejścia
 i wyjścia). Pozycja „Premium” świeci na złoto przy aktywnym planie (`PRO` przy
@@ -55,8 +58,9 @@ Pro/rocznym) i pisze „nieaktywne”, gdy planu nie ma.
 
 Sidebar na desktopie (zwijany, skrót `[`), dolny pasek na telefonie, skrót `/`
 ustawia kursor w wyszukiwarce graczy, wejście na Start odpala animację hero.
-Odsyłacz do serwera Discord (`discord.gg/BIGWW`) jest w stopce menu i w menu
-konta.
+Odsyłacz do serwera Discord (`discord.gg/Q4WD2BR9Ud`) jest w stopce menu
+i w menu konta. **Wyloguj jest też wprost w pasku górnym** (`#btnLogoutTop`),
+obok awatara — nie tylko w rozwijanym menu.
 
 ### Konta
 
@@ -167,6 +171,25 @@ Premium podbija szanse. Udział wymaga konta. Nagrody nie są wysyłane.
 `applyStaticI18n()`. Przełącznik w interfejsie, wybór w `PREF.lang`, zmiana
 bez przeładowania strony.
 
+### Prywatne wiadomości (na serwerze)
+
+Rozmowa 1:1 między dwoma kontami. Wątek jest jeden na parę kont, niezależnie
+od tego, kto zaczął. Dwa miejsca, jedno źródło (`DM_THREADS`):
+
+- **pływające okienka** — „Napisz" na karcie gracza otwiera przeciągalne
+  okienko rozmowy (`js/im-ui.js`); można mieć otwartych kilka naraz,
+- **widok Wiadomości** — spis wątków z licznikiem nieprzeczytanych,
+- **przycisk ✉ w pasku górnym** — rozwija spis rozmów z odznaką.
+
+Nadawcę podpisuje **serwer, z sesji** — przeglądarka podaje tylko, do kogo
+pisze (`adId` z karty ogłoszenia albo `toUserId` w istniejącym wątku).
+Nieprzeczytane liczą się od `a_read_at` / `b_read_at` w `dm_threads`.
+Odpytywanie co 5 sekund i **tylko wtedy**, gdy panel albo okienko jest otwarte,
+a karta przeglądarki na wierzchu.
+
+Bez backendu skrzynka działa po staremu: zapis do localStorage, wiadomość
+widzi tylko autor.
+
 ### Oprawa
 
 Ekran powitalny, pasek zgody na cookies, service worker (network-first),
@@ -174,11 +197,28 @@ animacja hero na Starcie, odznaki w menu (liczba otwartych giveawayów,
 wiadomości, moich ogłoszeń, obserwowanych),
 `window.BigWW = { version, api, data, go, t }` do zaglądania z konsoli.
 
+**Efekty wizualne** (`js/fx-bg.js`): animowane tło — shader WebGL na canvasie
+plus bloby CSS w `#fx-stage`. Przełącznik „Efekty wizualne" w Ustawieniach
+ustawia `data-fx` na `<html>`; przy `off` pętla rysowania staje. Systemowe
+`prefers-reduced-motion` wyłącza animacje **niezależnie od tego przełącznika**.
+
+**Radio BigWW** (`js/party.js`): przeciągalny panel z Play, wyciszeniem
+i głośnością, sterowany też z Ustawień. Plik `audio/party.mp3` jest **poza
+repozytorium** — bez niego panel się nie pokazuje.
+
 ### Okładki gier
 
-Kafelek ma dwie warstwy: prawdziwą okładkę z `img/games/<slug>.jpg` i pod nią
-grafikę generowaną z nazwy. Spis pobranych okładek to `img/games/index.js`.
-Katalog jest poza repozytorium — po sklonowaniu `cd server && npm run covers`.
+Kafelek ma dwie warstwy: pod spodem grafikę generowaną z nazwy (jest zawsze),
+na wierzchu prawdziwą okładkę. `coverCandidates()` w `js/covers-map.js` podaje
+listę adresów od najpewniejszego — plik z dysku `img/games/<slug>.jpg`, potem
+CDN Steama po `appid` (mapa 400 gier). Karta próbuje po kolei, aż któryś się
+wczyta; gdy żaden nie wejdzie, zostaje grafika generowana.
+
+Karta gry pokazuje też platformy, pięć kropek popularności i znacznik `HOT`
+przy `pop >= 5`. Karta gracza ma miniaturę okładki przy nazwie gry.
+
+Katalog `img/games/` jest poza repozytorium — po sklonowaniu
+`cd server && npm run covers`.
 
 ## Co DZIAŁA po stronie serwera
 
@@ -186,20 +226,24 @@ Szczegóły i lista endpointów: `server/README.md`.
 
 - Konta: rejestracja e-mailem z hasłem (scrypt), logowanie, wylogowanie, `/me`,
   Discord OAuth, ograniczenie liczby prób logowania (10 na 5 minut).
-- Katalog 205 gier, wypełniany seedem z `js/data-games.js`, z licznikami
+- Katalog 277 gier, wypełniany seedem z `js/data-games.js`, z licznikami
   ogłoszeń na grę.
 - Czat ogólny: `GET /api/chat` (czyta każdy, `?after=` do odpytywania),
   `POST /api/chat` (zalogowany, 20/min), `DELETE /api/chat/:id` (właściciel).
 - Licznik aktywnych: `GET /api/presence` — konta widziane w ostatnich 5 minutach.
   Ślad zapisuje się przy żądaniu z sesją, najwyżej raz na minutę na konto.
+- Prywatne wiadomości: `GET /api/dm` (moje wątki), `POST /api/dm` (wyślij,
+  20/min), `POST /api/dm/:id/read` (oznacz przeczytane). Wszystko wymaga
+  zalogowania, nadawca zawsze z sesji. Migracja `007`, tabele `dm_threads`
+  i `dm_messages`.
 - Ogłoszenia: dodawanie, edycja (`PATCH`), usuwanie, obserwowanie, lista
   z filtrami (gra, region, platforma, styl, pora, godziny, mikrofon, ranga,
   dzień tygodnia, tag, język, świeżość, „szukam teraz”), wyszukiwarką odporną
   na polskie znaki i stronicowaniem.
 - Limit ogłoszeń liczony po stronie serwera.
 - Kontakt tylko dla zalogowanych (`contactLocked` dla reszty).
-- **38 testów API** (`npm test`) i **test przeklikujący front w obu trybach**
-  (`npm run test:front`, 37 sprawdzeń — wymaga Playwrighta i działającego
+- **47 testów API** (`npm test`) i **test przeklikujący front w obu trybach**
+  (`npm run test:front`, 40 sprawdzeń — wymaga Playwrighta i działającego
   serwera).
 
 ## Czego NIE MA
@@ -208,14 +252,17 @@ Szczegóły i lista endpointów: `server/README.md`.
   nie ma — front trzyma saldo w przeglądarce, więc każdy może je zmienić
   w konsoli. Przy prawdziwych płatnościach to jest blokada startu.
 - **Premium w bazie.** To samo co wyżej: kolumny są, ruchu nie ma.
-- **Prywatnych wiadomości.** Czat ogólny działa naprawdę, ale skrzynka 1:1
-  jest dalej lokalna — wiadomość z karty gracza nie dociera do odbiorcy.
+- **Moderacji prywatnych wiadomości.** Wiadomości chodzą przez bazę, ale nie
+  ma blokowania nadawcy po stronie serwera, zgłoszeń ani kasowania wątku.
+  Blokady z `BLOCKED` działają tylko w przeglądarce blokującego.
+- **Powiadomienia o nowej wiadomości poza stroną.** Odznaka odświeża się tylko
+  przy otwartym panelu albo okienku rozmowy.
 - **Moderacji czatu.** Każdy zalogowany pisze do wszystkich; nie ma banów,
   wyciszeń ani kolejki zgłoszeń. Przy pierwszym trollu to będzie pierwsza
   rzecz do zrobienia.
 - **Płatności.** Checkout to modal z opóźnieniem i komunikatem sukcesu.
-- **Ekip i transmisji w bazie.** Istnieją tylko we froncie, na danych demo,
-  także wtedy, gdy reszta strony chodzi na serwerze.
+- **Ekip w bazie.** Istnieją tylko we froncie, na danych demo, także wtedy,
+  gdy reszta strony chodzi na serwerze.
 - **Plików z ogłoszeń na serwerze.** Data URL zostaje w przeglądarce autora.
 - **Moderacji.** Zgłoszenia i blokady zapisują się u zgłaszającego.
 - **Prawdziwych giveawayów.**

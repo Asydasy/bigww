@@ -3,6 +3,9 @@
 Ustalenia, żeby dwie osoby nie przepisywały sobie nawzajem tych samych plików.
 Przeczytaj przed pierwszą zmianą.
 
+Każda strona pracuje z innym modelem. Zasady dla nich: `CLAUDE.md` i `GROK.md`
+— ten drugi jest węższy i wypisuje wprost, co już raz poszło nie tak.
+
 ## Wejście dla nowej osoby
 
 ```
@@ -113,6 +116,29 @@ Trzy wnioski:
 2. **Powiedz, co bierzesz**, zanim otworzysz edytor. Jedno zdanie wystarczy.
 3. **Nie buduj równolegle tej samej funkcji.** Powstały wtedy dwa systemy kont —
    jeden na localStorage, drugi na backendzie. Jeden trzeba było wyrzucić.
+
+## Czego nauczyło nas drugie scalenie
+
+18.09.2026 druga strona przysłała **zip zamiast gałęzi**. Nowe rzeczy w nim były
+dobre (tło, radio, okładki, prywatne wiadomości), ale przy okazji:
+
+- wróciło konto gościa zakładane automatem, którego nie dało się wylogować,
+- `#imRoot` z `pointer-events: auto` na całe okno unieruchomił **całą stronę**,
+- logowanie straciło hasła (dowolny nick zakładał konto),
+- generator demo ustawiony na zero graczy, wymóg logowania wyłączony,
+  onboarding za gołym `return;`, Live za `if (false)`,
+- migracja `006_presence.sql` przyszła pusta, a `front.e2e.mjs` zniknął.
+
+Nic z tego nie było widać w zipie — trzeba było porównać drzewo z repo plik po
+pliku. Wnioski:
+
+4. **Zmiany wracają przez gałąź i pull request, nie przez archiwum.** Zip nie
+   ma historii i nie widać w nim, co skasowano po drodze.
+5. **Wyłączenie funkcji to usunięcie funkcji.** `if (false)`, pętla do zera
+   i gołe `return;` wyglądają jak celowe i przeżywają scalenie niezauważone.
+   Jeśli coś ma wypaść — wypada w całości, osobnym commitem.
+6. **Przed wysłaniem zmian zrób `git status` i `git diff --stat`.** Pusty plik
+   migracji i skasowany test to nie są rzeczy, które ktoś wyłapie na oko.
 
 ## Gdy już dojdzie do konfliktu
 

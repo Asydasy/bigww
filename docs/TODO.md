@@ -27,6 +27,11 @@ osobnym etapem projektu.
 - [x] **Czat ogólny na serwerze** — jeden pokój, panel w menu bocznym, historia
       w bazie (migracja `005`), odpytywanie co 5 s, limity i kasowanie własnych
       wiadomości.
+- [x] **Prywatne wiadomości na serwerze** (migracja `007`) — wątek 1:1, nadawca
+      z sesji, pływające okienka rozmów, licznik nieprzeczytanych.
+- [x] Scalenie paczki roboczej z repozytorium: oprawa (tło, radio, okładki)
+      weszła, konto gościa i przykrywająca warstwa `#imRoot` naprawione,
+      zakładka Live usunięta.
 
 ## 1. Poprawki, każda na jedną sesję
 
@@ -37,9 +42,16 @@ osobnym etapem projektu.
       przed zapisem jako data URL.
 - [ ] **Naprawić sprzeczność w liczbie darmowych wiadomości**: `FREE_MSG_LIMIT`
       to 10, a plan Darmowy w `js/view-premium.js` obiecuje 5.
-- [ ] **Dopisać `inboxUnreadCount()`** albo wyciąć wywołanie z `updateBadges()`
-      (`js/monetization.js`, linia 514) — dziś odznaka pokazuje liczbę wątków,
-      nie nieprzeczytanych.
+- [ ] **Moderacja prywatnych wiadomości.** Dziś każdy zalogowany napisze do
+      każdego. Brakuje blokowania nadawcy po stronie serwera (`BLOCKED` działa
+      tylko w przeglądarce blokującego), zgłoszenia wątku i kasowania rozmowy.
+      To będzie pierwsza potrzebna rzecz po pierwszym trollu.
+- [ ] **Powiadomienie o nowej wiadomości, gdy panel jest zamknięty.** Odznaka ✉
+      odświeża się tylko przy otwartym panelu albo okienku rozmowy — inaczej
+      odpytywalibyśmy serwer bez przerwy. Do zrobienia razem z WebSocketem.
+- [ ] **Sprawdzić licencje na `audio/party.mp3` i okładki gier**, zanim serwis
+      wyjdzie poza testy. Oba zbiory są dziś poza repozytorium właśnie dlatego,
+      że to cudza twórczość.
 - [ ] **Walidacja formularza ogłoszenia** po stronie frontu — serwer sprawdza
       swoje, ale użytkownik powinien wiedzieć przed wysłaniem.
 - [ ] **Usunąć opakowania funkcji z `monetization.js`** (`go`, `renderPlayers`,
@@ -52,9 +64,9 @@ osobnym etapem projektu.
       komplet filtrów — trzeba przepiąć `renderPlayers()` na zapytania
       i zrobić go asynchronicznym. Zrobić to, zanim ogłoszeń będzie więcej
       niż jedno pobranie.
-- [ ] **Ekipy i transmisje w bazie** — jedyne części, które zostały na danych
-      demo także w trybie serwerowym. Nowa migracja, `server/src/routes/teams.js`,
-      przepięcie `js/view-teams-live.js` na `DATA`.
+- [ ] **Ekipy w bazie** — jedyna część, która została na danych demo także
+      w trybie serwerowym. Nowa migracja, `server/src/routes/teams.js`,
+      przepięcie `js/view-teams.js` na `DATA`.
 - [ ] **Pliki z ogłoszeń na serwerze.** Dziś data URL zostaje w przeglądarce
       autora, więc nikt inny go nie zobaczy. Do decyzji: upload do katalogu czy
       tylko odsyłacze do klipów.

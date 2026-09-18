@@ -114,6 +114,9 @@ Wszystko pod `/api`. Ciało i odpowiedzi w JSON-ie.
 | POST | `/chat` | zalogowany | wysyła wiadomość (maks. 300 znaków, 20/min) |
 | DELETE | `/chat/:id` | właściciel | kasuje treść własnej wiadomości |
 | GET | `/presence` | każdy | ile kont było aktywnych w ostatnich 5 minutach |
+| GET | `/dm` | zalogowany | moje wątki prywatne, najnowszy pierwszy |
+| POST | `/dm` | zalogowany | wysyła wiadomość (maks. 400 znaków, 20/min); odbiorca przez `adId` albo `toUserId` |
+| POST | `/dm/:id/read` | uczestnik | oznacza wątek jako przeczytany |
 
 Filtry listy ogłoszeń: `game`, `gameId`, `region`, `plat`, `style`, `time`,
 `hourFrom` i `hourTo` (okno godzinowe), `mic`, `lookingNow`, `lang`, `tag`,
@@ -125,6 +128,23 @@ Sortowanie: najpierw wypromowane, potem konta premium, potem „szukam teraz",
 na końcu po dacie — tak samo jak we froncie.
 
 ## Decyzje warte zapamiętania
+
+**Nadawcy prywatnej wiadomości nie da się podstawić.** `POST /api/dm` bierze
+nadawcę z sesji i ignoruje wszystko, co przyszło w ciele żądania. Przeglądarka
+mówi tylko, DO KOGO pisze: `adId` (piszę z karty ogłoszenia — serwer sam
+sprawdza, czyje ono jest) albo `toUserId` (odpowiadam w istniejącym wątku).
+Wcześniejsza wersja przyjmowała `fromNick` z payloadu, czyli każdy mógł
+napisać jako ktokolwiek.
+
+**Wątek jest jeden na parę kont.** Klucz główny `dm_threads.id` to posortowane
+identyfikatory sklejone przez `__`, a więz `dm_threads_kolejnosc` pilnuje, że
+`user_a < user_b`. Dzięki temu dwie wiadomości wysłane w tej samej chwili
+z dwóch stron nie założą dwóch wątków — wstawka idzie przez `onConflict`.
+
+**Nieprzeczytane liczy się, a nie trzyma.** `a_read_at` / `b_read_at` mówią,
+kiedy każdy z uczestników ostatnio otworzył wątek; licznik to wiadomości
+nowsze niż ten znacznik. Licznik trzymany osobno prędzej czy później by się
+rozjechał.
 
 **Nazwy kolumn.** W bazie jest `time_of_day` i `descr`, bo `time` i `desc` to
 słowa zastrzeżone w SQL. API zamienia je z powrotem na `time` i `desc`, żeby
