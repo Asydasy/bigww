@@ -19,7 +19,11 @@
     document.body.appendChild(audio);
   }
   audio.loop = true;
-  audio.preload = "none";
+  // "metadata", nie "none": przeglądarka pyta o nagłówek pliku od razu, więc od
+  // razu wiadomo, czy plik w ogóle jest. Przy "none" nie pyta wcale, panel
+  // pokazywałby się także bez muzyki, a Play nie robiłby nic. Samego dźwięku
+  // to nie ściąga — dopiero Play.
+  audio.preload = "metadata";
   audio.src = src;
   audio.volume = (window.PREF && typeof PREF.musicVol === "number") ? PREF.musicVol : 0.6;
 
