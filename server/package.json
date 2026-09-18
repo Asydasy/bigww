@@ -27,8 +27,5 @@
   },
   "engines": {
     "node": ">=22"
-  },
-  "devDependencies": {
-    "playwright": "^1.63.0"
   }
 }
