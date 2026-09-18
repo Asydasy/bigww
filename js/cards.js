@@ -37,6 +37,13 @@ function playerCard(p) {
   av.onclick = () => openProfile(p);
 
   const gameRow = el("div", "p-game");
+  // Miniatura okładki gry — jeśli mamy ją na dysku albo znamy appid na Steamie.
+  const thumbSrc = typeof coverCandidates === "function" && coverCandidates(p.game)[0];
+  if (thumbSrc) {
+    const thumb = el("span", "game-mini");
+    thumb.style.backgroundImage = 'url("' + thumbSrc + '")';
+    gameRow.append(thumb);
+  }
   const gname = el("b", null, p.game);
   const gmeta = el("span", null, `${PLAT_LABEL[p.plat] || p.plat} · ${p.hours ? nf(p.hours) + " h" : "nowy"}`);
   gameRow.append(gname, gmeta);
@@ -57,8 +64,16 @@ function playerCard(p) {
 
   // rząd 1: Kontakt + Obserwuj + czas
   const row1 = el("div", "p-foot-row");
+  // „Napisz" otwiera pływające okienko rozmowy. Blokada kontaktu zostaje taka
+  // sama jak była: kto nie ma odblokowanego kontaktu, ten najpierw przechodzi
+  // przez showContact() — okienko nie jest obejściem monetyzacji.
   const msg = el("button", "btn sm pri", canSeeContact(p) ? "Napisz" : "🔒 Kontakt");
-  msg.onclick = () => showContact(p);
+  msg.onclick = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (canSeeContact(p) && typeof imOpen === "function") imOpen({ id: p.id, nick: p.nick });
+    else showContact(p);
+  };
   const star = el("button", "btn sm", SAVED.includes(p.id) ? "★ Obserwujesz" : "☆ Obserwuj");
   star.onclick = async () => {
     await toggleSave(p.id);
@@ -133,32 +148,50 @@ function playerCard(p) {
   return c;
 }
 
-function gameCard(g) {
+function gameCard(g, opts) {
   const count = countFor(g.name);
-  const b = el("button", "gcard");
+  const b = el("button", "gcard" + (opts && opts.featured ? " featured" : ""));
+  if (g.genre) b.dataset.genre = g.genre;
+  if (g.pop >= 5) b.classList.add("hot");
+
   const cover = el("div", "cover");
-  // warstwa 1: grafika generowana (zawsze jest)
-  const generated = coverArt(g);
-  // warstwa 2: prawdziwa okładka ze Steama, jeśli pobrana (img/games + OKLADKI)
-  const slug = typeof slugGry === "function" ? slugGry(g.name) : "";
-  // OKLADKI (obiekt) albo OKLADKI_Z_DYSKU (tablica ze skryptu covers)
-  let hasReal = false;
-  if (slug) {
-    if (typeof OKLADKI !== "undefined" && OKLADKI[slug]) hasReal = true;
-    else if (typeof OKLADKI_Z_DYSKU !== "undefined" && Array.isArray(OKLADKI_Z_DYSKU) && OKLADKI_Z_DYSKU.indexOf(slug) >= 0) hasReal = true;
+  // Warstwa spodnia: grafika generowana — jest zawsze, więc karta nigdy nie
+  // świeci pustym prostokątem, nawet zanim zdjęcie się dociągnie.
+  cover.style.backgroundImage = coverArt(g);
+  const initials = el("span", null, g.name.replace(/[^A-Za-z0-9]/g, "").slice(0, 2).toUpperCase());
+  cover.append(initials);
+  cover.append(el("i", "cover-veil"));
+  if (g.pop >= 5) cover.append(el("em", "hot-pill", "HOT"));
+
+  // Warstwa wierzchnia: prawdziwa okładka. coverCandidates() daje listę adresów
+  // od najpewniejszego: plik z dysku (img/games), potem Steam. Lecimy po niej,
+  // aż któryś się wczyta — zły adres tylko schodzi do następnego.
+  const urls = typeof coverCandidates === "function" ? coverCandidates(g.name) : [];
+  function tryCover(i) {
+    if (i >= urls.length) return;
+    const img = el("img", "cover-photo");
+    img.alt = g.name;
+    img.loading = "lazy";
+    img.src = urls[i];
+    img.onload = () => { cover.classList.add("has-art"); initials.remove(); };
+    img.onerror = () => { img.remove(); tryCover(i + 1); };
+    cover.prepend(img);
   }
-  if (hasReal) {
-    cover.style.backgroundImage = 'url("img/games/' + slug + '.jpg"), ' + generated;
-    cover.classList.add("has-art");
-  } else {
-    cover.style.backgroundImage = generated;
-    cover.append(el("span", null, g.name.replace(/[^A-Za-z0-9]/g, "").slice(0, 2).toUpperCase()));
-  }
+  tryCover(0);
+
   const body = el("div", "body");
   body.append(el("div", "gname", g.name));
   const meta = el("div", "gmeta");
   meta.append(el("span", null, `${g.genre} · ${g.mode}`), el("span", "cnt", count + " graczy"));
   body.append(meta);
+
+  const plats = el("div", "gplats");
+  (g.plats || []).slice(0, 4).forEach(pl => plats.append(el("span", "gplat", pl)));
+  const stars = el("div", "gpops");
+  const pop = Math.max(1, Math.min(5, Number(g.pop) || 1));
+  for (let i = 0; i < 5; i++) stars.append(el("i", i < pop ? "on" : "", "●"));
+  body.append(plats, stars);
+
   b.append(cover, body);
   b.onclick = () => {
     $("#fGame").value = g.name;

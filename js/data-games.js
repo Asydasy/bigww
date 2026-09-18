@@ -210,6 +210,78 @@ Hearthstone|Karcianka|PvP|PC,MOBILE|3
 Magic: The Gathering Arena|Karcianka|PvP|PC,MOBILE|3
 Marvel Snap|Karcianka|PvP|PC,MOBILE|2
 Balatro|Karcianka|Solo|PC,PS,XBOX,SWITCH,MOBILE|3
+Portal 2|Puzzle|Co-op|PC|4
+Left 4 Dead|FPS|Co-op|PC|3
+Killing Floor 2|FPS|Co-op|PC,PS,XBOX|3
+Back 4 Blood|FPS|Co-op|PC,PS,XBOX|2
+Aliens: Fireteam Elite|FPS|Co-op|PC,PS,XBOX|2
+Abiotic Factor|Survival|Co-op|PC|4
+The First Descendant|Shooter|Co-op|PC,PS,XBOX|3
+Gray Zone Warfare|FPS|PvPvE|PC|3
+BattleBit Remastered|FPS|PvP|PC|3
+Insurgency|FPS|PvP|PC|2
+Rising Storm 2: Vietnam|FPS|PvP|PC|3
+Holdfast: Nations At War|FPS|PvP|PC|3
+Ground Branch|FPS|Co-op|PC|3
+Dune: Awakening|Survival|PvPvE|PC|4
+Soulmask|Survival|Co-op|PC|3
+Sunkenland|Survival|Co-op|PC|3
+Nightingale|Survival|Co-op|PC|2
+Palia|MMO|Co-op|PC,SWITCH|3
+Unturned|Survival|PvPvE|PC|4
+The Outlast Trials|Horror|Co-op|PC,PS,XBOX|4
+Demonologist|Horror|Co-op|PC|3
+Ghost Watchers|Horror|Co-op|PC|2
+Forewarned|Horror|Co-op|PC|2
+Project Winter|Survival|PvP|PC|3
+Super Animal Royale|Battle Royale|PvP|PC,PS,XBOX,SWITCH|3
+PlateUp!|Symulacja|Co-op|PC,PS,XBOX,SWITCH|4
+Split Fiction|Przygodowa|Co-op|PC,PS,XBOX|5
+We Were Here|Puzzle|Co-op|PC|3
+We Were Here Together|Puzzle|Co-op|PC|3
+Tabletop Simulator|Planszowa|Co-op|PC|4
+PEAK|Przygodowa|Co-op|PC|4
+Schedule I|Akcja|Co-op|PC|4
+Necesse|Sandbox|Co-op|PC|3
+Gunfire Reborn|Shooter|Co-op|PC,PS,XBOX,SWITCH|4
+Roboquest|Shooter|Co-op|PC,XBOX|3
+Risk of Rain Returns|Akcja|Co-op|PC,PS,XBOX,SWITCH|3
+Tom Clancy's The Division 2|Shooter|Co-op|PC,PS,XBOX|3
+Tom Clancy's Ghost Recon Breakpoint|Shooter|Co-op|PC,PS,XBOX|3
+Far Cry 6|Akcja|Co-op|PC,PS,XBOX|3
+Tiny Tina's Wonderlands|Shooter|Co-op|PC,PS,XBOX|3
+Outriders|Shooter|Co-op|PC,PS,XBOX|2
+Remnant: From the Ashes|RPG akcji|Co-op|PC,PS,XBOX|3
+Dark and Darker|RPG akcji|PvPvE|PC|3
+Age of Mythology: Retold|Strategia|PvP|PC,XBOX|4
+Age of Empires III: Definitive Edition|Strategia|PvP|PC|3
+Stormgate|Strategia|PvP|PC|2
+Company of Heroes 2|Strategia|PvP|PC|3
+SnowRunner|Symulacja|Co-op|PC,PS,XBOX,SWITCH|4
+Expeditions: A MudRunner Game|Symulacja|Co-op|PC,PS,XBOX|3
+RoadCraft|Symulacja|Co-op|PC,PS,XBOX|3
+PowerWash Simulator|Symulacja|Co-op|PC,PS,XBOX,SWITCH|3
+Goat Simulator 3|Akcja|Co-op|PC,PS,XBOX,SWITCH|3
+Le Mans Ultimate|Wyścigi|PvP|PC|3
+Assetto Corsa EVO|Wyścigi|PvP|PC|3
+Rivals of Aether II|Bijatyka|PvP|PC|3
+FragPunk|FPS|PvP|PC|3
+Lockdown Protocol|Horror|Co-op|PC|3
+FOUNDRY|Symulacja|Co-op|PC|3
+Halo: The Master Chief Collection|FPS|PvP|PC,XBOX|4
+Overcooked! All You Can Eat|Symulacja|Co-op|PC,PS,XBOX,SWITCH|3
+PICO PARK|Puzzle|Co-op|PC|3
+Moving Out|Symulacja|Co-op|PC,PS,XBOX,SWITCH|3
+Keep Talking and Nobody Explodes|Puzzle|Co-op|PC,PS,XBOX,SWITCH|3
+Pavlov|FPS|PvP|PC|3
+VRChat|Sandbox|Co-op|PC|4
+Only Up|Przygodowa|Co-op|PC|2
+Dragon Ball: Sparking! ZERO|Bijatyka|PvP|PC,PS,XBOX|4
+WWE 2K25|Sportowa|PvP|PC,PS,XBOX|3
+Rematch|Sportowa|PvP|PC,PS,XBOX|4
+ARC Raiders|Shooter|PvPvE|PC,PS,XBOX|4
+Battlefield 6|FPS|PvP|PC,PS,XBOX|5
+Call of Duty: Black Ops 7|FPS|PvP|PC,PS,XBOX|3
 `.trim();
 
 const GAMES = GAME_DATA.split("\n").map((line, i) => {
@@ -223,4 +295,3 @@ const GAMES = GAME_DATA.split("\n").map((line, i) => {
     pop: Number(pop)
   };
 });
-

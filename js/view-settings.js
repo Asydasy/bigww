@@ -10,7 +10,48 @@ function applyTheme() {
   }
   document.documentElement.setAttribute("data-theme", theme);
   if ($("#sTheme")) $("#sTheme").value = PREF.theme || "dark";
+  applyFx();
 }
+
+/* ---- oprawa: efekty wizualne i radio ---- */
+function applyFx() {
+  const mode = PREF.fx === "off" ? "off" : "max";
+  document.documentElement.setAttribute("data-fx", mode);
+  if ($("#sFx")) $("#sFx").value = mode;
+  if (mode === "max" && typeof window.fxWake === "function") window.fxWake();
+}
+if ($("#sFx")) $("#sFx").onchange = e => {
+  PREF.fx = e.target.value === "off" ? "off" : "max";
+  save(KEY.pref, PREF);
+  applyFx();
+  toast(PREF.fx === "off" ? "Efekty wyłączone" : "Efekty na maksa");
+};
+if ($("#sMusic")) {
+  $("#sMusic").value = PREF.music === "on" ? "on" : "off";
+  $("#sMusic").onchange = e => {
+    PREF.music = e.target.value === "on" ? "on" : "off";
+    save(KEY.pref, PREF);
+    if (PREF.music === "off") {
+      if (typeof partyStop === "function") partyStop();
+    } else if (typeof partyStart === "function") {
+      partyStart();
+    }
+    toast(PREF.music === "off" ? "Muzyka wyłączona" : "Muzyka włączona");
+  };
+}
+if ($("#sMusicVol")) {
+  $("#sMusicVol").value = String(Math.round((PREF.musicVol == null ? 0.6 : PREF.musicVol) * 100));
+  $("#sMusicVol").oninput = e => {
+    const v = Number(e.target.value) / 100;
+    PREF.musicVol = v;
+    save(KEY.pref, PREF);
+    if (typeof partySetVolume === "function") partySetVolume(v);
+  };
+}
+if ($("#sMusicMute")) $("#sMusicMute").onclick = () => {
+  if (typeof partyMute === "function") partyMute();
+  else if (typeof partyStop === "function") partyStop();
+};
 $("#sTheme").onchange = e => { PREF.theme = e.target.value; save(KEY.pref, PREF); applyTheme(); };
 if (window.matchMedia) {
   try {
@@ -98,11 +139,10 @@ $("#sWipe").onclick = () => {
     UNLOCKS = [];
     NAVCOUNT = 0;
     PREM = { active: false, plan: null, until: 0, since: 0 };
-    LIVEPASS = { until: 0 };
-    LIVETICKETS = [];
     // Rzeczy, które doszły razem ze skrzynką i moderacją — bez tego „usuń
     // wszystko" zostawiało wiadomości, blokady i oceny.
     INBOX = [];
+    DM_THREADS = [];
     NOTIFS = [];
     BLOCKED = [];
     REPORTS = [];
@@ -113,7 +153,6 @@ $("#sWipe").onclick = () => {
     save(KEY.coins, COINS); save(KEY.ref, REF); save(KEY.boosts, BOOSTS); save(KEY.adlog, ADLOG);
     save(KEY.msg, MSG); save(KEY.bp, BP); save(KEY.quests, QUESTS); save(KEY.unlocks, UNLOCKS);
     save(KEY.navcount, NAVCOUNT); save(KEY.prem, PREM);
-    save(KEY.livePass, LIVEPASS); save(KEY.liveTickets, LIVETICKETS);
     save(KEY.inbox, INBOX); save(KEY.notifs, NOTIFS); save(KEY.blocked, BLOCKED);
     save(KEY.reports, REPORTS); save(KEY.ratings, RATINGS); save(KEY.presets, PRESETS);
     // Klucze poza obiektem KEY — nie mają przyrostka konta, więc lecą wprost.
@@ -121,10 +160,13 @@ $("#sWipe").onclick = () => {
     localStorage.removeItem("bigww_unlock_cred");
     localStorage.removeItem("bigww_gw_entries");
     localStorage.removeItem("bigww_gw_day");
+    // Zostałości po Live — zakładka zniknęła, klucze zostały w przeglądarkach.
+    localStorage.removeItem("bigww_livepass_v2");
+    localStorage.removeItem("bigww_livetickets_v2");
     countCache = null;
     $("#modal").classList.remove("on");
     updateBadges(); updateNotifUI(); renderInbox();
-    renderMine(); renderSaved(); renderPlayers(true); renderHome(); renderShop(); renderPremium(); renderLives();
+    renderMine(); renderSaved(); renderPlayers(true); renderHome(); renderShop(); renderPremium();
     if (typeof renderGiveaways === "function") renderGiveaways();
     toast("Dane usunięte");
   };

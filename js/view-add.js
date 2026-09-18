@@ -134,6 +134,13 @@ function preview() {
   const box = $("#aPreview");
   box.innerHTML = "";
   box.append(playerCard(draft()));
+  // Podgląd to obrazek własnego ogłoszenia, nie działająca karta. Bez tego
+  // „Napisz" w podglądzie otwierało rozmowę z samym sobą, a „Obserwuj"
+  // dopisywało do obserwowanych ogłoszenie, którego jeszcze nie ma.
+  box.querySelectorAll("button, a, .nick-link").forEach(n => {
+    n.onclick = e => { e.preventDefault(); e.stopPropagation(); };
+    n.style.pointerEvents = "none";
+  });
 }
 let editingAdId = null;
 

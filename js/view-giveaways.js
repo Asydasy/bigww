@@ -128,7 +128,20 @@ function renderGiveaways() {
     } else {
       btn.textContent = en ? "Free ticket" : "Darmowy bilet";
     }
-    btn.onclick = () => enterGiveaway(g);
+    // Bilet na dziś już wzięty — przycisk mówi to wprost, zamiast przyjmować
+    // kliknięcie i cicho nic nie robić.
+    const dayMap = loadGwDay();
+    const day = gwDayKey(g.id);
+    const usedFree = g.costWW <= 0 && dayMap[day];
+    if (usedFree || (g.costWW > 0 && mine > 0 && dayMap[day + "-paid"])) {
+      btn.disabled = true;
+      btn.classList.add("ghost");
+      btn.textContent = en ? "Ticket added" : "Bilet dodany";
+      btn.style.opacity = ".45";
+      btn.style.pointerEvents = "none";
+    } else {
+      btn.onclick = () => enterGiveaway(g);
+    }
     actions.appendChild(btn);
     if (g.premiumBoost) {
       const tip = document.createElement("span");
@@ -177,8 +190,17 @@ function enterGiveaway(g) {
     saveGwDay(dayMap);
   } else {
     if (typeof COINS === "undefined" || COINS.bal < g.costWW) {
-      toast(LANG === "en" ? "Not enough WW" : "Za mało monet WW");
-      if (typeof go === "function") go("shop");
+      openModal(`<h3 style="margin-bottom:8px">Za mało monet WW</h3>
+        <p class="note">Ten bilet kosztuje <b>${g.costWW} WW</b>. Nie masz wystarczającej liczby monet.</p>
+        <p class="note" style="margin-top:8px">Kup monety WW w sklepie albo weź <b>Premium</b> — w części losowań Premium daje podwójną wagę biletu.</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:16px">
+          <button class="btn pri" id="gwGoShop">Kup monety WW</button>
+          <button class="btn gold" id="gwGoPrem">Kup Premium</button>
+          <button class="btn ghost" id="gwNoCoins">Zamknij</button>
+        </div>`);
+      if ($("#gwGoShop")) $("#gwGoShop").onclick = () => { $("#modal").classList.remove("on"); go("shop"); };
+      if ($("#gwGoPrem")) $("#gwGoPrem").onclick = () => { $("#modal").classList.remove("on"); go("premium"); };
+      if ($("#gwNoCoins")) $("#gwNoCoins").onclick = () => $("#modal").classList.remove("on");
       return;
     }
     if (typeof addCoins === "function") addCoins(-g.costWW, (LANG === "en" ? "Giveaway ticket" : "Bilet giveaway"));

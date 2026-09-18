@@ -22,3 +22,8 @@ server/.env.test
 # Okladki gier pobierane skryptem (cd server && npm run covers).
 # Nie trzymamy ich w repo: to kilka MB binariow i cudza wlasnosc.
 img/games/
+
+# Muzyka do radia (audio/party.mp3) — tak samo jak okladki: kilka MB
+# cudzej tworczosci. Repo trzyma kod, nie biblioteke dzwiekow. Bez pliku
+# panel radia po prostu sie nie pokazuje.
+audio/

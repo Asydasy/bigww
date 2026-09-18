@@ -275,37 +275,13 @@ for (let i = 0; i < 80; i++) {
     added: Date.now() - Math.floor(R() * 400 * HOUR)
   });
   TEAMS[i].desc = TEAMS[i].desc.replace("{n}", size - filled);
+  // Ekipa ma założyciela z listy graczy — dzięki temu da się do niego napisać,
+  // zamiast oglądać ekipę bez właściciela.
+  const founder = PLAYERS[int(0, PLAYERS.length - 1)];
+  if (founder) {
+    TEAMS[i].owner = founder.nick;
+    TEAMS[i].ownerId = founder.id;
+  }
 }
 
-/* ---- live streamy (demo) ---- */
-const LIVE_TITLES = [
-  "Szukam duo ranked — bez toksyczności",
-  "Gram chill, wpadaj na voice",
-  "Ostatni slot do 5-stacka",
-  "Nocny grind, mikrofon on",
-  "Uczę nowych — spokojnie",
-  "Turniejowa rozgrzewka, 2 miejsca",
-  "SoloQ piekło — ratunku",
-  "Customki z ekipą, open lobby"
-];
-const LIVES = [];
-for (let i = 0; i < 36; i++) {
-  const p = PLAYERS[int(0, PLAYERS.length - 1)];
-  const game = GAMES.find(g => g.name === p.game) || GAMES[0];
-  LIVES.push({
-    id: "live" + i,
-    nick: p.nick,
-    playerId: p.id,
-    game: p.game,
-    title: pick(LIVE_TITLES),
-    viewers: int(3, 420),
-    started: Date.now() - int(2, 180) * 60000,
-    region: p.region,
-    plat: p.plat,
-    thumb: coverArt(game),
-    premiumOnly: R() < 0.55
-  });
-}
-
-const LIVE_TICKET_COST = 35;
 

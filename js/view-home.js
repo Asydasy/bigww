@@ -23,7 +23,21 @@ function renderHome() {
     box.append(s);
   });
 
-  const top = GAMES.slice().sort((a, b) => countFor(b.name) - countFor(a.name)).slice(0, 10);
+  // Najpierw popularność gry, dopiero potem liczba ogłoszeń — inaczej przy
+  // pustej bazie na górze lądują przypadkowe tytuły z zerem ogłoszeń.
+  const top = GAMES.slice().sort((a, b) => (b.pop - a.pop) || (countFor(b.name) - countFor(a.name))).slice(0, 10);
+
+  // Trzy pierwsze jeszcze raz, w większym pasku nad siatką.
+  let feat = $("#homeFeatured");
+  if (!feat && gbox && gbox.parentNode) {
+    feat = el("div", "featured-rail");
+    feat.id = "homeFeatured";
+    gbox.parentNode.insertBefore(feat, gbox);
+  }
+  if (feat) {
+    feat.innerHTML = "";
+    top.slice(0, 3).forEach(g => feat.append(gameCard(g, { featured: true })));
+  }
   const gbox = $("#homeGames");
   gbox.innerHTML = "";
   top.forEach(g => gbox.append(gameCard(g)));

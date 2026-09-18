@@ -497,7 +497,6 @@ function updateBadges() {
   $("#nb-players").textContent = nf(allPlayers().length);
   $("#nb-games").textContent = nf(GAMES.length);
   $("#nb-teams").textContent = TEAMS.length;
-  if ($("#nb-live")) $("#nb-live").textContent = LIVES.length;
   if (typeof GIVEAWAYS !== "undefined") {
     const gwOpen = GIVEAWAYS.filter(g => g.status === "open").length;
     const gwBtn = document.querySelector('#nav button[data-v="giveaways"]');
@@ -517,7 +516,7 @@ function updateBadges() {
       el.textContent = unread > 9 ? "9+" : String(unread);
       el.classList.add("alert");
     } else {
-      el.textContent = INBOX.length || "";
+      el.textContent = (typeof DM_THREADS !== "undefined" && DM_THREADS.length) || "";
       el.classList.remove("alert");
     }
   }
@@ -588,7 +587,11 @@ function maybeShowInterstitial() {
 const _goOrig = go;
 go = function (view) {
   _goOrig(view);
-  maybeShowInterstitial();
+  // Reklama pełnoekranowa nie wchodzi tam, gdzie przerwałaby robotę:
+  // w formularzu ogłoszenia, ustawieniach i regulaminie.
+  if (view !== "add" && view !== "settings" && view !== "terms" && view !== "privacy") {
+    maybeShowInterstitial();
+  }
 };
 
 // sponsored slot in player list
