@@ -38,7 +38,6 @@ function go(view) {
   if (view === "settings") renderSettingsPrem();
   if (view === "shop") renderShop();
   if (view === "giveaways" && typeof renderGiveaways === "function") renderGiveaways();
-  if (view === "live") renderLives();
   if (view === "terms") renderTerms("terms");
   if (view === "privacy") renderTerms("privacy");
   if (view === "add" && isLoggedIn() && $("#aNick") && !$("#aNick").value) {

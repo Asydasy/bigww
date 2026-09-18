@@ -26,7 +26,7 @@ function buildTermsHtml() {
 <li><b>Użytkownik</b> – osoba fizyczna korzystająca z Serwisu.</li>
 <li><b>Konto</b> – indywidualne konto Użytkownika zabezpieczone hasłem.</li>
 <li><b>Ogłoszenie</b> – treść opublikowana w celu znalezienia osób do wspólnej gry.</li>
-<li><b>Premium</b> – płatna usługa dodatkowa (wyróżnienie, limity, Live).</li>
+<li><b>Premium</b> – płatna usługa dodatkowa (wyróżnienie, limity).</li>
 <li><b>Monety WW</b> – wirtualne jednostki w Serwisie, bez wartości pieniężnej poza Serwisem.</li>
 </ul>
 <h3>§ 3. Wymagania i wiek</h3>
@@ -47,7 +47,7 @@ function buildTermsHtml() {
 <p>5. Kontakt między Użytkownikami odbywa się poza Serwisem (np. Discord). Administrator nie odpowiada za prywatną korespondencję.</p>
 <h3>§ 6. Usługi płatne</h3>
 <p>1. Ceny Premium, monet WW i boostów są podawane przed zakupem.</p>
-<p>2. W wersji demonstracyjnej płatności mogą być symulowane — Użytkownik jest o tym informowany w interfejsie.</p>
+<p>2. Płatności Premium są realizowane w ramach oferty Serwisu.</p>
 <p>3. Monety WW nie są środkiem płatniczym i nie podlegają wymianie na gotówkę.</p>
 <p>4. Konsumenci mają prawo odstąpienia od umowy na odległość w terminie 14 dni, z wyjątkami z art. 38 ustawy o prawach konsumenta.</p>
 <p>5. Reklamy są oznaczane. Administrator nie odpowiada za strony partnerów zewnętrznych.</p>
@@ -83,7 +83,7 @@ function buildTermsHtml() {
 <li>dane techniczne: motyw, język, stan Premium/monet w localStorage,</li>
 <li>przy płatnościach: dane niezbędne u operatora płatności.</li>
 </ul>
-<p>W wersji demonstracyjnej dane są przechowywane głównie lokalnie w przeglądarce.</p>
+<p>Dane konta, ogłoszeń i wiadomości są przechowywane w Serwisie. Ustawienia, monety i powiadomienia zostają w przeglądarce.</p>
 <h3>3. Cele i podstawy (RODO)</h3>
 <ul>
 <li>art. 6 ust. 1 lit. b — wykonanie umowy o świadczenie usług drogą elektroniczną,</li>

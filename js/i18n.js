@@ -27,7 +27,7 @@ const I18N = {
     "user.logout": "Wyloguj",
     "nav.giveaways": "Giveawaye",
     "gw.title": "Giveawaye",
-    "gw.sub": "Losowania dla społeczności BigWW. Udział wymaga konta. Warstwa demonstracyjna — nagrody nie są wysyłane automatycznie.",
+    "gw.sub": "Losowania dla społeczności BigWW. Udział wymaga konta. Nagrody przyznaje administracja BigWW.",
     "gw.history": "Historia",
 
     "footer.tagline": "BigWW — znajdź ekipę do grania.",
@@ -35,7 +35,7 @@ const I18N = {
     "footer.privacy": "Polityka prywatności",
     "footer.cookies": "Cookies",
     "footer.contact": "Kontakt",
-    "footer.copy": "© BigWW. Prototyp demonstracyjny.",
+    "footer.copy": "© BigWW",
     "cookie.text": "Używamy niezbędnych danych w przeglądarce (localStorage), żeby zapamiętać sesję i preferencje. Analityka marketingowa jest wyłączona. Szczegóły w Polityce prywatności.",
     "cookie.accept": "Akceptuję",
     "cookie.essential": "Tylko niezbędne",
@@ -105,13 +105,6 @@ const I18N = {
     "teams.search": "Szukaj ekipy lub gry",
     "teams.searchPh": "np. Rust, klan, turniej, casual",
     // live
-    "live.title": "Live — grają na żywo",
-    "live.sub": "Streamerzy i gracze szukający ekipy na żywo. Oglądanie streamów wymaga Premium albo jednorazowej opłaty w monetach WW.",
-    "live.search": "Szukaj streamu lub gry",
-    "live.searchPh": "np. CS2, Valorant, Rust",
-    "live.sort": "Sortuj",
-    "live.sortViewers": "Najwięcej widzów",
-    "live.sortNew": "Najnowsze",
     // add
     "add.title": "Dodaj ogłoszenie",
     "add.sub": "Ogłoszenie trafia na listę graczy. Możesz dołączyć klip lub screen z rozgrywki.",
@@ -292,13 +285,6 @@ const I18N = {
     "teams.sub": "Groups with open slots. Open slots show how many people are still needed.",
     "teams.search": "Search team or game",
     "teams.searchPh": "e.g. Rust, clan, tournament, casual",
-    "live.title": "Live — playing right now",
-    "live.sub": "Streamers and players looking for a squad live. Watching streams requires Premium or a one-time WW coin fee.",
-    "live.search": "Search stream or game",
-    "live.searchPh": "e.g. CS2, Valorant, Rust",
-    "live.sort": "Sort",
-    "live.sortViewers": "Most viewers",
-    "live.sortNew": "Newest",
     "add.title": "Post a listing",
     "add.sub": "Your listing goes to the player list. You can attach a clip or screenshot.",
     "add.nick": "Nick",
@@ -405,7 +391,6 @@ function setLang(lang) {
     if (typeof renderPlayers === "function") renderPlayers(true);
     if (typeof renderGames === "function") renderGames();
     if (typeof renderTeams === "function") renderTeams();
-    if (typeof renderLives === "function") renderLives();
     if (typeof renderPremium === "function") renderPremium();
     if (typeof renderShop === "function") renderShop();
     if (typeof renderSettingsPrem === "function") renderSettingsPrem();
@@ -513,7 +498,6 @@ function applyStaticI18n() {
   setHead("v-players", "players.title", "players.sub");
   setHead("v-games", "games.title", "games.sub");
   setHead("v-teams", "teams.title", "teams.sub");
-  setHead("v-live", "live.title", "live.sub");
   setHead("v-giveaways", "gw.title", "gw.sub");
   const gwH = document.querySelector("#v-giveaways .section-title h2");
   if (gwH) gwH.textContent = t("gw.history");
@@ -574,8 +558,6 @@ function applyStaticI18n() {
   setLabel("fSort", "players.sort");
   setLabel("gSearch", "games.search");
   setLabel("tSearch", "teams.search");
-  setLabel("lSearch", "live.search");
-  setLabel("lSort", "live.sort");
   // hours label (no for)
   document.querySelectorAll("#v-players .filters .field label").forEach(lab => {
     if (lab.getAttribute("for") == null && /Godziny|Play hours|Hours/i.test(lab.textContent)) lab.textContent = t("players.hours");
@@ -586,8 +568,6 @@ function applyStaticI18n() {
   if (gSearch) gSearch.placeholder = t("games.searchPh");
   const tSearch = document.getElementById("tSearch");
   if (tSearch) tSearch.placeholder = t("teams.searchPh");
-  const lSearch = document.getElementById("lSearch");
-  if (lSearch) lSearch.placeholder = t("live.searchPh");
   // sort options
   const fSort = document.getElementById("fSort");
   if (fSort) {
@@ -596,11 +576,6 @@ function applyStaticI18n() {
     if (opts[1]) opts[1].text = t("players.sortOnline");
     if (opts[2]) opts[2].text = t("players.sortHours");
     if (opts[3]) opts[3].text = t("players.sortRating");
-  }
-  const lSort = document.getElementById("lSort");
-  if (lSort) {
-    if (lSort.options[0]) lSort.options[0].text = t("live.sortViewers");
-    if (lSort.options[1]) lSort.options[1].text = t("live.sortNew");
   }
   const pReset = document.getElementById("pReset");
   if (pReset) pReset.textContent = t("players.reset");

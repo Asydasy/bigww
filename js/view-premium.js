@@ -8,19 +8,19 @@ const PLANS = [
     id: "free", name: "Darmowe", price: "0 zł", per: "zawsze", days: 0, best: false,
     perks: [["Przeglądanie bazy graczy", 1], ["5 darmowych wiadomości / dzień", 1],
             ["2 własne ogłoszenia", 1], ["Pełny kontakt bez limitu", 0],
-            ["Oglądanie Live", 0], ["Bez reklam pełnoekranowych", 0]],
+            ["Bez reklam pełnoekranowych", 0]],
     cta: "Używasz teraz"
   },
   {
     id: "month", name: "Premium", price: "19,99 zł", per: "miesięcznie", days: 30, best: false,
     perks: [["Nielimitowany kontakt i wiadomości", 1], ["Ogłoszenia nad resztą wyników", 1],
-            ["Pełny dostęp do Live", 1], ["Do 10 ogłoszeń", 1],
+            ["Do 10 ogłoszeń", 1],
             ["Bez reklam pełnoekranowych", 1], ["Własny kolor awatara", 1]],
     cta: "Kup na miesiąc"
   },
   {
     id: "pro", name: "Pro / Clan", price: "39,99 zł", per: "miesięcznie", days: 30, best: true,
-    perks: [["Wszystko z Premium + Live", 1], ["Do 20 ogłoszeń + klan", 1],
+    perks: [["Wszystko z Premium", 1], ["Do 20 ogłoszeń + klan", 1],
             ["Sponsored slot 24 h / tydzień", 1], ["Statystyki wyświetleń", 1],
             ["Priorytet w ekipach", 1], ["Badge PRO i brak reklam", 1]],
     cta: "Weź Pro"
@@ -85,7 +85,7 @@ function renderPremium() {
 
   const faq = [
     ["Czy mogę zrezygnować w każdej chwili?", "Tak. Anulujesz subskrypcję w Ustawieniach — dostęp Premium działa do końca opłaconego okresu."],
-    ["Co dostaję w Premium?", "Ogłoszenia nad resztą wyników, złota ramka i odznaka, wyższy limit ogłoszeń, pełny Live i nielimitowany kontakt."],
+    ["Co dostaję w Premium?", "Ogłoszenia nad resztą wyników, złota ramka i odznaka, wyższy limit ogłoszeń i nielimitowany kontakt."],
     ["Czy bez Premium widzę wszystkich graczy?", "Tak. Przeglądanie i filtry są dostępne dla każdego. Premium ułatwia kontakt i wyróżnia Twoje ogłoszenia."],
     ["Jak działa płatność?", "Płatność kartą jest szyfrowana. Po potwierdzeniu Premium aktywuje się od razu."]
   ];
@@ -146,9 +146,13 @@ function processPay(plan) {
       <p class="note">${plan.name} działa do ${dateStr(PREM.until)}. Twoje ogłoszenia są już wyróżnione.</p>
       <p class="note" style="margin-top:10px">Premium zostało aktywowane na Twoim koncie.</p></div>`;
     const ok = el("button", "btn gold", "Zobacz moje ogłoszenia");
-    ok.style.marginTop = "18px";
+    const row = el("div");
+    row.style.cssText = "display:flex;gap:8px;flex-wrap:wrap;margin-top:18px;justify-content:center";
     ok.onclick = () => { $("#modal").classList.remove("on"); go("mine"); };
-    $("#modalBox").append(ok);
+    const close = el("button", "btn", "Zamknij");
+    close.onclick = () => $("#modal").classList.remove("on");
+    row.append(ok, close);
+    $("#modalBox").append(row);
     refreshPrem();
     toast("Premium aktywowane");
   }, 1300);

@@ -13,7 +13,6 @@ renderHome();
 renderPlayers(true);
 renderGames();
 renderTeams();
-renderLives();
 renderInfo();
 renderPremium();
 renderSettingsPrem();
